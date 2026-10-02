@@ -346,7 +346,7 @@ fLPDID <- function(formula, data,
   }
   if (!any(tr_obs == 1))
     warning(sprintf(
-      "fLPDID: treatment '%s' is never 1 — no treatment entries exist, so ",
+      "fLPDID: treatment '%s' is never 1 \u2014 no treatment entries exist, so ",
       treat), "every horizon will be non-estimable.", call. = FALSE)
 
   # LHS evaluated on the (operator-expanded) data.
@@ -366,7 +366,7 @@ fLPDID <- function(formula, data,
                              na.action = stats::na.pass)
     X  <- stats::model.matrix(design_formula, mf)
     if (ncol(X) != length(control_labels))
-      stop("fLPDID: internal error — design matrix has ", ncol(X),
+      stop("fLPDID: internal error \u2014 design matrix has ", ncol(X),
            " columns but ", length(control_labels), " control terms.",
            call. = FALSE)
     colnames(X) <- control_labels
@@ -448,7 +448,7 @@ fLPDID <- function(formula, data,
   bad <- !res$.norm & !is.finite(res$estimate)
   if (any(bad))
     warning(sprintf(
-      "fLPDID: %d horizon(s) not estimable (event_time %s) — too few clean-control rows, no treatment entries, or a degenerate treatment column after within-year demeaning.",
+      "fLPDID: %d horizon(s) not estimable (event_time %s) \u2014 too few clean-control rows, no treatment entries, or a degenerate treatment column after within-year demeaning.",
       sum(bad), paste(res$event_time[bad], collapse = ", ")), call. = FALSE)
   if (any(res$ndrop > 0L, na.rm = TRUE))
     warning(sprintf(

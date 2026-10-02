@@ -13,6 +13,10 @@ struct VARResult {
   int n_exog;            // Number of exogenous variables
 };
 
+// Internal C++ function — no-exog overload. Use this inside parallel regions
+// to avoid constructing Rcpp objects on worker threads.
+VARResult fVAR_cpp(const arma::mat& y, int p, int c);
+
 // Internal C++ function (for use in other C++ code) — Nullable-exog overload
 VARResult fVAR_cpp(const arma::mat& y, int p, int c,
                    Rcpp::Nullable<arma::mat> exog);

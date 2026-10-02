@@ -6,7 +6,7 @@ Date: 2025-01-24
 Encoding: UTF-8
 Authors@R: person("Muhsin", "Ciftci", email = "farmer.muhsin@gmail.com", 
                   role = c("aut", "cre"))
-Description: Implements Vector Autoregression (VAR) models using fast and 
+Description: Implements Vector Autoregression (VAR) models and local projections using fast and 
     efficient C++ programs via Rcpp and RcppArmadillo. Provides tools for 
     estimation, forecasting, and impulse response analysis.
 License: MIT + file LICENSE
@@ -16,7 +16,8 @@ Imports:
     ggplot2,
     tidyr,
     dplyr,
-    rlang
+    rlang,
+    tidyselect
 Suggests:
     knitr,
     rmarkdown,

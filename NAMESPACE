@@ -109,10 +109,22 @@ importFrom(ggplot2,
   theme_set,
   update_geom_defaults
 )
-importFrom(rlang,.data)
+importFrom(rlang,
+  ":=",
+  .data
+)
+importFrom(stats,
+  Box.test,
+  as.formula,
+  complete.cases,
+  cor,
+  pf,
+  terms
+)
 importFrom(tibble,
   as_tibble,
   tibble
 )
 importFrom(tidyr,pivot_longer)
+importFrom(utils,head)
 useDynLib(tidyMacro, .registration=TRUE)

@@ -12,8 +12,9 @@
 #ifdef _OPENMP
 #include <omp.h>
 #endif
-#include <cstdio>
+#include <R_ext/Print.h>
 #include <algorithm>
+#include <cmath>
 
 
 BootstrapUhligResult
@@ -32,6 +33,19 @@ fBootstrapUhlig_cpp(const arma::mat& y, const VARResult& var_result,
     const int n_coef   = static_cast<int>(var_result.beta.n_rows);
     const int slice_sz = N * H;
 
+    if (nboot <= 0)
+        Rcpp::stop("'nboot' must be positive.");
+    if (horizon < 0)
+        Rcpp::stop("'horizon' must be non-negative.");
+    if (N < 2)
+        Rcpp::stop("Uhlig max-share identification requires at least two variables.");
+    if (idx < 0 || idx >= N)
+        Rcpp::stop("'idx' is out of range.");
+    if (conf <= 0.0 || conf > 100.0 || conf2 <= 0.0 || conf2 > 100.0)
+        Rcpp::stop("'conf' and 'conf2' must be in (0, 100].");
+    if (!cumulate.is_empty() && cumulate.max() >= static_cast<arma::uword>(N))
+        Rcpp::stop("'cumulate' contains an out-of-range variable index.");
+
     if (n_exog > 0 && exog.isNull())
         Rcpp::stop("Original VAR used exogenous variables. You must provide the 'exog' parameter.");
     if (n_exog == 0 && exog.isNotNull())
@@ -47,26 +61,40 @@ fBootstrapUhlig_cpp(const arma::mat& y, const VARResult& var_result,
     const bool has_exog = exog.isNotNull();
     arma::mat exog_mat;
     if (has_exog) exog_mat = Rcpp::as<arma::mat>(exog);
+    const arma::mat* exog_ptr = has_exog ? &exog_mat : nullptr;
+
+    // Pre-generate residual indices on R's main thread. The OpenMP loop then
+    // contains no RNG/R API calls and is reproducible across thread counts.
+    const int T_iter = T - p;
+    const int T_resid = static_cast<int>(var_result.residuals.n_rows);
+    arma::umat resample_indices(T_iter, nboot, arma::fill::none);
+    for (int b = 0; b < nboot; ++b)
+        resample_indices.col(b) = arma::randi<arma::uvec>(
+            T_iter, arma::distr_param(0, T_resid - 1));
 
     int actual_threads = 1;
 #ifdef _OPENMP
-    actual_threads = (n_threads == 0)
+    actual_threads = (n_threads <= 0)
                          ? std::max(1, omp_get_max_threads() - 1)
                          : n_threads;
     omp_set_num_threads(actual_threads);
-    std::printf("Using %d thread(s) for Uhlig max-share bootstrap...\n", actual_threads);
+    Rprintf("Using %d thread(s) for Uhlig max-share bootstrap...\n", actual_threads);
 #else
-    std::printf("OpenMP not available. Running single-threaded Uhlig bootstrap.\n");
+    Rprintf("OpenMP not available. Running single-threaded Uhlig bootstrap.\n");
 #endif
 
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static) num_threads(actual_threads)
+#endif
     for (int b = 0; b < nboot; ++b) {
 
-        BootstrapVARResult boot_data = fBootstrapVAR_cpp(y, var_result, "residual",
-                                                          has_exog ? &exog_mat : nullptr);
+        arma::uvec indices = resample_indices.col(b);
+        BootstrapVARResult boot_data =
+            fBootstrapVAR_cpp(y, var_result, indices, exog_ptr);
 
         VARResult var_loop = has_exog
                                  ? fVAR_cpp(boot_data.ynext, p, c, exog_mat)
-                                 : fVAR_cpp(boot_data.ynext, p, c, R_NilValue);
+                                 : fVAR_cpp(boot_data.ynext, p, c);
         boot_beta.slice(b) = var_loop.beta.t();
 
         WoldIRFResult wold_res = fWoldIRF_cpp(var_loop, horizon);
@@ -113,8 +141,11 @@ fBootstrapUhlig_cpp(const arma::mat& y, const VARResult& var_result,
 
     auto nth_pct = [](std::vector<double>& v, double pct) -> double {
         const int n = static_cast<int>(v.size());
-        const double raw = (pct / 100.0) * (n - 1);
-        const int lo = static_cast<int>(raw);
+        // Match MATLAB prctile's default exact/midpoint interpolation.
+        const double raw = (pct / 100.0) * n - 0.5;
+        if (raw <= 0.0) return *std::min_element(v.begin(), v.end());
+        if (raw >= n - 1.0) return *std::max_element(v.begin(), v.end());
+        const int lo = static_cast<int>(std::floor(raw));
         const double frac = raw - lo;
         std::nth_element(v.begin(), v.begin() + lo, v.end());
         const double lo_val = v[lo];
@@ -149,12 +180,27 @@ fBootstrapUhlig_cpp(const arma::mat& y, const VARResult& var_result,
     return result;
 }
 
+//' Bootstrap Uhlig Maximum-Share Impulse Responses
+//'
+//' Computes residual-bootstrap confidence bands for the identification
+//' used by \code{\link{fUhligIRF}}. The corrected variant first estimates
+//' coefficient bias, shrinking the correction if needed for VAR stability,
+//' and then bootstraps the bias-corrected VAR.
+//'
+//' @inheritParams fBootstrapMax
+//' @param idx Index (1-based) of the variable whose forecast error variance
+//'   contribution is maximised.
+//' @return A list with \code{bootuhlig}, an N x (horizon+1) x nboot array;
+//'   \code{upper}, \code{lower}, \code{upper2}, and \code{lower2}, each
+//'   an N x (horizon+1) matrix; and \code{boot_beta}, an N x K x nboot
+//'   coefficient array, where K is the number of regressors. The corrected
+//'   variant stores \code{nboot2} draws.
 //' @export
 // [[Rcpp::export]]
 Rcpp::List fBootstrapUhlig(const arma::mat& y, const Rcpp::List& var_result,
                             int nboot, int horizon, int idx,
                             double conf = 90.0, double conf2 = 68.0,
-                            Rcpp::IntegerVector cumulate = Rcpp::IntegerVector(),
+                            Rcpp::IntegerVector cumulate = Rcpp::IntegerVector::create(),
                             Rcpp::Nullable<arma::mat> exog = R_NilValue,
                             int n_threads = 0) {
     VARResult vr;

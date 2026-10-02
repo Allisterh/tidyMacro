@@ -49,8 +49,9 @@ fAICBIC <- function(y, pmax, c, exog = NULL) {
 #'
 #' @param wold Wold representation cube (N x N x horizon+1), where
 #'   \code{wold[,,h]} contains the Wold IRF at horizon h
-#' @param K N x N lower triangular Cholesky factor of the long-run
-#'   covariance matrix used for BQ identification
+#' @param K N x N contemporaneous impact matrix from BQ identification,
+#'   obtained by solving C(1) K = D, where D is the lower Cholesky
+#'   factor of the long-run covariance matrix.
 #' @param scaling Optional numeric vector of length 2. The first element
 #'   specifies the variable index (1-based) used for normalisation, and the
 #'   second element specifies the shock size. When omitted no normalisation
@@ -65,7 +66,7 @@ fAICBIC <- function(y, pmax, c, exog = NULL) {
 #' IRF is computed as:
 #' \deqn{IRF_h = \Psi_h \cdot K}
 #' where \eqn{\Psi_h} is the Wold representation at horizon h and K is the
-#' lower triangular Cholesky factor of the long-run covariance matrix.
+#' contemporaneous impact matrix implied by the long-run restrictions.
 #'
 #' When \code{scaling} is supplied the entire cube is divided by
 #' \eqn{IRF_0(\text{scaling}[1],\, \text{scaling}[1]) \;/\; \text{scaling}[2]},
@@ -83,15 +84,16 @@ fAICBIC <- function(y, pmax, c, exog = NULL) {
 #' VAR  <- fVAR(y, p = 2, c = 1)
 #' wold <- fWoldIRF(VAR, horizon = 20)
 #'
-#' # Obtain BQ long-run Cholesky factor K (from e.g. fBQ())
+#' # Map the long-run Cholesky factor to contemporaneous impacts
+#' C1 <- apply(wold, c(1, 2), sum)
+#' D1 <- t(chol(C1 %*% VAR$sigma %*% t(C1)))
+#' K <- solve(C1, D1)
 #' bqirf <- fBQIRF(wold, K)
 #'
 #' # With normalisation: unit shock to variable 1
 #' bqirf_norm <- fBQIRF(wold, K, scaling = c(1, 1))
 #' }
 #'
-NULL
-
 #' @export
 fBQIRF <- function(wold, K, scaling = NULL) {
     .Call(`_tidyMacro_fBQIRF`, wold, K, scaling)
@@ -104,6 +106,7 @@ fBQIRF <- function(wold, K, scaling = NULL) {
 #' @param nboot Number of bootstrap replications.
 #' @param horizon Maximum IRF horizon.
 #' @param conf Confidence level in percent (e.g. 68).
+#' @param conf2 Secondary confidence level in percent (default 68).
 #' @param bootscheme \code{"residual"} or \code{"wild"}.
 #' @param cumulate Integer vector (1-based) of variable indices whose IRFs
 #'   should be cumulated along the horizon. Typically used when the VAR is
@@ -155,7 +158,7 @@ fBQIRF <- function(wold, K, scaling = NULL) {
 #' }
 #'
 #' @export
-fBootstrapBQ <- function(y, var_result, nboot, horizon, conf = 90.0, conf2 = 68.0, bootscheme = "residual", cumulate = integerVector(), scaling = NULL, n_threads = 0L) {
+fBootstrapBQ <- function(y, var_result, nboot, horizon, conf = 90.0, conf2 = 68.0, bootscheme = "residual", cumulate = as.integer( c()), scaling = NULL, n_threads = 0L) {
     .Call(`_tidyMacro_fBootstrapBQ`, y, var_result, nboot, horizon, conf, conf2, bootscheme, cumulate, scaling, n_threads)
 }
 
@@ -259,18 +262,26 @@ fBootstrapIVInvertible <- function(y, instr, var_result, nboot, p, c, hor, cumu,
 #' @param Z (T-p) x K matrix of instrumental variables
 #' @param nboot Integer number of bootstrap replications
 #' @param blocksize Integer block size for moving block bootstrap
-#' @param adjustZ Integer vector of length 2: [start, end] indices for Z
-NULL
-
+#' @param adjustZ Integer vector of length 2: start and end row indices
+#'   (1-based, inclusive) for instrument alignment.
+#' @param adjustu Integer vector of length 2: start and end row indices
+#'   (1-based, inclusive) for residual alignment.
+#' @param policyvar Integer index (1-based) of the policy variable.
+#' @param horizon Integer maximum impulse response horizon.
+#' @param conf Confidence level in percent (default 90).
+#' @param conf2 Secondary confidence level in percent (default 68).
+#' @param exog Optional matrix of exogenous variables (T x M). Default NULL.
 #' @param n_threads Integer number of threads for parallel computation.
-#'   Default is 0 (uses all available cores). Set to 1 for single-threaded
-NULL
-
+#'   Default is 0 (uses all available cores minus one, with a minimum of one).
+#'   Set to 1 for single-threaded execution. If OpenMP is not available,
+#'   automatically falls back to single-threaded execution.
 #'
 #' @return A list containing:
 #'   \itemize{
 #'     \item upper: N x (horizon+1) matrix of upper confidence bands
 #'     \item lower: N x (horizon+1) matrix of lower confidence bands
+#'     \item upper2: N x (horizon+1) matrix of secondary upper bands
+#'     \item lower2: N x (horizon+1) matrix of secondary lower bands
 #'     \item meanirf: N x (horizon+1) matrix of mean impulse responses
 #'     \item medianirf: N x (horizon+1) matrix of median impulse responses
 #'   }
@@ -279,12 +290,12 @@ NULL
 #' This function implements the moving block bootstrap for IV-identified SVARs.
 #' The first stage regresses the policy variable residual on the instrument(s),
 #' and the second stage recovers the structural impact matrix. The
-NULL
-
+#' normalization sets the policy variable shock to have unit impact on itself.
 #'
 #' The function uses OpenMP for parallel computation when available,
-NULL
-
+#' speeding up bootstrap iterations. Each bootstrap replication and percentile
+#' computation is independent and can be parallelized. If OpenMP is not
+#' available, the function automatically falls back to single-threaded execution.
 #'
 #' @examples
 #' \dontrun{
@@ -341,23 +352,72 @@ fBootstrapIVRecover <- function(y, instr, var_result, noise, delta, nboot, p, c,
     .Call(`_tidyMacro_fBootstrapIVRecover`, y, instr, var_result, noise, delta, nboot, p, c, r, hor, cumu, conf, conf2)
 }
 
+#' Bootstrap Long-Run Maximum-Response Impulse Responses
+#'
+#' Computes residual-bootstrap confidence bands for the identification
+#' used by \code{\link{fMaxIRF}}. The corrected variant first estimates
+#' coefficient bias, shrinking the correction if needed for VAR stability,
+#' and then bootstraps the bias-corrected VAR.
+#'
+#' @param y T x N matrix of endogenous variables.
+#' @param var_result Fitted VAR returned by \code{\link{fVAR}}.
+#' @param nboot Number of bootstrap replications.
+#' @param horizon Maximum response horizon; horizon zero is included.
+#' @param var_idx Index (1-based) of the variable whose last-horizon
+#'   response is maximised.
+#' @param conf Confidence level in percent (default 90).
+#' @param conf2 Secondary confidence level in percent (default 68).
+#' @param cumulate Integer vector of variable indices (1-based) whose
+#'   responses should be cumulated. Defaults to no cumulation.
+#' @param scaling Optional length-two numeric vector. Responses are divided
+#'   by the impact response of variable \code{scaling[1]} multiplied by
+#'   \code{scaling[2]}, when that product is nonzero. Default \code{NULL}.
+#' @param exog T x M matrix of exogenous variables, required when the
+#'   original VAR included them; otherwise \code{NULL}.
+#' @param n_threads Number of OpenMP threads. Zero uses all available
+#'   cores minus one, with a minimum of one. Without OpenMP, uses one.
+#' @return A list with \code{bootmax}, an N x (horizon+1) x nboot array;
+#'   \code{upper}, \code{lower}, \code{upper2}, and \code{lower2}, each
+#'   an N x (horizon+1) matrix; and \code{boot_beta}, an N x K x nboot
+#'   coefficient array, where K is the number of regressors. The corrected
+#'   variant stores \code{nboot2} draws.
 #' @export
-fBootstrapMax <- function(y, var_result, nboot, horizon, var_idx, conf = 90.0, conf2 = 68.0, cumulate = integerVector(), scaling = NULL, exog = NULL, n_threads = 0L) {
+fBootstrapMax <- function(y, var_result, nboot, horizon, var_idx, conf = 90.0, conf2 = 68.0, cumulate = as.integer( c()), scaling = NULL, exog = NULL, n_threads = 0L) {
     .Call(`_tidyMacro_fBootstrapMax`, y, var_result, nboot, horizon, var_idx, conf, conf2, cumulate, scaling, exog, n_threads)
 }
 
+#' @rdname fBootstrapMax
+#' @param nboot1 Number of first-pass replications used to estimate bias.
+#' @param nboot2 Number of second-pass replications used for the bands.
 #' @export
-fBootstrapMaxCorrected <- function(y, var_result, nboot1, nboot2, horizon, var_idx, conf = 90.0, conf2 = 68.0, cumulate = integerVector(), scaling = NULL, exog = NULL, n_threads = 0L) {
+fBootstrapMaxCorrected <- function(y, var_result, nboot1, nboot2, horizon, var_idx, conf = 90.0, conf2 = 68.0, cumulate = as.integer( c()), scaling = NULL, exog = NULL, n_threads = 0L) {
     .Call(`_tidyMacro_fBootstrapMaxCorrected`, y, var_result, nboot1, nboot2, horizon, var_idx, conf, conf2, cumulate, scaling, exog, n_threads)
 }
 
+#' Bootstrap Uhlig Maximum-Share Impulse Responses
+#'
+#' Computes residual-bootstrap confidence bands for the identification
+#' used by \code{\link{fUhligIRF}}. The corrected variant first estimates
+#' coefficient bias, shrinking the correction if needed for VAR stability,
+#' and then bootstraps the bias-corrected VAR.
+#'
+#' @inheritParams fBootstrapMax
+#' @param idx Index (1-based) of the variable whose forecast error variance
+#'   contribution is maximised.
+#' @return A list with \code{bootuhlig}, an N x (horizon+1) x nboot array;
+#'   \code{upper}, \code{lower}, \code{upper2}, and \code{lower2}, each
+#'   an N x (horizon+1) matrix; and \code{boot_beta}, an N x K x nboot
+#'   coefficient array, where K is the number of regressors. The corrected
+#'   variant stores \code{nboot2} draws.
 #' @export
-fBootstrapUhlig <- function(y, var_result, nboot, horizon, idx, conf = 90.0, conf2 = 68.0, cumulate = integerVector(), exog = NULL, n_threads = 0L) {
+fBootstrapUhlig <- function(y, var_result, nboot, horizon, idx, conf = 90.0, conf2 = 68.0, cumulate = as.integer( c()), exog = NULL, n_threads = 0L) {
     .Call(`_tidyMacro_fBootstrapUhlig`, y, var_result, nboot, horizon, idx, conf, conf2, cumulate, exog, n_threads)
 }
 
+#' @rdname fBootstrapUhlig
+#' @inheritParams fBootstrapMax
 #' @export
-fBootstrapUhligCorrected <- function(y, var_result, nboot1, nboot2, horizon, idx, conf = 90.0, conf2 = 68.0, cumulate = integerVector(), exog = NULL, n_threads = 0L) {
+fBootstrapUhligCorrected <- function(y, var_result, nboot1, nboot2, horizon, idx, conf = 90.0, conf2 = 68.0, cumulate = as.integer( c()), exog = NULL, n_threads = 0L) {
     .Call(`_tidyMacro_fBootstrapUhligCorrected`, y, var_result, nboot1, nboot2, horizon, idx, conf, conf2, cumulate, exog, n_threads)
 }
 
@@ -476,7 +536,7 @@ fCheckNarrative_cpp <- function(B, resid, narr_sign_shock = NULL, narr_sign_peri
 #' fCheckRestrictions(irf, shock = 3, restr = restr, hor_vec = hor_vec)
 #' }
 #'
-#' @seealso \code{\link{fGenerateQ}}, \code{\link{fSignRestrictions}}
+#' @seealso \code{\link{fGenerateQ}}, \code{\link{fSignRestr}}
 #'
 #' @export
 fCheckRestrictions <- function(irf, shock, restr, hor_vec) {
@@ -724,7 +784,8 @@ fFEVDIV <- function(s, S, wold, N, hor, sigma, u, T1, p) {
 #' @return An N x N orthonormal matrix.
 #'
 #' @details
-#' Draw M ~ N(0, I_{N x N}), compute the QR decomposition M = QR, then set
+#' Draw an N x N matrix M of independent standard normals, compute the
+#' QR decomposition M = QR, then set
 #' Q[,i] = -Q[,i] whenever R[i,i] < 0.  The resulting Q is uniformly
 #' distributed on the Stiefel manifold (Haar measure), as required for
 #' sign-restriction identification.
@@ -1114,8 +1175,8 @@ fLPIV_cpp <- function(Y, D, Z, C, H, conf_level, nw_lags_iv, cumulative = FALSE,
 #'
 #' @keywords internal
 #' @noRd
-fLPPanel_cpp <- function(y, s, X, W, FE, i_index, t_index, H, p_max, small_sample = FALSE, cumulative = FALSE, n_threads = 0L, verbose = FALSE) {
-    .Call(`_tidyMacro_fLPPanel_cpp`, y, s, X, W, FE, i_index, t_index, H, p_max, small_sample, cumulative, n_threads, verbose)
+fLPPanel_cpp <- function(y, s, X, W, FE, i_index, t_index, H, p_max, small_sample = FALSE, cumulative = FALSE, cluster_mode = 0L, n_threads = 0L, verbose = FALSE) {
+    .Call(`_tidyMacro_fLPPanel_cpp`, y, s, X, W, FE, i_index, t_index, H, p_max, small_sample, cumulative, cluster_mode, n_threads, verbose)
 }
 
 #' Create Lagged Matrix
@@ -1235,6 +1296,20 @@ fMSW <- function(var_result, Z, finaldata, adjustu, hor = 48L, nvar = 1L, scale 
     .Call(`_tidyMacro_fMSW`, var_result, Z, finaldata, adjustu, hor, nvar, scale, confidence, NWlags)
 }
 
+#' Long-Run Maximum-Response Impulse Responses
+#'
+#' Selects the shock direction that maximises the response of a selected
+#' variable at the last supplied horizon, subject to a zero first shock
+#' coordinate and unit norm. The sign is chosen so the selected variable's
+#' last-horizon response is non-negative.
+#'
+#' @param wold N x N x (horizon+1) Wold impulse response array, including
+#'   horizon zero in the first slice, as returned by \code{\link{fWoldIRF}}.
+#' @param S N x N lower triangular Cholesky factor of the VAR residual
+#'   covariance matrix. At least two variables are required.
+#' @param var_idx Index (1-based) of the variable whose response is maximised.
+#' @return An N x (horizon+1) matrix of structural impulse responses.
+#' @seealso \code{\link{fBootstrapMax}}, \code{\link{fUhligIRF}}
 #' @export
 fMaxIRF <- function(wold, S, var_idx) {
     .Call(`_tidyMacro_fMaxIRF`, wold, S, var_idx)
@@ -1245,9 +1320,9 @@ fMaxIRF <- function(wold, S, var_idx) {
 #' @param y Dependent variable matrix (T x 1)
 #' @param X Independent variables matrix (T x N)
 #' @param c Integer indicator for intercept (1 if included, 0 otherwise)
-#' @param robust SE type: 0 = standard, 1 = White (heteroskedasticity-robust),
-#'   2 = Newey-West HAC
-#' @param lag Number of lags for HAC (0 = Newey-West rule of thumb)
+#' @param lag Number of lags for the robust F-statistic. Zero uses White's
+#'   heteroskedasticity-robust covariance; a positive value uses Newey-West
+#'   HAC covariance with that lag order.
 #'
 #' @return A list containing:
 #'   \itemize{
@@ -1257,7 +1332,7 @@ fMaxIRF <- function(wold, S, var_idx) {
 #'     \item r2: R-squared
 #'     \item r2adj: Adjusted R-squared
 #'     \item F: F-statistic for overall significance
-#'     \item Frobust: Robust F-statistic (only if robust > 0)
+#'     \item Frobust: White or Newey-West robust F-statistic
 #'     \item fitted_partial: Fitted values excluding intercept
 #'   }
 #'
@@ -1659,11 +1734,34 @@ fSpectralFEVD <- function(D, irf_s, band, J, fourier = TRUE) {
     .Call(`_tidyMacro_fSpectralFEVD`, D, irf_s, band, J, fourier)
 }
 
+#' Uhlig Maximum-Share Impulse Responses
+#'
+#' Computes impulse responses using the direction returned by
+#' \code{\link{fUhligMaxShare}}. The sign is chosen so the first variable's
+#' last-horizon response is non-negative.
+#'
+#' @inheritParams fMaxIRF
+#' @param idx Index (1-based) of the variable whose forecast error variance
+#'   contribution is maximised.
+#' @return An N x (horizon+1) matrix of structural impulse responses.
+#' @seealso \code{\link{fBootstrapUhlig}}
 #' @export
 fUhligIRF <- function(wold, S, idx) {
     .Call(`_tidyMacro_fUhligIRF`, wold, S, idx)
 }
 
+#' Uhlig Maximum-Share Shock Direction
+#'
+#' Finds the unit-length shock direction with a zero first coordinate that
+#' maximises the selected variable's forecast error variance contribution,
+#' summed over the supplied horizons. For H slices, horizon h receives
+#' weight H-h, with h starting at zero. The sign of the direction is not
+#' normalised; \code{\link{fUhligIRF}} applies the IRF sign convention.
+#'
+#' @inheritParams fMaxIRF
+#' @inheritParams fUhligIRF
+#' @return An N x 1 matrix containing the shock direction, with first
+#'   element zero.
 #' @export
 fUhligMaxShare <- function(wold, S, idx) {
     .Call(`_tidyMacro_fUhligMaxShare`, wold, S, idx)

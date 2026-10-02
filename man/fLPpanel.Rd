@@ -14,7 +14,8 @@ fLPPanel(
   small_sample = FALSE,
   cumulative = FALSE,
   p_max = 0L,
-  n_threads = 0L
+  n_threads = 0L,
+  cluster = NULL
 )
 }
 \arguments{
@@ -66,6 +67,15 @@ of lags is \eqn{\min(h, p_{\max})}). Default 0.}
 
 \item{n_threads}{Integer. OpenMP threads for the horizon loop. 0 = all
 cores minus one. Default 0.}
+
+\item{cluster}{One-sided formula selecting the clustering dimension:
+the unit variable, the time variable, or both variables declared in
+\code{panel_id}; for example \code{~unit}, \code{~tt}, or
+\code{~unit + tt}. Two-way clustering uses the
+Cameron-Gelbach-Miller inclusion-exclusion estimator. The default
+\code{NULL} is equivalent to clustering on the time variable. The
+\code{small_sample = TRUE} refinement is available only with time
+clustering.}
 }
 \value{
 An object of class \code{c("fLPPanel", "fLP")} that plugs into
@@ -86,7 +96,8 @@ operators.
 # Homogeneous shock
 fLPPanel(y ~ shock + l(y, 1:2) | unit + tt,
          data = df, panel_id = c("unit", "tt"),
-         shock = "shock", horizons = 12)
+         shock = "shock", horizons = 12,
+         cluster = ~unit + tt)
 
 # Heterogeneous shock via explicit interaction (Almuzara-Sancibrián)
 fLPPanel(y ~ shock:size | unit + tt,

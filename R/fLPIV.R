@@ -328,7 +328,7 @@ fLPIV <- function(formula, instruments, data,
 
 #' @export
 print.fLPIV <- function(x, digits = 4L, ...) {
-  cat("\nLocal Projections — IV (fLPIV)\n")
+  cat("\nLocal Projections \u2014 IV (fLPIV)\n")
   cat(strrep("-", 45L), "\n")
   cat("Original formula : ", deparse(x$formula_orig), "\n")
   cat("Expanded formula : ", deparse(x$formula),      "\n")

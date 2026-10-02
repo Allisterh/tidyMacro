@@ -1,0 +1,15 @@
+{
+  "hash": "22b88de4ef9b406a00b623c9756466ee",
+  "result": {
+    "engine": "knitr",
+    "markdown": "---\ntitle: \"Nonlinear and State-Dependent Local Projections\"\nsubtitle: \"Tenreyro and Thwaites (2016)\"\neditor: visual\nbibliography: references.bib\neditor_options:\n  chunk_output_type: console\n---\n\n\n\nThis chapter reproduces the nonlinear local-projection designs in @tenreyro2016a with `fNLLP()`. The original MATLAB archive estimates a single US quarterly time series. It is neither a panel model nor LP-IV: the identified monetary shock is placed directly in each projection. Three designs appear in the archive:\n\n1.  a smooth-transition state-dependent LP (`stlpm.m`),\n2.  positive versus negative shocks (`stlpm2.m`), and\n3.  a linear-plus-cubic shock response (`stlpm3.m`).\n\nThe baseline uses horizons 0 through 20, one lag of the outcome, one lag of the federal funds rate, a common linear trend, and 90% intervals. Its expansion weight is a logistic transform with slope 3 around the 20th percentile of trailing seven-quarter GDP growth. The workbook supplied with the archive contains that transition weight, so the replication uses it directly.\n\n------------------------------------------------------------------------\n\n## The three specifications\n\nLet $s_t$ be the identified monetary shock, $x_t$ the controls, and $M_t\\in[0,1]$ the expansion weight.\n\nThe sign-asymmetric projection is\n\n$$y_{t+h}=\\alpha_h+\\beta_h^+\\max(s_t,0)+\\beta_h^-\\min(s_t,0)+\\gamma_h'x_t+u_{t+h}.$$\n\n`fNLLP()` reports `positive` as $\\beta_h^+$ and `negative` as $-\\beta_h^-$. Both therefore describe a shock of unit **magnitude**: a $+1$ tightening and a $-1$ loosening.\n\nThe cubic projection is\n\n$$y_{t+h}=\\alpha_h+\\beta_{1h}s_t+\\beta_{3h}s_t^3+\\gamma_h'x_t+u_{t+h}.$$\n\nThe response to a shock of size $d$ is $\\beta_{1h}d+\\beta_{3h}d^3$. `predict()` evaluates this expression and its HAC variance, including the covariance between the linear and cubic coefficients.\n\nThe smooth state-dependent projection is\n\n$$y_{t+h}=\\delta_h t\n+M_t\\left(\\alpha_h^E+\\beta_h^E s_t+\\gamma_h^{E\\prime}x_t\\right)\n+(1-M_t)\\left(\\alpha_h^R+\\beta_h^R s_t+\\gamma_h^{R\\prime}x_t\\right)\n+u_{t+h}.$$\n\nThis matches `stlpm.m`: the trend coefficient is common, while the intercept, shock, and controls receive expansion and recession coefficients. `fNLLP()` estimates both coefficients in one regression and returns their HAC covariance, so the standard error for $\\beta_h^E-\\beta_h^R$ is valid.\n\nThe rest will come here....\n",
+    "supporting": [],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}

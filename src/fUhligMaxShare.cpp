@@ -36,8 +36,29 @@ arma::vec fUhligMaxShare_cpp(const arma::cube& wold, const arma::mat& S, int idx
     return h2;
 }
 
+//' Uhlig Maximum-Share Shock Direction
+//'
+//' Finds the unit-length shock direction with a zero first coordinate that
+//' maximises the selected variable's forecast error variance contribution,
+//' summed over the supplied horizons. For H slices, horizon h receives
+//' weight H-h, with h starting at zero. The sign of the direction is not
+//' normalised; \code{\link{fUhligIRF}} applies the IRF sign convention.
+//'
+//' @inheritParams fMaxIRF
+//' @inheritParams fUhligIRF
+//' @return An N x 1 matrix containing the shock direction, with first
+//'   element zero.
 //' @export
 // [[Rcpp::export]]
 arma::vec fUhligMaxShare(const arma::cube& wold, const arma::mat& S, int idx) {
+    const int N = static_cast<int>(wold.n_rows);
+    if (wold.n_slices < 1)
+        Rcpp::stop("'wold' must contain at least one horizon slice.");
+    if (N < 2 || wold.n_cols != wold.n_rows)
+        Rcpp::stop("'wold' must be a square N x N x H array with N >= 2.");
+    if (S.n_rows != wold.n_rows || S.n_cols != wold.n_cols)
+        Rcpp::stop("'S' must be an N x N matrix conformable with 'wold'.");
+    if (idx < 1 || idx > N)
+        Rcpp::stop("'idx' is out of range.");
     return fUhligMaxShare_cpp(wold, S, idx - 1);  // 1-based -> 0-based
 }

@@ -108,7 +108,7 @@ int fCheckRestrictions_cpp(const arma::cube&   irf,
 //' fCheckRestrictions(irf, shock = 3, restr = restr, hor_vec = hor_vec)
 //' }
 //'
-//' @seealso \code{\link{fGenerateQ}}, \code{\link{fSignRestrictions}}
+//' @seealso \code{\link{fGenerateQ}}, \code{\link{fSignRestr}}
 //'
 //' @export
 // [[Rcpp::export]]

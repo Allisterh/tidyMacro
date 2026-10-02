@@ -13,10 +13,9 @@ fOLS(y, X, c = 1L, lag = 0L)
 
 \item{c}{Integer indicator for intercept (1 if included, 0 otherwise)}
 
-\item{lag}{Number of lags for HAC (0 = Newey-West rule of thumb)}
-
-\item{robust}{SE type: 0 = standard, 1 = White (heteroskedasticity-robust),
-2 = Newey-West HAC}
+\item{lag}{Number of lags for the robust F-statistic. Zero uses White's
+heteroskedasticity-robust covariance; a positive value uses Newey-West
+HAC covariance with that lag order.}
 }
 \value{
 A list containing:
@@ -27,7 +26,7 @@ A list containing:
     \item r2: R-squared
     \item r2adj: Adjusted R-squared
     \item F: F-statistic for overall significance
-    \item Frobust: Robust F-statistic (only if robust > 0)
+    \item Frobust: White or Newey-West robust F-statistic
     \item fitted_partial: Fitted values excluding intercept
   }
 }

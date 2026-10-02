@@ -76,7 +76,7 @@
 #' @importFrom tibble tibble
 #' @importFrom dplyr bind_rows
 #' @importFrom tidyr pivot_longer
-#' @importFrom rlang .data
+#' @importFrom rlang .data :=
 #'
 #' @export
 fPlotHistDec <- function(histdec_list,

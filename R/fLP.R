@@ -765,6 +765,13 @@ coef.fLP <- function(object, ...) {
 }
 
 
+#' Tidy Local Projection Estimates
+#'
+#' @param x An object returned by \code{\link{fLP}} or \code{\link{fLPIV}}.
+#' @param ... Reserved for additional arguments.
+#' @return A data frame with horizon, response variable, shock, estimate,
+#'   standard error, and confidence bounds. Multiple confidence levels use
+#'   columns named \code{lower_<level>} and \code{upper_<level>}.
 #' @export
 tidy.fLP <- function(x, ...) {
   H  <- max(x$horizons)

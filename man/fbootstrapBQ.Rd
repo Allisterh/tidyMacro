@@ -12,7 +12,7 @@ fBootstrapBQ(
   conf = 90,
   conf2 = 68,
   bootscheme = "residual",
-  cumulate = integerVector(),
+  cumulate = as.integer(c()),
   scaling = NULL,
   n_threads = 0L
 )
@@ -27,6 +27,8 @@ fBootstrapBQ(
 \item{horizon}{Maximum IRF horizon.}
 
 \item{conf}{Confidence level in percent (e.g. 68).}
+
+\item{conf2}{Secondary confidence level in percent (default 68).}
 
 \item{bootscheme}{\code{"residual"} or \code{"wild"}.}
 

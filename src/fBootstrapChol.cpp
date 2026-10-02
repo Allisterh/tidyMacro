@@ -13,7 +13,7 @@
 #ifdef _OPENMP
 #include <omp.h>
 #endif
-#include <cstdio>
+#include <R_ext/Print.h>
 #include <algorithm>
 #include <vector>
 
@@ -51,10 +51,10 @@ fBootstrapChol_cpp(const arma::mat &y, const VARResult &var_result, int nboot,
                        ? std::max(1, omp_get_max_threads() - 1)
                        : n_threads;
   omp_set_num_threads(actual_threads);
-  std::printf("Using %d thread(s) for parallel bootstrap computation...\n",
+  Rprintf("Using %d thread(s) for parallel bootstrap computation...\n",
               actual_threads);
 #else
-  std::printf("OpenMP not available. Running in single-threaded mode.\n");
+  Rprintf("OpenMP not available. Running in single-threaded mode.\n");
 #endif
 
 #ifdef _OPENMP

@@ -15,10 +15,11 @@
 #include <omp.h>
 #endif
 #include <algorithm>
+#include <cstdint>
 #include <unordered_map>
 #include <vector>
 #include <cmath>
-#include <cstdio>
+#include <R_ext/Print.h>
 
 using namespace arma;
 
@@ -128,6 +129,58 @@ static void regress_HDFE(
 }
 
 
+// Sum observation-level scores within a single cluster dimension.
+static arma::mat aggregate_scores(
+    const arma::mat& scores,
+    const arma::ivec& cluster
+) {
+  const arma::ivec labels = arma::sort(arma::unique(cluster));
+  std::unordered_map<int, arma::uword> row_of;
+  row_of.reserve(labels.n_elem * 2);
+  for (arma::uword g = 0; g < labels.n_elem; ++g) {
+    row_of.emplace(labels(g), g);
+  }
+
+  arma::mat sums(labels.n_elem, scores.n_cols, arma::fill::zeros);
+  for (arma::uword r = 0; r < scores.n_rows; ++r) {
+    sums.row(row_of[cluster(r)]) += scores.row(r);
+  }
+  return sums;
+}
+
+
+// Sum scores within intersections of two cluster dimensions. The R wrapper
+// rejects duplicate panel cells, but handling them here keeps the exported
+// C++ boundary correct when called directly.
+static arma::mat aggregate_pair_scores(
+    const arma::mat& scores,
+    const arma::ivec& cluster_a,
+    const arma::ivec& cluster_b
+) {
+  std::unordered_map<std::uint64_t, arma::uword> row_of;
+  row_of.reserve(scores.n_rows * 2);
+  arma::mat sums(scores.n_rows, scores.n_cols, arma::fill::zeros);
+  arma::uword n_groups = 0;
+
+  for (arma::uword r = 0; r < scores.n_rows; ++r) {
+    const std::uint64_t a = static_cast<std::uint32_t>(cluster_a(r));
+    const std::uint64_t b = static_cast<std::uint32_t>(cluster_b(r));
+    const std::uint64_t key = (a << 32) | b;
+    auto it = row_of.find(key);
+    if (it == row_of.end()) {
+      row_of.emplace(key, n_groups);
+      sums.row(n_groups) = scores.row(r);
+      ++n_groups;
+    } else {
+      sums.row(it->second) += scores.row(r);
+    }
+  }
+
+  sums.resize(n_groups, scores.n_cols);
+  return sums;
+}
+
+
 // =======================================================================
 // Main engine
 // =======================================================================
@@ -144,6 +197,7 @@ LPPanelResult fLPPanel_internal(
     int  p_max,
     bool small_sample,
     bool cumulative,
+    int  cluster_mode,
     int  n_threads,
     bool verbose
 ) {
@@ -161,6 +215,12 @@ LPPanelResult fLPPanel_internal(
   }
   if (H < 0 || p_max < 0) {
     Rcpp::stop("fLPPanel: H and p_max must be non-negative.");
+  }
+  if (cluster_mode < 0 || cluster_mode > 2) {
+    Rcpp::stop("fLPPanel: cluster_mode must be 0 (time), 1 (unit), or 2 (unit + time).");
+  }
+  if (small_sample && cluster_mode != 0) {
+    Rcpp::stop("fLPPanel: small_sample = TRUE is available only with time clustering.");
   }
 
   const arma::vec y = y_in.col(0);
@@ -230,13 +290,13 @@ LPPanelResult fLPPanel_internal(
                        ? std::max(1, omp_get_max_threads())
                        : n_threads;
   if (verbose) {
-    std::printf("fLPPanel: using %d thread(s) for parallel horizon loop...\n",
+    Rprintf("fLPPanel: using %d thread(s) for parallel horizon loop...\n",
                 actual_threads);
   }
 #else
   (void) n_threads;
   if (verbose) {
-    std::printf("fLPPanel: OpenMP not available. Running single-threaded.\n");
+    Rprintf("fLPPanel: OpenMP not available. Running single-threaded.\n");
   }
 #endif
 
@@ -286,6 +346,7 @@ LPPanelResult fLPPanel_internal(
     else                  FE_LP0.set_size(keep_idx.n_elem, 0);
 
     const arma::uword n_X = X_LP0.n_cols;
+    const arma::ivec  i_LP = i_index.elem(keep_idx);
     const arma::ivec  t_LP = t_index.elem(keep_idx);
 
     arma::ivec t_sorted = arma::sort(arma::unique(t_LP));
@@ -305,7 +366,8 @@ LPPanelResult fLPPanel_internal(
 
     for (arma::uword is = 0; is < n_s; ++is) out.estimate(h, is) = b_LP(is);
 
-    // Score aggregation over time
+    // Observation-level scores. Clustered meats are formed below after
+    // aggregating these scores over time, unit, or both dimensions.
     arma::vec u = y_LP.col(0) - X_LP * b_LP;
     arma::mat Xv_it = X_LP.each_col() % u;
 
@@ -376,7 +438,23 @@ LPPanelResult fLPPanel_internal(
 
     } else {
 
-      const arma::mat Xv_var = Xv_t.t() * Xv_t;
+      arma::mat Xv_var;
+      if (cluster_mode == 0) {
+        // One-way clustering by time.
+        Xv_var = Xv_t.t() * Xv_t;
+      } else {
+        const arma::mat Xv_i = aggregate_scores(Xv_it, i_LP);
+        const arma::mat meat_i = Xv_i.t() * Xv_i;
+        if (cluster_mode == 1) {
+          // One-way clustering by unit.
+          Xv_var = meat_i;
+        } else {
+          // Cameron-Gelbach-Miller two-way clustering:
+          // M_unit + M_time - M_(unit,time).
+          const arma::mat Xv_cell = aggregate_pair_scores(Xv_it, i_LP, t_LP);
+          Xv_var = meat_i + Xv_t.t() * Xv_t - Xv_cell.t() * Xv_cell;
+        }
+      }
       const arma::mat b_var  = XX_pinv * Xv_var * XX_pinv;
       for (arma::uword is = 0; is < n_s; ++is) {
         out.SE(h, is) = std::sqrt(std::max(0.0, b_var(is, is)));
@@ -416,6 +494,7 @@ Rcpp::List fLPPanel_cpp(
     int  p_max,
     bool small_sample = false,
     bool cumulative   = false,
+    int  cluster_mode = 0,
     int  n_threads    = 0,
     bool verbose      = false
 ) {
@@ -432,10 +511,14 @@ Rcpp::List fLPPanel_cpp(
   }
   if (H < 0 || p_max < 0)
     Rcpp::stop("fLPPanel_cpp: H and p_max must be non-negative.");
+  if (cluster_mode < 0 || cluster_mode > 2)
+    Rcpp::stop("fLPPanel_cpp: cluster_mode must be 0 (time), 1 (unit), or 2 (unit + time).");
+  if (small_sample && cluster_mode != 0)
+    Rcpp::stop("fLPPanel_cpp: small_sample = TRUE is available only with time clustering.");
 
   LPPanelResult r = fLPPanel_internal(y, s, X, W, FE, i_index, t_index,
                                       H, p_max, small_sample, cumulative,
-                                      n_threads, verbose);
+                                      cluster_mode, n_threads, verbose);
 
   // Surface per-horizon issues collected during the parallel region.
   const arma::uword n_no_obs   = arma::accu(r.status == 1);

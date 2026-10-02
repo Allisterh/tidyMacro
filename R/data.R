@@ -43,13 +43,13 @@
 #' @format A data frame with 612 rows and 9 columns:
 #' \describe{
 #'   \item{Date}{Month start date (\code{Date}), 1962-07 – 2013-06}
-#'   \item{STOCK}{Log S&P 500 stock price index, in percent}
+#'   \item{SP500}{Log S&P 500 stock price index, in percent}
 #'   \item{FFR}{Federal funds rate, in percent}
 #'   \item{WAGE}{Log average hourly earnings (manufacturing), in percent}
 #'   \item{CPI}{Log Consumer Price Index, in percent}
-#'   \item{HOURSM}{Average weekly hours in manufacturing}
-#'   \item{EMPM}{Log employment in manufacturing, in percent}
-#'   \item{IPM}{Log industrial production (manufacturing), in percent}
+#'   \item{HOURS}{Average weekly hours in manufacturing}
+#'   \item{EMPL}{Log employment in manufacturing, in percent}
+#'   \item{INDPRO}{Log industrial production (manufacturing), in percent}
 #'   \item{UNCERT}{Uncertainty indicator: equals 1 in months coinciding with
 #'     one of 17 identified uncertainty events (e.g. Cuban Missile Crisis,
 #'     Black Monday), 0 otherwise.}
@@ -69,6 +69,77 @@
 #' head(Bloom2009)
 #' y <- Bloom2009 |> dplyr::select(-Date) |> as.matrix()
 "Bloom2009"
+
+
+#' Jorda and Taylor (2025) Quarterly Local Projection Data
+#'
+#' Quarterly US macroeconomic data and a Romer-Romer monetary policy shock
+#' from the local projection replication files of Jorda and Taylor.
+#'
+#' @format A data frame with 224 rows and 8 columns:
+#' \describe{
+#'   \item{Date}{Quarter as a character string, 1960Q1 through 2015Q4}
+#'   \item{RRShock}{Romer-Romer monetary policy shock; missing outside its sample}
+#'   \item{logCPI}{Log Consumer Price Index, not multiplied by 100}
+#'   \item{dLogCPI}{Annualised quarterly log CPI growth, in percent}
+#'   \item{STIR}{Short-term interest rate, in percent}
+#'   \item{dSTIR}{Quarterly change in the short-term rate, in percentage points}
+#'   \item{lGDP}{Log real GDP, not multiplied by 100}
+#'   \item{dLogGDP}{Annualised quarterly log real GDP growth, in percent}
+#' }
+#' @seealso \code{\link{fLP}}, \code{\link{JordaTaylor2025IV}}
+#' @examples
+#' data("JordaTaylor2025")
+#' head(JordaTaylor2025)
+"JordaTaylor2025"
+
+
+#' Jorda and Taylor (2025) Monthly Instrumental Variable Data
+#'
+#' Monthly US data for local projections with external monetary policy
+#' instruments, from the local projection replication files of Jorda and Taylor.
+#'
+#' @format A data frame with 517 rows and 6 columns:
+#' \describe{
+#'   \item{Date}{Month start as a UTC \code{POSIXct}, 1965-12 through 2008-12}
+#'   \item{Unemployment}{Unemployment rate, in percent}
+#'   \item{Inflation}{PCE price inflation series from the replication data}
+#'   \item{FFRates}{Federal funds rate, in percent}
+#'   \item{RRShock}{Updated Romer-Romer monetary policy shock}
+#'   \item{KuttnerShock}{Kuttner monetary policy surprise instrument}
+#' }
+#' @details Missing instrument observations are stored as \code{NA}.
+#' @seealso \code{\link{fLPIV}}, \code{\link{JordaTaylor2025}}
+#' @examples
+#' data("JordaTaylor2025IV")
+#' head(JordaTaylor2025IV)
+"JordaTaylor2025IV"
+
+
+#' Cesa-Bianchi and Sokol (2022) Data
+#'
+#' Monthly US macroeconomic and financial data with two external instruments
+#' for monetary policy and central bank information shocks.
+#'
+#' @format A data frame with 486 rows and 8 columns:
+#' \describe{
+#'   \item{Date}{Month start date, July 1979 through December 2019}
+#'   \item{lnRGDP}{Log real GDP}
+#'   \item{CPI}{Log Consumer Price Index}
+#'   \item{i_1YR}{One-year interest rate, stored as a decimal rate}
+#'   \item{EBP}{Excess bond premium, in percentage points}
+#'   \item{BondYield}{Corporate bond yield, stored as a decimal rate}
+#'   \item{MPshockSign}{Sign-identified monetary policy shock instrument}
+#'   \item{CBIshockSign}{Sign-identified central bank information shock instrument}
+#' }
+#' @details
+#' The instruments are jointly observed from February 1990 through December
+#' 2016. Missing values are stored as \code{NA}; genuine zeros are retained.
+#' @seealso \code{\link{fSignRestr}}
+#' @examples
+#' data("CBS2022")
+#' head(CBS2022)
+"CBS2022"
 
 
 #' Kaenzig (2021) Data

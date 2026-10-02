@@ -464,7 +464,6 @@ Rcpp::List fMSW(const Rcpp::List& var_result,
     int p               = Rcpp::as<int>(var_result["p"]);
     int c               = Rcpp::as<int>(var_result["c"]);
 
-    int N = (int)finaldata.n_cols;
     int T = (int)finaldata.n_rows;
 
     // Proxy-sample residuals (0-based)

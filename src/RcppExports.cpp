@@ -589,8 +589,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // fLPPanel_cpp
-Rcpp::List fLPPanel_cpp(const arma::mat& y, const arma::mat& s, const arma::mat& X, const arma::mat& W, const arma::imat& FE, const arma::ivec& i_index, const arma::ivec& t_index, int H, int p_max, bool small_sample, bool cumulative, int n_threads, bool verbose);
-RcppExport SEXP _tidyMacro_fLPPanel_cpp(SEXP ySEXP, SEXP sSEXP, SEXP XSEXP, SEXP WSEXP, SEXP FESEXP, SEXP i_indexSEXP, SEXP t_indexSEXP, SEXP HSEXP, SEXP p_maxSEXP, SEXP small_sampleSEXP, SEXP cumulativeSEXP, SEXP n_threadsSEXP, SEXP verboseSEXP) {
+Rcpp::List fLPPanel_cpp(const arma::mat& y, const arma::mat& s, const arma::mat& X, const arma::mat& W, const arma::imat& FE, const arma::ivec& i_index, const arma::ivec& t_index, int H, int p_max, bool small_sample, bool cumulative, int cluster_mode, int n_threads, bool verbose);
+RcppExport SEXP _tidyMacro_fLPPanel_cpp(SEXP ySEXP, SEXP sSEXP, SEXP XSEXP, SEXP WSEXP, SEXP FESEXP, SEXP i_indexSEXP, SEXP t_indexSEXP, SEXP HSEXP, SEXP p_maxSEXP, SEXP small_sampleSEXP, SEXP cumulativeSEXP, SEXP cluster_modeSEXP, SEXP n_threadsSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -605,9 +605,10 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type p_max(p_maxSEXP);
     Rcpp::traits::input_parameter< bool >::type small_sample(small_sampleSEXP);
     Rcpp::traits::input_parameter< bool >::type cumulative(cumulativeSEXP);
+    Rcpp::traits::input_parameter< int >::type cluster_mode(cluster_modeSEXP);
     Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(fLPPanel_cpp(y, s, X, W, FE, i_index, t_index, H, p_max, small_sample, cumulative, n_threads, verbose));
+    rcpp_result_gen = Rcpp::wrap(fLPPanel_cpp(y, s, X, W, FE, i_index, t_index, H, p_max, small_sample, cumulative, cluster_mode, n_threads, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -953,7 +954,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_tidyMacro_fLP_cpp", (DL_FUNC) &_tidyMacro_fLP_cpp, 12},
     {"_tidyMacro_fLPDID_cpp", (DL_FUNC) &_tidyMacro_fLPDID_cpp, 15},
     {"_tidyMacro_fLPIV_cpp", (DL_FUNC) &_tidyMacro_fLPIV_cpp, 11},
-    {"_tidyMacro_fLPPanel_cpp", (DL_FUNC) &_tidyMacro_fLPPanel_cpp, 13},
+    {"_tidyMacro_fLPPanel_cpp", (DL_FUNC) &_tidyMacro_fLPPanel_cpp, 14},
     {"_tidyMacro_fLagMakerMatrix", (DL_FUNC) &_tidyMacro_fLagMakerMatrix, 2},
     {"_tidyMacro_fMBBVAR", (DL_FUNC) &_tidyMacro_fMBBVAR, 4},
     {"_tidyMacro_fMSW", (DL_FUNC) &_tidyMacro_fMSW, 9},

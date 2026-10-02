@@ -141,7 +141,7 @@ fPlotLP <- function(x,
     band_k <- plot_data[plot_data$conf == as.numeric(k), , drop = FALSE]
     p <- p + ggplot2::geom_ribbon(
       data  = band_k,
-      ggplot2::aes(ymin = lower, ymax = upper),
+      ggplot2::aes(ymin = .data$lower, ymax = .data$upper),
       fill  = ribbon_fill,
       alpha = alphas[[k]]
     )
@@ -150,7 +150,7 @@ fPlotLP <- function(x,
   p +
     ggplot2::geom_line(
       data = plot_data[plot_data$conf == as.numeric(conf_keys[1]), , drop = FALSE],
-      ggplot2::aes(y = point),
+      ggplot2::aes(y = .data$point),
       color = line_color,
       linewidth = 0.8
     ) +

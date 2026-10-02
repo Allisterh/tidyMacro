@@ -47,6 +47,11 @@ static VARResult fVAR_cpp_impl(const arma::mat &y, int p, int c,
   return result;
 }
 
+// No-exog overload for C++ callers, including OpenMP worker threads.
+VARResult fVAR_cpp(const arma::mat &y, int p, int c) {
+  return fVAR_cpp_impl(y, p, c, nullptr);
+}
+
 // Internal C++ function (called from other C++ code) — Nullable overload
 VARResult fVAR_cpp(const arma::mat &y, int p, int c,
                    Rcpp::Nullable<arma::mat> exog) {

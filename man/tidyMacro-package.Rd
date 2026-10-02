@@ -6,7 +6,7 @@
 \alias{tidyMacro-package}
 \title{tidyMacro: Fast Vector Autoregression Models via C++}
 \description{
-Implements Vector Autoregression (VAR) models using fast and efficient C++ programs via Rcpp and RcppArmadillo. Provides tools for estimation, forecasting, and impulse response analysis.
+Implements Vector Autoregression (VAR) models and local projections using fast and efficient C++ programs via Rcpp and RcppArmadillo. Provides tools for estimation, forecasting, and impulse response analysis.
 }
 \seealso{
 Useful links:

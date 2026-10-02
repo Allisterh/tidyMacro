@@ -64,6 +64,79 @@
 }
 
 
+# Parse a one-sided formula containing the panel unit, the panel time
+# variable, or both. Clustering is deliberately restricted to the declared
+# panel dimensions so its meaning remains unambiguous.
+.fLPPanel_parse_cluster <- function(cluster, panel_id, env) {
+  if (is.null(cluster)) {
+    cluster_vars <- panel_id[2L]
+    cluster_formula <- stats::as.formula(
+      paste("~", cluster_vars), env = env
+    )
+  } else {
+    if (!inherits(cluster, "formula") || length(cluster) != 2L) {
+      stop(
+        "fLPPanel: 'cluster' must be a one-sided formula, e.g. ~unit, ~tt, or ~unit + tt.",
+        call. = FALSE
+      )
+    }
+    cluster_formula <- cluster
+    cluster_terms <- tryCatch(
+      stats::terms(cluster_formula, keep.order = TRUE),
+      error = function(e) stop(
+        "fLPPanel: could not parse 'cluster': ", conditionMessage(e),
+        call. = FALSE
+      )
+    )
+    cluster_labels <- attr(cluster_terms, "term.labels")
+    cluster_vars   <- all.vars(cluster_formula)
+
+    # Require plain variable terms. This rejects interactions and
+    # transformations such as ~unit:tt or ~factor(unit).
+    if (length(cluster_labels) != length(cluster_vars) ||
+        !setequal(cluster_labels, cluster_vars)) {
+      stop(
+        "fLPPanel: 'cluster' may contain only plain panel variables joined by '+'.",
+        call. = FALSE
+      )
+    }
+  }
+
+  if (length(cluster_vars) < 1L || length(cluster_vars) > 2L ||
+      anyDuplicated(cluster_vars)) {
+    stop(
+      "fLPPanel: 'cluster' must contain one or both panel variables.",
+      call. = FALSE
+    )
+  }
+  bad <- setdiff(cluster_vars, panel_id)
+  if (length(bad)) {
+    stop(sprintf(
+      paste0(
+        "fLPPanel: clustering variable(s) must be declared in 'panel_id'. ",
+        "Invalid: %s; available: %s."
+      ),
+      paste(bad, collapse = ", "), paste(panel_id, collapse = ", ")
+    ), call. = FALSE)
+  }
+
+  cluster_mode <- if (length(cluster_vars) == 2L) {
+    2L
+  } else if (identical(cluster_vars, panel_id[1L])) {
+    1L
+  } else {
+    0L
+  }
+
+  list(
+    formula = cluster_formula,
+    vars    = cluster_vars,
+    mode    = cluster_mode,
+    label   = c("time", "unit", "unit + time")[cluster_mode + 1L]
+  )
+}
+
+
 # Panel-aware lag/lead expander — respects unit boundaries AND preserves
 # calendar-time gaps. `id_vec` and `t_norm` are the id and normalized
 # integer time aligned with data rows, so shifts look up (id, t + k)
@@ -210,6 +283,14 @@
 #'   of lags is \eqn{\min(h, p_{\max})}). Default 0.
 #' @param n_threads Integer. OpenMP threads for the horizon loop. 0 = all
 #'   cores minus one. Default 0.
+#' @param cluster One-sided formula selecting the clustering dimension:
+#'   the unit variable, the time variable, or both variables declared in
+#'   \code{panel_id}; for example \code{~unit}, \code{~tt}, or
+#'   \code{~unit + tt}. Two-way clustering uses the
+#'   Cameron-Gelbach-Miller inclusion-exclusion estimator. The default
+#'   \code{NULL} is equivalent to clustering on the time variable. The
+#'   \code{small_sample = TRUE} refinement is available only with time
+#'   clustering.
 #'
 #' @return An object of class \code{c("fLPPanel", "fLP")} that plugs into
 #'   \code{\link{fPlotLP}} and \code{\link{tidy.fLP}}.
@@ -219,7 +300,8 @@
 #' # Homogeneous shock
 #' fLPPanel(y ~ shock + l(y, 1:2) | unit + tt,
 #'          data = df, panel_id = c("unit", "tt"),
-#'          shock = "shock", horizons = 12)
+#'          shock = "shock", horizons = 12,
+#'          cluster = ~unit + tt)
 #'
 #' # Heterogeneous shock via explicit interaction (Almuzara-Sancibrián)
 #' fLPPanel(y ~ shock:size | unit + tt,
@@ -242,7 +324,8 @@ fLPPanel <- function(formula, data,
                      small_sample = FALSE,
                      cumulative   = FALSE,
                      p_max        = 0L,
-                     n_threads    = 0L) {
+                     n_threads    = 0L,
+                     cluster      = NULL) {
 
   env <- parent.frame()
 
@@ -275,6 +358,17 @@ fLPPanel <- function(formula, data,
     stop(sprintf("fLPPanel: id column '%s' not found in data.", id_var))
   if (!time_var %in% names(data))
     stop(sprintf("fLPPanel: time column '%s' not found in data.", time_var))
+
+  cluster_spec <- .fLPPanel_parse_cluster(cluster, panel_id, env)
+  if (isTRUE(small_sample) && cluster_spec$mode != 0L) {
+    stop(
+      paste0(
+        "fLPPanel: small_sample = TRUE is defined only for time clustering; ",
+        "use cluster = ~", time_var, " or set small_sample = FALSE."
+      ),
+      call. = FALSE
+    )
+  }
 
   # ---- normalize time first, so gap-aware lag/lead can look up
   #      (id, t + k) rather than (id, adjacent row). Drops off-grid rows
@@ -392,7 +486,7 @@ fLPPanel <- function(formula, data,
   # our terms are numeric, colnames should match rhs_labels one-for-one,
   # in order.
   if (ncol(design) != length(rhs_labels)) {
-    stop("fLPPanel: internal error — design matrix has ",
+    stop("fLPPanel: internal error \u2014 design matrix has ",
          ncol(design), " columns but ", length(rhs_labels), " term labels.")
   }
   colnames(design) <- rhs_labels
@@ -459,6 +553,7 @@ fLPPanel <- function(formula, data,
     p_max        = p_max,
     small_sample = isTRUE(small_sample),
     cumulative   = isTRUE(cumulative),
+    cluster_mode = cluster_spec$mode,
     n_threads    = n_threads,
     verbose      = FALSE
   )
@@ -546,6 +641,9 @@ fLPPanel <- function(formula, data,
     id           = id_var,
     time         = time_var,
     panel_id     = panel_id,
+    cluster      = cluster_spec$formula,
+    cluster_vars = cluster_spec$vars,
+    cluster_type = cluster_spec$label,
     horizons     = h_seq,
     conf         = conf,
     small_sample = isTRUE(small_sample),
@@ -581,10 +679,18 @@ print.fLPPanel <- function(x, digits = 4L, ...) {
     cat("Fixed effects    :  (none)\n")
   cat("Horizons         :  0 to ", max(x$horizons), "\n", sep = "")
   cat("Cumulative       : ", isTRUE(x$cumulative), "\n")
-  cat("SE               : ",
-      if (x$small_sample) "Imbens-Kolesar (2016) small-sample"
-      else                "asymptotic time-clustered (LAHR)",
-      "\n")
+  cat("Clustering       : ", paste(x$cluster_vars, collapse = " + "), "\n")
+  cat(
+    "SE               : ",
+    if (x$small_sample) {
+      "Imbens-Kolesar (2016) time-clustered small-sample"
+    } else if (identical(x$cluster_type, "time")) {
+      "asymptotic time-clustered (LAHR)"
+    } else {
+      paste0("asymptotic ", x$cluster_type, " cluster-robust")
+    },
+    "\n"
+  )
   cat("Confidence       : ",
       paste0(format(x$conf, trim = TRUE), "%", collapse = ", "), "\n")
   cat("Observations     : ", x$nobs, "\n")
@@ -597,6 +703,13 @@ print.fLPPanel <- function(x, digits = 4L, ...) {
 #' @export
 coef.fLPPanel <- function(object, ...) object$irfs
 
+#' Tidy Panel Local Projection Estimates
+#'
+#' @param x An object returned by \code{\link{fLPPanel}}.
+#' @param ... Reserved for additional arguments.
+#' @return A data frame with horizon, shock, estimate, standard error,
+#'   degrees of freedom, p-value, and confidence bounds. Multiple confidence
+#'   levels use columns named \code{lower_<level>} and \code{upper_<level>}.
 #' @export
 tidy.fLPPanel <- function(x, ...) {
   H  <- max(x$horizons)

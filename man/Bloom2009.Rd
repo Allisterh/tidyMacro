@@ -8,13 +8,13 @@
 A data frame with 612 rows and 9 columns:
 \describe{
   \item{Date}{Month start date (\code{Date}), 1962-07 – 2013-06}
-  \item{STOCK}{Log S&P 500 stock price index, in percent}
+  \item{SP500}{Log S&P 500 stock price index, in percent}
   \item{FFR}{Federal funds rate, in percent}
   \item{WAGE}{Log average hourly earnings (manufacturing), in percent}
   \item{CPI}{Log Consumer Price Index, in percent}
-  \item{HOURSM}{Average weekly hours in manufacturing}
-  \item{EMPM}{Log employment in manufacturing, in percent}
-  \item{IPM}{Log industrial production (manufacturing), in percent}
+  \item{HOURS}{Average weekly hours in manufacturing}
+  \item{EMPL}{Log employment in manufacturing, in percent}
+  \item{INDPRO}{Log industrial production (manufacturing), in percent}
   \item{UNCERT}{Uncertainty indicator: equals 1 in months coinciding with
     one of 17 identified uncertainty events (e.g. Cuban Missile Crisis,
     Black Monday), 0 otherwise.}

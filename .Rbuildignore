@@ -20,3 +20,6 @@
 ^\.claude/
 ^\.codex$
 ^\.codex/
+
+# Compiler temporary files can remain after an interrupted build.
+^src/.*\.o\.tmp$

@@ -237,21 +237,26 @@ actual_threads = 1;
 //' @param Z (T-p) x K matrix of instrumental variables
 //' @param nboot Integer number of bootstrap replications
 //' @param blocksize Integer block size for moving block bootstrap
-//' @param adjustZ Integer vector of length 2: [start, end] indices for Z
-// alignment ' @param adjustu Integer vector of length 2: [start, end] indices
-// for residuals alignment ' @param policyvar Integer index (1-based) of the
-// policy variable ' @param horizon Integer maximum impulse response horizon '
-//@param conf Double percentile for confidence bands (e.g., 68 for 68% CI) '
-//@param exog Optional matrix of exogenous variables (T x M). Default is NULL.
+//' @param adjustZ Integer vector of length 2: start and end row indices
+//'   (1-based, inclusive) for instrument alignment.
+//' @param adjustu Integer vector of length 2: start and end row indices
+//'   (1-based, inclusive) for residual alignment.
+//' @param policyvar Integer index (1-based) of the policy variable.
+//' @param horizon Integer maximum impulse response horizon.
+//' @param conf Confidence level in percent (default 90).
+//' @param conf2 Secondary confidence level in percent (default 68).
+//' @param exog Optional matrix of exogenous variables (T x M). Default NULL.
 //' @param n_threads Integer number of threads for parallel computation.
-//'   Default is 0 (uses all available cores). Set to 1 for single-threaded
-// execution. '   If OpenMP is not available, automatically falls back to
-// single-threaded.
+//'   Default is 0 (uses all available cores minus one, with a minimum of one).
+//'   Set to 1 for single-threaded execution. If OpenMP is not available,
+//'   automatically falls back to single-threaded execution.
 //'
 //' @return A list containing:
 //'   \itemize{
 //'     \item upper: N x (horizon+1) matrix of upper confidence bands
 //'     \item lower: N x (horizon+1) matrix of lower confidence bands
+//'     \item upper2: N x (horizon+1) matrix of secondary upper bands
+//'     \item lower2: N x (horizon+1) matrix of secondary lower bands
 //'     \item meanirf: N x (horizon+1) matrix of mean impulse responses
 //'     \item medianirf: N x (horizon+1) matrix of median impulse responses
 //'   }
@@ -260,13 +265,12 @@ actual_threads = 1;
 //' This function implements the moving block bootstrap for IV-identified SVARs.
 //' The first stage regresses the policy variable residual on the instrument(s),
 //' and the second stage recovers the structural impact matrix. The
-// normalization ' sets the policy variable shock to have unit impact on itself.
+//' normalization sets the policy variable shock to have unit impact on itself.
 //'
 //' The function uses OpenMP for parallel computation when available,
-// significantly ' speeding up bootstrap iterations. Each bootstrap replication
-// and percentile ' computation is independent and can be parallelized. If
-// OpenMP is not available, ' the function automatically falls back to
-// single-threaded execution.
+//' speeding up bootstrap iterations. Each bootstrap replication and percentile
+//' computation is independent and can be parallelized. If OpenMP is not
+//' available, the function automatically falls back to single-threaded execution.
 //'
 //' @examples
 //' \dontrun{

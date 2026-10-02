@@ -51,5 +51,5 @@ fCheckRestrictions(irf, shock = 3, restr = restr, hor_vec = hor_vec)
 
 }
 \seealso{
-\code{\link{fGenerateQ}}, \code{\link{fSignRestrictions}}
+\code{\link{fGenerateQ}}, \code{\link{fSignRestr}}
 }

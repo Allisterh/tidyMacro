@@ -13,7 +13,7 @@
 #ifdef _OPENMP
 #include <omp.h>
 #endif
-#include <cstdio>
+#include <R_ext/Print.h>
 #include <algorithm>
 #include <vector>
 
@@ -60,10 +60,10 @@ fBootstrapBQ_cpp(const arma::mat &y, const VARResult &var_result, int nboot,
     actual_threads = n_threads;
   }
   omp_set_num_threads(actual_threads);
-  std::printf("Using %d thread(s) for parallel bootstrap computation...\n",
+  Rprintf("Using %d thread(s) for parallel bootstrap computation...\n",
               actual_threads);
 #else
-  std::printf("OpenMP not available. Running in single-threaded mode.\n");
+  Rprintf("OpenMP not available. Running in single-threaded mode.\n");
   actual_threads = 1;
 #endif
 
@@ -178,6 +178,7 @@ fBootstrapBQ_cpp(const arma::mat &y, const VARResult &var_result, int nboot,
 //' @param nboot Number of bootstrap replications.
 //' @param horizon Maximum IRF horizon.
 //' @param conf Confidence level in percent (e.g. 68).
+//' @param conf2 Secondary confidence level in percent (default 68).
 //' @param bootscheme \code{"residual"} or \code{"wild"}.
 //' @param cumulate Integer vector (1-based) of variable indices whose IRFs
 //'   should be cumulated along the horizon. Typically used when the VAR is
@@ -233,7 +234,7 @@ fBootstrapBQ_cpp(const arma::mat &y, const VARResult &var_result, int nboot,
 Rcpp::List fBootstrapBQ(const arma::mat &y, const Rcpp::List &var_result,
                         int nboot, int horizon, double conf = 90.0, double conf2 = 68.0,
                         const std::string &bootscheme = "residual",
-                        Rcpp::IntegerVector cumulate = Rcpp::IntegerVector(),
+                        Rcpp::IntegerVector cumulate = Rcpp::IntegerVector::create(),
                         Rcpp::Nullable<arma::vec> scaling = R_NilValue,
                         int n_threads = 0) {
 

@@ -11,10 +11,12 @@ BootstrapVARResult fBootstrapVAR_cpp(const arma::mat&    y,
     return fBootstrapVAR_cpp(y, var_result, bootscheme, nullptr);
 }
 
-BootstrapVARResult fBootstrapVAR_cpp(const arma::mat&    y,
-                                     const VARResult&    var_result,
-                                     const std::string&  bootscheme,
-                                     const arma::mat*    exog_ptr) {
+static BootstrapVARResult fBootstrapVAR_impl(
+        const arma::mat& y,
+        const VARResult& var_result,
+        const std::string& bootscheme,
+        const arma::mat* exog_ptr,
+        const arma::uvec* residual_indices) {
 
     // ------------------------------------------------------------------ //
     //  Unpack inputs from struct (much faster than from Rcpp::List)       //
@@ -60,10 +62,14 @@ BootstrapVARResult fBootstrapVAR_cpp(const arma::mat&    y,
 
     if (bootscheme == "residual") {
         // iid resample rows of the residual matrix
-        arma::ivec idx = arma::randi<arma::ivec>(
-                             T_iter, arma::distr_param(0, T_resid - 1));
-        for (int i = 0; i < T_iter; ++i) {
-            boot_resid.row(i) = residuals.row(idx(i));
+        if (residual_indices != nullptr) {
+            for (int i = 0; i < T_iter; ++i)
+                boot_resid.row(i) = residuals.row((*residual_indices)(i));
+        } else {
+            arma::ivec idx = arma::randi<arma::ivec>(
+                                 T_iter, arma::distr_param(0, T_resid - 1));
+            for (int i = 0; i < T_iter; ++i)
+                boot_resid.row(i) = residuals.row(idx(i));
         }
 
     } else if (bootscheme == "wild") {
@@ -108,6 +114,21 @@ BootstrapVARResult fBootstrapVAR_cpp(const arma::mat&    y,
     result.ynext = ynext;
     result.rademacher = rademacher;
     return result;
+}
+
+BootstrapVARResult fBootstrapVAR_cpp(const arma::mat&    y,
+                                     const VARResult&    var_result,
+                                     const std::string&  bootscheme,
+                                     const arma::mat*    exog_ptr) {
+    return fBootstrapVAR_impl(y, var_result, bootscheme, exog_ptr, nullptr);
+}
+
+BootstrapVARResult fBootstrapVAR_cpp(const arma::mat& y,
+                                     const VARResult& var_result,
+                                     const arma::uvec& residual_indices,
+                                     const arma::mat* exog_ptr) {
+    return fBootstrapVAR_impl(y, var_result, "residual", exog_ptr,
+                              &residual_indices);
 }
 
 //' Bootstrap VAR Model

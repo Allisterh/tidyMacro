@@ -74,7 +74,7 @@ fPlotIRFMSW <- function(msw_result, varnames, shockname,
         ggplot2::geom_ribbon(
             ggplot2::aes(ymin = dm_lo, ymax = dm_hi, fill = "Delta Method"),
             alpha = ribbon_alpha_dm) +
-        ggplot2::geom_line(ggplot2::aes(y = point, color = "Point estimate"),
+        ggplot2::geom_line(ggplot2::aes(y = .data$point, color = "Point estimate"),
                            linewidth = 0.8) +
         ggplot2::geom_hline(yintercept = 0,
                             color = zero_line_color, linetype = "dashed",

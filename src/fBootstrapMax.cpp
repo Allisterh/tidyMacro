@@ -11,8 +11,9 @@
 #ifdef _OPENMP
 #include <omp.h>
 #endif
-#include <cstdio>
+#include <R_ext/Print.h>
 #include <algorithm>
+#include <cmath>
 
 // Closed-form LR_max solution (replaces MATLAB fminsearch on LR_max.m).
 // Maximises wold.slice(H-1).row(var_idx) * S * h2  (last-horizon response only,
@@ -55,6 +56,19 @@ fBootstrapMax_cpp(const arma::mat& y, const VARResult& var_result,
     const int n_coef   = static_cast<int>(var_result.beta.n_rows);
     const int slice_sz = N * H;
 
+    if (nboot <= 0)
+        Rcpp::stop("'nboot' must be positive.");
+    if (horizon < 0)
+        Rcpp::stop("'horizon' must be non-negative.");
+    if (N < 2)
+        Rcpp::stop("LR-Max identification requires at least two variables.");
+    if (var_idx < 0 || var_idx >= N)
+        Rcpp::stop("'var_idx' is out of range.");
+    if (conf <= 0.0 || conf > 100.0 || conf2 <= 0.0 || conf2 > 100.0)
+        Rcpp::stop("'conf' and 'conf2' must be in (0, 100].");
+    if (!cumulate.is_empty() && cumulate.max() >= static_cast<arma::uword>(N))
+        Rcpp::stop("'cumulate' contains an out-of-range variable index.");
+
     if (n_exog > 0 && exog.isNull())
         Rcpp::stop("Original VAR used exogenous variables. You must provide the 'exog' parameter.");
     if (n_exog == 0 && exog.isNotNull())
@@ -69,31 +83,55 @@ fBootstrapMax_cpp(const arma::mat& y, const VARResult& var_result,
 
     const bool has_scaling = scaling.isNotNull();
     arma::vec scaling_vec;
-    if (has_scaling) scaling_vec = Rcpp::as<arma::vec>(scaling);
+    if (has_scaling) {
+        scaling_vec = Rcpp::as<arma::vec>(scaling);
+        if (scaling_vec.n_elem != 2)
+            Rcpp::stop("'scaling' must contain a variable index and shock size.");
+        const int s_idx = static_cast<int>(scaling_vec(0)) - 1;
+        if (s_idx < 0 || s_idx >= N)
+            Rcpp::stop("The variable index in 'scaling' is out of range.");
+        if (!std::isfinite(scaling_vec(1)) || scaling_vec(1) == 0.0)
+            Rcpp::stop("The shock size in 'scaling' must be finite and nonzero.");
+    }
 
     const bool has_exog = exog.isNotNull();
     arma::mat exog_mat;
     if (has_exog) exog_mat = Rcpp::as<arma::mat>(exog);
+    const arma::mat* exog_ptr = has_exog ? &exog_mat : nullptr;
+
+    // RcppArmadillo random draws use R's main-thread-only RNG. Generate the
+    // complete resampling plan before the OpenMP loop so workers perform no R
+    // API calls and results are invariant to thread count for a fixed seed.
+    const int T_iter = T - p;
+    const int T_resid = static_cast<int>(var_result.residuals.n_rows);
+    arma::umat resample_indices(T_iter, nboot, arma::fill::none);
+    for (int b = 0; b < nboot; ++b)
+        resample_indices.col(b) = arma::randi<arma::uvec>(
+            T_iter, arma::distr_param(0, T_resid - 1));
 
     int actual_threads = 1;
 #ifdef _OPENMP
-    actual_threads = (n_threads == 0)
+    actual_threads = (n_threads <= 0)
                          ? std::max(1, omp_get_max_threads() - 1)
                          : n_threads;
     omp_set_num_threads(actual_threads);
-    std::printf("Using %d thread(s) for LR-Max bootstrap...\n", actual_threads);
+    Rprintf("Using %d thread(s) for LR-Max bootstrap...\n", actual_threads);
 #else
-    std::printf("OpenMP not available. Running single-threaded LR-Max bootstrap.\n");
+    Rprintf("OpenMP not available. Running single-threaded LR-Max bootstrap.\n");
 #endif
 
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static) num_threads(actual_threads)
+#endif
     for (int b = 0; b < nboot; ++b) {
 
-        BootstrapVARResult boot_data = fBootstrapVAR_cpp(y, var_result, "residual",
-                                                          has_exog ? &exog_mat : nullptr);
+        arma::uvec indices = resample_indices.col(b);
+        BootstrapVARResult boot_data =
+            fBootstrapVAR_cpp(y, var_result, indices, exog_ptr);
 
         VARResult var_loop = has_exog
                                  ? fVAR_cpp(boot_data.ynext, p, c, exog_mat)
-                                 : fVAR_cpp(boot_data.ynext, p, c, R_NilValue);
+                                 : fVAR_cpp(boot_data.ynext, p, c);
         boot_beta.slice(b) = var_loop.beta.t();
 
         WoldIRFResult wold_res = fWoldIRF_cpp(var_loop, horizon);
@@ -112,8 +150,9 @@ fBootstrapMax_cpp(const arma::mat& y, const VARResult& var_result,
         // check and every horizon below.
         arma::vec impact = S_loop * h2;
 
-        // Sign: ensure last-horizon non-structural response of var 0 is non-negative
-        if (arma::dot(wold_loop.slice(H - 1).row(0), impact) < 0.0)
+        // Orient the shock so the selected variable's maximised response is
+        // non-negative. For the news-shock application var_idx is TFP (0).
+        if (arma::dot(wold_loop.slice(H - 1).row(var_idx), impact) < 0.0)
             impact = -impact;
 
         arma::mat struct_irf(N, H, arma::fill::none);
@@ -147,8 +186,12 @@ fBootstrapMax_cpp(const arma::mat& y, const VARResult& var_result,
 
     auto nth_pct = [](std::vector<double>& v, double pct) -> double {
         const int n = static_cast<int>(v.size());
-        const double raw = (pct / 100.0) * (n - 1);
-        const int lo = static_cast<int>(raw);
+        // MATLAB prctile's default exact/midpoint rule assigns sorted
+        // observation i the probability (i - 0.5) / n.
+        const double raw = (pct / 100.0) * n - 0.5;
+        if (raw <= 0.0) return *std::min_element(v.begin(), v.end());
+        if (raw >= n - 1.0) return *std::max_element(v.begin(), v.end());
+        const int lo = static_cast<int>(std::floor(raw));
         const double frac = raw - lo;
         std::nth_element(v.begin(), v.begin() + lo, v.end());
         const double lo_val = v[lo];
@@ -183,12 +226,41 @@ fBootstrapMax_cpp(const arma::mat& y, const VARResult& var_result,
     return result;
 }
 
+//' Bootstrap Long-Run Maximum-Response Impulse Responses
+//'
+//' Computes residual-bootstrap confidence bands for the identification
+//' used by \code{\link{fMaxIRF}}. The corrected variant first estimates
+//' coefficient bias, shrinking the correction if needed for VAR stability,
+//' and then bootstraps the bias-corrected VAR.
+//'
+//' @param y T x N matrix of endogenous variables.
+//' @param var_result Fitted VAR returned by \code{\link{fVAR}}.
+//' @param nboot Number of bootstrap replications.
+//' @param horizon Maximum response horizon; horizon zero is included.
+//' @param var_idx Index (1-based) of the variable whose last-horizon
+//'   response is maximised.
+//' @param conf Confidence level in percent (default 90).
+//' @param conf2 Secondary confidence level in percent (default 68).
+//' @param cumulate Integer vector of variable indices (1-based) whose
+//'   responses should be cumulated. Defaults to no cumulation.
+//' @param scaling Optional length-two numeric vector. Responses are divided
+//'   by the impact response of variable \code{scaling[1]} multiplied by
+//'   \code{scaling[2]}, when that product is nonzero. Default \code{NULL}.
+//' @param exog T x M matrix of exogenous variables, required when the
+//'   original VAR included them; otherwise \code{NULL}.
+//' @param n_threads Number of OpenMP threads. Zero uses all available
+//'   cores minus one, with a minimum of one. Without OpenMP, uses one.
+//' @return A list with \code{bootmax}, an N x (horizon+1) x nboot array;
+//'   \code{upper}, \code{lower}, \code{upper2}, and \code{lower2}, each
+//'   an N x (horizon+1) matrix; and \code{boot_beta}, an N x K x nboot
+//'   coefficient array, where K is the number of regressors. The corrected
+//'   variant stores \code{nboot2} draws.
 //' @export
 // [[Rcpp::export]]
 Rcpp::List fBootstrapMax(const arma::mat& y, const Rcpp::List& var_result,
                          int nboot, int horizon, int var_idx,
                          double conf = 90.0, double conf2 = 68.0,
-                         Rcpp::IntegerVector cumulate = Rcpp::IntegerVector(),
+                         Rcpp::IntegerVector cumulate = Rcpp::IntegerVector::create(),
                          Rcpp::Nullable<arma::vec> scaling = R_NilValue,
                          Rcpp::Nullable<arma::mat> exog    = R_NilValue,
                          int n_threads = 0) {

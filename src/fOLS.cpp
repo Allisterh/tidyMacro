@@ -129,9 +129,9 @@ OLSResult fOLS_cpp(arma::mat y, arma::mat X, int c, int robust, int lag, int mod
 //' @param y Dependent variable matrix (T x 1)
 //' @param X Independent variables matrix (T x N)
 //' @param c Integer indicator for intercept (1 if included, 0 otherwise)
-//' @param robust SE type: 0 = standard, 1 = White (heteroskedasticity-robust),
-//'   2 = Newey-West HAC
-//' @param lag Number of lags for HAC (0 = Newey-West rule of thumb)
+//' @param lag Number of lags for the robust F-statistic. Zero uses White's
+//'   heteroskedasticity-robust covariance; a positive value uses Newey-West
+//'   HAC covariance with that lag order.
 //'
 //' @return A list containing:
 //'   \itemize{
@@ -141,7 +141,7 @@ OLSResult fOLS_cpp(arma::mat y, arma::mat X, int c, int robust, int lag, int mod
 //'     \item r2: R-squared
 //'     \item r2adj: Adjusted R-squared
 //'     \item F: F-statistic for overall significance
-//'     \item Frobust: Robust F-statistic (only if robust > 0)
+//'     \item Frobust: White or Newey-West robust F-statistic
 //'     \item fitted_partial: Fitted values excluding intercept
 //'   }
 //'

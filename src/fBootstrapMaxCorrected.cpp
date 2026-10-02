@@ -12,7 +12,7 @@
 #ifdef _OPENMP
 #include <omp.h>
 #endif
-#include <cstdio>
+#include <R_ext/Print.h>
 #include <algorithm>
 
 // Takes the already-averaged Pass-1 coefficient mean (boot_mean, N x n_coef).
@@ -69,6 +69,11 @@ fBootstrapMaxCorrected_cpp(const arma::mat& y, const VARResult& var_result,
     const int n_exog = var_result.n_exog;
     const int N      = static_cast<int>(y.n_cols);
     const int n_coef = static_cast<int>(var_result.beta.n_rows);
+    const int T_iter = static_cast<int>(y.n_rows) - p;
+    const int T_resid = static_cast<int>(var_result.residuals.n_rows);
+
+    if (nboot1 <= 0 || nboot2 <= 0)
+        Rcpp::stop("'nboot1' and 'nboot2' must be positive.");
 
     if (n_exog > 0 && exog.isNull())
         Rcpp::stop("Original VAR used exogenous variables. You must provide the 'exog' parameter.");
@@ -77,46 +82,51 @@ fBootstrapMaxCorrected_cpp(const arma::mat& y, const VARResult& var_result,
 
     int actual_threads = 1;
 #ifdef _OPENMP
-    actual_threads = (n_threads == 0)
+    actual_threads = (n_threads <= 0)
                          ? std::max(1, omp_get_max_threads() - 1)
                          : n_threads;
     omp_set_num_threads(actual_threads);
-    std::printf("[Pass 1] Bias estimation: %d reps, %d thread(s)\n",
+    Rprintf("[Pass 1] Bias estimation: %d reps, %d thread(s)\n",
                 nboot1, actual_threads);
 #else
-    std::printf("[Pass 1] Bias estimation: %d reps, single-threaded\n", nboot1);
+    Rprintf("[Pass 1] Bias estimation: %d reps, single-threaded\n", nboot1);
 #endif
 
     const bool has_exog = exog.isNotNull();
     arma::mat exog_mat;
     if (has_exog) exog_mat = Rcpp::as<arma::mat>(exog);
+    const arma::mat* exog_ptr = has_exog ? &exog_mat : nullptr;
 
+    // RcppArmadillo's RNG delegates to R's RNG, which is main-thread only.
+    // Draw every residual index before entering OpenMP, then give each
+    // replication a fixed column. This also makes results thread-count
+    // invariant for a given R seed.
+    arma::umat resample_indices(T_iter, nboot1, arma::fill::none);
+    for (int b = 0; b < nboot1; ++b)
+        resample_indices.col(b) = arma::randi<arma::uvec>(
+            T_iter, arma::distr_param(0, T_resid - 1));
+
+    // Store each draw separately and average in replication order after the
+    // parallel loop. A thread-local reduction would change floating-point
+    // summation order when the thread count changes.
+    arma::cube pass1_beta(N, n_coef, nboot1, arma::fill::none);
     arma::mat boot_mean(N, n_coef, arma::fill::zeros);
 
 #ifdef _OPENMP
-#pragma omp parallel
-    {
-        arma::mat thread_sum(N, n_coef, arma::fill::zeros);
-#pragma omp for schedule(dynamic) nowait
-        for (int b = 0; b < nboot1; ++b) {
-            BootstrapVARResult boot_data = fBootstrapVAR_cpp(y, var_result, "residual");
-            VARResult var_loop = has_exog
-                                     ? fVAR_cpp(boot_data.ynext, p, c, exog_mat)
-                                     : fVAR_cpp(boot_data.ynext, p, c, R_NilValue);
-            thread_sum += var_loop.beta.t();
-        }
-#pragma omp critical
-        boot_mean += thread_sum;
-    }
-#else
+#pragma omp parallel for schedule(static) num_threads(actual_threads)
+#endif
     for (int b = 0; b < nboot1; ++b) {
-        BootstrapVARResult boot_data = fBootstrapVAR_cpp(y, var_result, "residual");
+        arma::uvec indices = resample_indices.col(b);
+        BootstrapVARResult boot_data =
+            fBootstrapVAR_cpp(y, var_result, indices, exog_ptr);
         VARResult var_loop = has_exog
                                  ? fVAR_cpp(boot_data.ynext, p, c, exog_mat)
-                                 : fVAR_cpp(boot_data.ynext, p, c, R_NilValue);
-        boot_mean += var_loop.beta.t();
+                                 : fVAR_cpp(boot_data.ynext, p, c);
+        pass1_beta.slice(b) = var_loop.beta.t();
     }
-#endif
+
+    for (int b = 0; b < nboot1; ++b)
+        boot_mean += pass1_beta.slice(b);
     boot_mean /= static_cast<double>(nboot1);
 
     arma::mat Beta_t;
@@ -124,15 +134,15 @@ fBootstrapMaxCorrected_cpp(const arma::mat& y, const VARResult& var_result,
     bias_correct_max(var_result.beta, c, p, boot_mean, Beta_t, corrections);
 
     if (corrections > 1)
-        std::printf("[Bias correction] %d shrinkage iteration(s)\n", corrections);
+        Rprintf("[Bias correction] %d shrinkage iteration(s)\n", corrections);
     else
-        std::printf("[Bias correction] Full correction applied\n");
+        Rprintf("[Bias correction] Full correction applied\n");
 
 #ifdef _OPENMP
-    std::printf("[Pass 2] Bias-corrected bootstrap: %d reps, %d thread(s)\n",
+    Rprintf("[Pass 2] Bias-corrected bootstrap: %d reps, %d thread(s)\n",
                 nboot2, actual_threads);
 #else
-    std::printf("[Pass 2] Bias-corrected bootstrap: %d reps, single-threaded\n", nboot2);
+    Rprintf("[Pass 2] Bias-corrected bootstrap: %d reps, single-threaded\n", nboot2);
 #endif
 
     VARResult corrected_var = var_result;
@@ -142,12 +152,15 @@ fBootstrapMaxCorrected_cpp(const arma::mat& y, const VARResult& var_result,
                              conf, conf2, cumulate, scaling, exog, actual_threads);
 }
 
+//' @rdname fBootstrapMax
+//' @param nboot1 Number of first-pass replications used to estimate bias.
+//' @param nboot2 Number of second-pass replications used for the bands.
 //' @export
 // [[Rcpp::export]]
 Rcpp::List fBootstrapMaxCorrected(const arma::mat& y, const Rcpp::List& var_result,
                                    int nboot1, int nboot2, int horizon, int var_idx,
                                    double conf = 90.0, double conf2 = 68.0,
-                                   Rcpp::IntegerVector cumulate = Rcpp::IntegerVector(),
+                                   Rcpp::IntegerVector cumulate = Rcpp::IntegerVector::create(),
                                    Rcpp::Nullable<arma::vec> scaling = R_NilValue,
                                    Rcpp::Nullable<arma::mat> exog    = R_NilValue,
                                    int n_threads = 0) {

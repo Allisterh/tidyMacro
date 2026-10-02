@@ -66,7 +66,8 @@ arma::mat fGenerateQ_cpp(int N) {
 //' @return An N x N orthonormal matrix.
 //'
 //' @details
-//' Draw M ~ N(0, I_{N x N}), compute the QR decomposition M = QR, then set
+//' Draw an N x N matrix M of independent standard normals, compute the
+//' QR decomposition M = QR, then set
 //' Q[,i] = -Q[,i] whenever R[i,i] < 0.  The resulting Q is uniformly
 //' distributed on the Stiefel manifold (Haar measure), as required for
 //' sign-restriction identification.

@@ -12,7 +12,7 @@
 #ifdef _OPENMP
 #include <omp.h>
 #endif
-#include <cstdio>
+#include <R_ext/Print.h>
 #include <algorithm>
 
 // Bias-correct beta using the Kilian shortcut.
@@ -88,10 +88,10 @@ fBootstrapCholCorrected_cpp(const arma::mat &y, const VARResult &var_result,
                        ? std::max(1, omp_get_max_threads() - 1)
                        : n_threads;
   omp_set_num_threads(actual_threads);
-  std::printf("[Pass 1] Bias estimation: %d reps, %d thread(s)\n",
+  Rprintf("[Pass 1] Bias estimation: %d reps, %d thread(s)\n",
               nboot1, actual_threads);
 #else
-  std::printf("[Pass 1] Bias estimation: %d reps, single-threaded\n", nboot1);
+  Rprintf("[Pass 1] Bias estimation: %d reps, single-threaded\n", nboot1);
 #endif
 
   // ------------------------------------------------------------------ //
@@ -137,18 +137,18 @@ fBootstrapCholCorrected_cpp(const arma::mat &y, const VARResult &var_result,
   bias_correct_chol(var_result.beta, c, p, boot_mean, Beta_t, corrections);
 
   if (corrections > 1)
-    std::printf("[Bias correction] %d shrinkage iteration(s)\n", corrections);
+    Rprintf("[Bias correction] %d shrinkage iteration(s)\n", corrections);
   else
-    std::printf("[Bias correction] Full correction applied\n");
+    Rprintf("[Bias correction] Full correction applied\n");
 
   // ------------------------------------------------------------------ //
   // Pass 2: bootstrap with bias-corrected beta
   // ------------------------------------------------------------------ //
 #ifdef _OPENMP
-  std::printf("[Pass 2] Bias-corrected bootstrap: %d reps, %d thread(s)\n",
+  Rprintf("[Pass 2] Bias-corrected bootstrap: %d reps, %d thread(s)\n",
               nboot2, actual_threads);
 #else
-  std::printf("[Pass 2] Bias-corrected bootstrap: %d reps, single-threaded\n", nboot2);
+  Rprintf("[Pass 2] Bias-corrected bootstrap: %d reps, single-threaded\n", nboot2);
 #endif
 
   VARResult corrected_var = var_result;

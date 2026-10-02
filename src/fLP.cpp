@@ -32,7 +32,7 @@
 #include <omp.h>
 #endif
 #include <algorithm>
-#include <cstdio>
+#include <R_ext/Print.h>
 
 using namespace arma;
 
@@ -121,13 +121,13 @@ LPResult fLP_internal(
                        ? std::max(1, omp_get_max_threads())
                        : n_threads;
   if (verbose) {
-    std::printf("fLP: using %d thread(s) for parallel horizon loop...\n",
+    Rprintf("fLP: using %d thread(s) for parallel horizon loop...\n",
                 actual_threads);
   }
 #else
   (void) n_threads;
   if (verbose) {
-    std::printf("fLP: OpenMP not available. Running single-threaded.\n");
+    Rprintf("fLP: OpenMP not available. Running single-threaded.\n");
   }
 #endif
 

@@ -17,12 +17,15 @@
 //   (cumulative: replaces y_{i,t+h} by sum_{r=0..h} y_{i,t+r})
 //
 // Inference:
-//   * small_sample = false → asymptotic time-clustered sandwich SEs
-//         V = (X'X)^{-1} (sum_t Z_t Z_t') (X'X)^{-1}, Z_t = sum_i X_it u_it
+//   * small_sample = false → asymptotic cluster-robust sandwich SEs:
+//       cluster_mode = 0: time, 1: unit, 2: unit + time (two-way).
+//     Two-way clustering uses the Cameron-Gelbach-Miller inclusion-exclusion
+//     meat M_i + M_t - M_it.
 //     with df = Inf (normal critical values).
 //   * small_sample = true  → Imbens-Kolesar (2016, REStat) refinement,
 //     per s-component, using the within-period projection X_t and the
-//     hat-matrix P0 = I_T - X_t * (X_t'X_t)^{-1} * X_t'.
+//     hat-matrix P0 = I_T - X_t * (X_t'X_t)^{-1} * X_t'. This refinement
+//     is defined only for cluster_mode = 0 (time clustering).
 //
 // The horizon loop is parallelized with OpenMP; y_h and the lag columns
 // used across horizons are precomputed once, so each horizon runs
@@ -52,6 +55,7 @@ LPPanelResult fLPPanel_internal(
     int  p_max,
     bool small_sample,
     bool cumulative,
+    int  cluster_mode,
     int  n_threads,
     bool verbose
 );
@@ -68,6 +72,7 @@ Rcpp::List fLPPanel_cpp(
     int  p_max,
     bool small_sample,
     bool cumulative,
+    int  cluster_mode,
     int  n_threads,
     bool verbose
 );

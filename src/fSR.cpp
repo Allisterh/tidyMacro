@@ -24,7 +24,7 @@
 #include <omp.h>
 #endif
 #include <algorithm>
-#include <cstdio>
+#include <R_ext/Print.h>
 #include <vector>
 #include <limits>
 
@@ -346,10 +346,10 @@ Rcpp::List fSR_cpp(const arma::mat& y, int p, int c, const arma::mat& SIGN,
     actual_threads = (n_threads <= 0) ? omp_get_max_threads()
                                       : n_threads;
     actual_threads = std::max(1, std::min(actual_threads, ndraws));
-    if (verbose) std::printf("Using %d thread(s) for sign-restriction draws...\n",
+    if (verbose) Rprintf("Using %d thread(s) for sign-restriction draws...\n",
                              actual_threads);
 #else
-    if (verbose) std::printf("OpenMP not available. Running single-threaded.\n");
+    if (verbose) Rprintf("OpenMP not available. Running single-threaded.\n");
 #endif
 
     double total_rot = 0.0;
@@ -556,7 +556,7 @@ Rcpp::List fSR_cpp(const arma::mat& y, int p, int c, const arma::mat& SIGN,
     const double accept_rate = (total_rot > 0.0)
                                  ? static_cast<double>(n_ok) / total_rot : 0.0;
     if (verbose) {
-        std::printf("Accepted %d of %d slots; %.0f rotations tried (acceptance %.3f%%).\n",
+        Rprintf("Accepted %d of %d slots; %.0f rotations tried (acceptance %.3f%%).\n",
                     n_ok, ndraws, total_rot, 100.0 * accept_rate);
     }
 

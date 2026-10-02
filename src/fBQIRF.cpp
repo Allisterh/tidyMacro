@@ -2,51 +2,6 @@
 #include <RcppArmadillo.h>
 // [[Rcpp::depends(RcppArmadillo)]]
 
-//' Compute Blanchard-Quah (BQ) Impulse Response Functions
-//'
-//' @param wold Wold representation cube (N x N x horizon+1), where
-//'   \code{wold[,,h]} contains the Wold IRF at horizon h
-//' @param K N x N lower triangular Cholesky factor of the long-run
-//'   covariance matrix used for BQ identification
-//' @param scaling Optional numeric vector of length 2. The first element
-//'   specifies the variable index (1-based) used for normalisation, and the
-//'   second element specifies the shock size. When omitted no normalisation
-//'   is applied.
-//'
-//' @return A cube (N x N x horizon+1) of long-run identified impulse response
-//'   functions.
-//'
-//' @details
-//' Computes structural impulse response functions under the Blanchard-Quah
-//' (1989) long-run identification scheme. For each horizon h the structural
-//' IRF is computed as:
-//' \deqn{IRF_h = \Psi_h \cdot K}
-//' where \eqn{\Psi_h} is the Wold representation at horizon h and K is the
-//' lower triangular Cholesky factor of the long-run covariance matrix.
-//'
-//' When \code{scaling} is supplied the entire cube is divided by
-//' \eqn{IRF_0(\text{scaling}[1],\, \text{scaling}[1]) \;/\; \text{scaling}[2]},
-//' normalising the impact response of the selected variable to
-//' \code{scaling[2]}.
-//'
-//' @references
-//' Blanchard, O. J., & Quah, D. (1989). The dynamic effects of aggregate
-//' demand and supply disturbances. \emph{American Economic Review}, 79(4),
-//' 655--673.
-//'
-//' @examples
-//' \dontrun{
-//' # Estimate a VAR and compute Wold IRFs
-//' VAR  <- fVAR(y, p = 2, c = 1)
-//' wold <- fWoldIRF(VAR, horizon = 20)
-//'
-//' # Obtain BQ long-run Cholesky factor K (from e.g. fBQ())
-//' bqirf <- fBQIRF(wold, K)
-//'
-//' # With normalisation: unit shock to variable 1
-//' bqirf_norm <- fBQIRF(wold, K, scaling = c(1, 1))
-//' }
-//'
 // Pre-parsed scaling overload — no Rcpp::as, safe to call from OpenMP loops.
 arma::cube fBQIRF_cpp(const arma::cube& wold, const arma::mat& K,
                       bool has_scaling, int idx_0based, double shock_size) {
@@ -66,6 +21,55 @@ arma::cube fBQIRF_cpp(const arma::cube& wold, const arma::mat& K,
   return bqirf;
 }
 
+//' Compute Blanchard-Quah (BQ) Impulse Response Functions
+//'
+//' @param wold Wold representation cube (N x N x horizon+1), where
+//'   \code{wold[,,h]} contains the Wold IRF at horizon h
+//' @param K N x N contemporaneous impact matrix from BQ identification,
+//'   obtained by solving C(1) K = D, where D is the lower Cholesky
+//'   factor of the long-run covariance matrix.
+//' @param scaling Optional numeric vector of length 2. The first element
+//'   specifies the variable index (1-based) used for normalisation, and the
+//'   second element specifies the shock size. When omitted no normalisation
+//'   is applied.
+//'
+//' @return A cube (N x N x horizon+1) of long-run identified impulse response
+//'   functions.
+//'
+//' @details
+//' Computes structural impulse response functions under the Blanchard-Quah
+//' (1989) long-run identification scheme. For each horizon h the structural
+//' IRF is computed as:
+//' \deqn{IRF_h = \Psi_h \cdot K}
+//' where \eqn{\Psi_h} is the Wold representation at horizon h and K is the
+//' contemporaneous impact matrix implied by the long-run restrictions.
+//'
+//' When \code{scaling} is supplied the entire cube is divided by
+//' \eqn{IRF_0(\text{scaling}[1],\, \text{scaling}[1]) \;/\; \text{scaling}[2]},
+//' normalising the impact response of the selected variable to
+//' \code{scaling[2]}.
+//'
+//' @references
+//' Blanchard, O. J., & Quah, D. (1989). The dynamic effects of aggregate
+//' demand and supply disturbances. \emph{American Economic Review}, 79(4),
+//' 655--673.
+//'
+//' @examples
+//' \dontrun{
+//' # Estimate a VAR and compute Wold IRFs
+//' VAR  <- fVAR(y, p = 2, c = 1)
+//' wold <- fWoldIRF(VAR, horizon = 20)
+//'
+//' # Map the long-run Cholesky factor to contemporaneous impacts
+//' C1 <- apply(wold, c(1, 2), sum)
+//' D1 <- t(chol(C1 %*% VAR$sigma %*% t(C1)))
+//' K <- solve(C1, D1)
+//' bqirf <- fBQIRF(wold, K)
+//'
+//' # With normalisation: unit shock to variable 1
+//' bqirf_norm <- fBQIRF(wold, K, scaling = c(1, 1))
+//' }
+//'
 //' @export
 // [[Rcpp::export]]
 arma::cube fBQIRF(const arma::cube& wold, const arma::mat& K,
