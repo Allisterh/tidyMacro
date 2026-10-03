@@ -23,3 +23,10 @@
 
 # Compiler temporary files can remain after an interrupted build.
 ^src/.*\.o\.tmp$
+^src/.*\.o-.*\.tmp$
+^src/.*-[0-9a-f]+\.o\.tmp$
+
+# Compiled objects must never ship in the tarball.
+^src/.*\.(o|so|dll|dylib)$
+^\.DS_Store$
+^.*/\.DS_Store$

@@ -2,7 +2,7 @@ Package: tidyMacro
 Type: Package
 Title: Fast Vector Autoregression Models via C++
 Version: 1.0.0
-Date: 2025-01-24
+Date: 2026-10-02
 Encoding: UTF-8
 Authors@R: person("Muhsin", "Ciftci", email = "farmer.muhsin@gmail.com", 
                   role = c("aut", "cre"))
@@ -19,12 +19,12 @@ Imports:
     rlang,
     tidyselect
 Suggests:
-    knitr,
-    rmarkdown,
-    readxl
-VignetteBuilder: knitr
+    readxl,
+    testthat (>= 3.0.0),
+    parallel
+Config/testthat/edition: 3
 LinkingTo: Rcpp, RcppArmadillo
-Depends: R (>= 3.5.0)
+Depends: R (>= 4.1.0)
 LazyData: true
 URL: https://github.com/muhsinciftci/tidyMacro
 BugReports: https://github.com/muhsinciftci/tidyMacro/issues
