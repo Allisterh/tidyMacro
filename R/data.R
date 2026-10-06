@@ -193,7 +193,7 @@
 #'
 #' @format A data frame with rows and 4 columns:
 #' \describe{
-#'   \item{logTFP}{Log total factor productivity (Fernald index, base ≈ 100)}
+#'   \item{logTFP}{Log total factor productivity (Fernald index, base approximately 100)}
 #'   \item{logSP500}{Log real S&P 500 stock price}
 #'   \item{logConsumption}{Log real private consumption}
 #'   \item{logHours}{Log total hours worked in the business sector}

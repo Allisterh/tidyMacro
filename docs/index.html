@@ -287,7 +287,7 @@ div.csl-indent {
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./05_4_LP_NL_StateDep.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Nonlinear and State-Dependent LP</span></a>
+ <span class="menu-text">LP Nonlinear and State-Dependent</span></a>
   </div>
 </li>
         <li class="sidebar-item">
@@ -350,7 +350,7 @@ div.csl-indent {
 <section id="functionality" class="level2">
 <h2 class="anchored" data-anchor-id="functionality">Functionality</h2>
 <ul>
-<li>Fast VAR &amp; VARX reduced form estimations</li>
+<li>Fast reduced form VAR estimations and rich identification schemes</li>
 <li>Local projections estimations with clean syntax, support for macros</li>
 <li>Zero dependency on other packages. Ground up written in C++. All visualizations made with ggplot2 in R.</li>
 <li>Publication-ready plots out of the box. Each plot is a ggplot2 object, can be ex post customized</li>
@@ -358,7 +358,7 @@ div.csl-indent {
 <li>Parallel bootstrap computations via OpenMP for maximum speed.</li>
 <li>Excellent documentation with detailed examples for every function</li>
 <li>Import data via tidyverse, clean, modify and then supply your final data piping as matrix for Armadillo calculations</li>
-<li>Example data sets for each replication via already transformed data</li>
+<li>Example data sets for replications in leading economics journals</li>
 </ul>
 </section>
 <section id="models---identification---decompositions" class="level2">
@@ -426,10 +426,10 @@ div.csl-indent {
 <li><p><strong>Identification via Sign, Narrative and Zero Restrictions</strong> ✅</p>
 <ul>
 <li>Impulse response functions ✅</li>
-<li>Historical Decomposition (Fry-Pagan draw) ✅</li>
+<li>Historical Decomposition ✅</li>
 <li>Narrative restrictions
 <ul>
-<li>Rejection sampling (VAR Toolbox convention) ✅</li>
+<li>Rejection sampling ✅</li>
 <li>Optional ADRR importance reweighting ✅</li>
 </ul></li>
 <li>Combined with external instruments (sign+IV)
@@ -454,6 +454,10 @@ div.csl-indent {
 <ul>
 <li>Replication: <span class="citation" data-cites="jorda2025">Jorda and Taylor (<a href="#ref-jorda2025" role="doc-biblioref">2025</a>)</span> ✅</li>
 </ul></li>
+<li>State Dependent and Nonlinear Local projections
+<ul>
+<li>Replication: <span class="citation" data-cites="tenreyro2016a">Tenreyro and Thwaites (<a href="#ref-tenreyro2016a" role="doc-biblioref">2016</a>)</span> ✅</li>
+</ul></li>
 <li>Panel Local projections
 <ul>
 <li>Replication: <span class="citation" data-cites="almuzara2024micro">Almuzara and Sancibrián (<a href="#ref-almuzara2024micro" role="doc-biblioref">2024</a>)</span> ✅</li>
@@ -462,7 +466,6 @@ div.csl-indent {
 <ul>
 <li>Replication: <span class="citation" data-cites="dube2025">Dube et al. (<a href="#ref-dube2025" role="doc-biblioref">2025</a>)</span></li>
 </ul></li>
-<li>State Dependent Local projections ⛔</li>
 </ul></li>
 </ol>
 <section id="how-to-cite" class="level3 unnumbered">
@@ -543,6 +546,9 @@ Känzig, Diego R. 2021. <span>“The Macroeconomic Effects of Oil Supply News: E
 </div>
 <div id="ref-rigobon2003" class="csl-entry" role="listitem">
 Rigobon, Roberto. 2003. <span>“Identification Through Heteroskedasticity.”</span> <em>The Review of Economics and Statistics</em> 85 (4): 777–92. <a href="https://doi.org/10.1162/003465303772815727">https://doi.org/10.1162/003465303772815727</a>.
+</div>
+<div id="ref-tenreyro2016a" class="csl-entry" role="listitem">
+Tenreyro, Silvana, and Gregory Thwaites. 2016. <span>“Pushing on a <span>String</span>: <span>US Monetary Policy Is Less Powerful</span> in <span>Recessions</span>.”</span> <em>American Economic Journal: Macroeconomics</em> 8 (4): 43–74. <a href="https://doi.org/10.1257/mac.20150016">https://doi.org/10.1257/mac.20150016</a>.
 </div>
 <div id="ref-uhlig2005" class="csl-entry" role="listitem">
 Uhlig, Harald. 2005. <span>“What Are the Effects of Monetary Policy on Output? Results from an Agnostic Identification Procedure.”</span> <em>Journal of Monetary Economics</em> 52 (2): 381–419.

@@ -9,12 +9,17 @@
 #'   supplied, \code{beta}, \code{p} and \code{c} are taken from it and only
 #'   \code{y} or \code{B} need overriding.
 #' @param B Structural impact matrix. Defaults to the Fry-Pagan draw
-#'   \code{Bfp} when \code{x} is an \code{"fSignRestr"} object, since that is a
-#'   genuine structural representation; the element-wise median \code{Bmed} is
-#'   not, and its components would not sum back to the data.
+#'   \code{Bfp} when \code{x} is an \code{"fSignRestr"} object, because it is
+#'   an accepted model draw; the element-wise median \code{Bmed} need not be.
+#'   Any invertible \code{B} reconstructs the data, since residuals and
+#'   deterministic terms are computed from the same \code{beta}.
 #' @param y Optional T x N matrix of endogenous variables, required when
 #'   \code{x} is not a matrix and the data are not recoverable from it.
 #' @param beta Reduced-form coefficient matrix, \code{[const | lags | exog]}.
+#'   Defaults to the coefficients of the Fry-Pagan draw,
+#'   \code{beta_all[, , fp_index]}, when \code{x} is an \code{"fSignRestr"}
+#'   object, so that \code{B} and \code{beta} come from the same draw (the OLS
+#'   coefficients when \code{inference = 0}).
 #' @param p Integer lag order.
 #' @param c Integer intercept indicator, 1 or 0.
 #' @param exog Optional T x M matrix of exogenous regressors.
@@ -47,7 +52,11 @@ fHDShock <- function(x, B = NULL, y = NULL, beta = NULL, p = NULL, c = NULL,
 
     if (inherits(x, "fSignRestr")) {
         if (is.null(B))    B    <- x$Bfp
-        if (is.null(beta)) beta <- x$var$beta
+        if (is.null(beta)) {
+            beta <- if (!is.null(x$beta_all) && !is.null(x$fp_index))
+                matrix(x$beta_all[, , x$fp_index], nrow = dim(x$beta_all)[1])
+            else x$var$beta
+        }
         if (is.null(p))    p    <- x$p
         if (is.null(c))    c    <- x$c
         if (is.null(y))    y    <- x$var$y

@@ -23,6 +23,41 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 /* CSS for citations */
 div.csl-bib-body { }
 div.csl-entry {
@@ -125,7 +160,10 @@ window.Quarto = {
 
 <meta property="og:title" content="tidyMacro">
 <meta property="og:description" content="High-Performance Structural Vector Autoregressions (SVARs) and Local Projections in R">
+<meta property="og:image" content="https://tidymacro.netlify.app/05_4_LP_NL_StateDep_files/figure-html/fig-shock-state-1.png">
 <meta property="og:site_name" content="tidyMacro">
+<meta property="og:image:height" content="2304">
+<meta property="og:image:width" content="3072">
 </head>
 
 <body class="nav-sidebar docked nav-fixed quarto-light">
@@ -164,7 +202,7 @@ window.Quarto = {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./05_4_LP_NL_StateDep.html">Nonlinear and State-Dependent LP</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./05_4_LP_NL_StateDep.html">LP Nonlinear and State-Dependent</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -282,7 +320,7 @@ window.Quarto = {
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./05_4_LP_NL_StateDep.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text">Nonlinear and State-Dependent LP</span></a>
+ <span class="menu-text">LP Nonlinear and State-Dependent</span></a>
   </div>
 </li>
         <li class="sidebar-item">
@@ -307,7 +345,20 @@ window.Quarto = {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#the-three-specifications" id="toc-the-three-specifications" class="nav-link active" data-scroll-target="#the-three-specifications"><span class="header-section-number">1</span> The three specifications</a></li>
+  <li><a href="#the-three-specifications" id="toc-the-three-specifications" class="nav-link active" data-scroll-target="#the-three-specifications"><span class="header-section-number">1</span> The three specifications</a>
+  <ul class="collapse">
+  <li><a href="#state-dependent-projection" id="toc-state-dependent-projection" class="nav-link" data-scroll-target="#state-dependent-projection"><span class="header-section-number">1.1</span> State-dependent projection</a></li>
+  <li><a href="#positive-versus-negative-shocks" id="toc-positive-versus-negative-shocks" class="nav-link" data-scroll-target="#positive-versus-negative-shocks"><span class="header-section-number">1.2</span> Positive versus negative shocks</a></li>
+  <li><a href="#small-versus-large-shocks" id="toc-small-versus-large-shocks" class="nav-link" data-scroll-target="#small-versus-large-shocks"><span class="header-section-number">1.3</span> Small versus large shocks</a></li>
+  <li><a href="#corrections-to-the-printed-equations" id="toc-corrections-to-the-printed-equations" class="nav-link" data-scroll-target="#corrections-to-the-printed-equations"><span class="header-section-number">1.4</span> Corrections to the printed equations</a></li>
+  <li><a href="#fixed-regressor-sample" id="toc-fixed-regressor-sample" class="nav-link" data-scroll-target="#fixed-regressor-sample"><span class="header-section-number">1.5</span> Fixed regressor sample</a></li>
+  </ul></li>
+  <li><a href="#setup" id="toc-setup" class="nav-link" data-scroll-target="#setup"><span class="header-section-number">2</span> Setup</a></li>
+  <li><a href="#data" id="toc-data" class="nav-link" data-scroll-target="#data"><span class="header-section-number">3</span> Data</a></li>
+  <li><a href="#state-dependent-responses" id="toc-state-dependent-responses" class="nav-link" data-scroll-target="#state-dependent-responses"><span class="header-section-number">4</span> 1 · State-dependent responses</a></li>
+  <li><a href="#positive-versus-negative-shocks-1" id="toc-positive-versus-negative-shocks-1" class="nav-link" data-scroll-target="#positive-versus-negative-shocks-1"><span class="header-section-number">5</span> 2 · Positive versus negative shocks</a></li>
+  <li><a href="#large-versus-small-shocks" id="toc-large-versus-small-shocks" class="nav-link" data-scroll-target="#large-versus-small-shocks"><span class="header-section-number">6</span> 3 · Large versus small shocks</a></li>
+  <li><a href="#relation-to-the-matlab-archive" id="toc-relation-to-the-matlab-archive" class="nav-link" data-scroll-target="#relation-to-the-matlab-archive"><span class="header-section-number">7</span> Relation to the MATLAB archive</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/muhsinciftci/tidyMacro/edit/main/_site/05_4_LP_NL_StateDep.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/muhsinciftci/tidyMacro/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
@@ -336,34 +387,453 @@ window.Quarto = {
 
 <p>This chapter reproduces the nonlinear local-projection designs in <span class="citation" data-cites="tenreyro2016a">Tenreyro and Thwaites (<a href="#ref-tenreyro2016a" role="doc-biblioref">2016</a>)</span> with <code>fNLLP()</code>. The original MATLAB archive estimates a single US quarterly time series. It is neither a panel model nor LP-IV: the identified monetary shock is placed directly in each projection. Three designs appear in the archive:</p>
 <ol type="1">
-<li>a smooth-transition state-dependent LP (<code>stlpm.m</code>),</li>
-<li>positive versus negative shocks (<code>stlpm2.m</code>), and</li>
-<li>a linear-plus-cubic shock response (<code>stlpm3.m</code>).</li>
+<li>A smooth-transition state-dependent LP</li>
+<li>Positive versus negative shocks</li>
+<li>A linear-plus-cubic shock response</li>
 </ol>
-<p>The baseline uses horizons 0 through 20, one lag of the outcome, one lag of the federal funds rate, a common linear trend, and 90% intervals. Its expansion weight is a logistic transform with slope 3 around the 20th percentile of trailing seven-quarter GDP growth. The workbook supplied with the archive contains that transition weight, so the replication uses it directly.</p>
+<p>The baseline uses horizons 0 through 20, one lag of the outcome, one lag of the federal funds rate, a linear trend, and 90% intervals. Its expansion weight is a logistic transform with slope 3 around the 20th percentile of trailing seven-quarter GDP growth. The data section below builds that weight, the trend, and the price level explicitly, so every regressor <code>fNLLP()</code> uses is visible in the formula.</p>
 <hr>
 <section id="the-three-specifications" class="level2" data-number="1">
 <h2 data-number="1" class="anchored" data-anchor-id="the-three-specifications"><span class="header-section-number">1</span> The three specifications</h2>
-<p>Let <span class="math inline">\(s_t\)</span> be the identified monetary shock, <span class="math inline">\(x_t\)</span> the controls, and <span class="math inline">\(M_t\in[0,1]\)</span> the expansion weight.</p>
-<p>The sign-asymmetric projection is</p>
-<p><span class="math display">\[y_{t+h}=\alpha_h+\beta_h^+\max(s_t,0)+\beta_h^-\min(s_t,0)+\gamma_h'x_t+u_{t+h}.\]</span></p>
-<p><code>fNLLP()</code> reports <code>positive</code> as <span class="math inline">\(\beta_h^+\)</span> and <code>negative</code> as <span class="math inline">\(-\beta_h^-\)</span>. Both therefore describe a shock of unit <strong>magnitude</strong>: a <span class="math inline">\(+1\)</span> tightening and a <span class="math inline">\(-1\)</span> loosening.</p>
-<p>The cubic projection is</p>
-<p><span class="math display">\[y_{t+h}=\alpha_h+\beta_{1h}s_t+\beta_{3h}s_t^3+\gamma_h'x_t+u_{t+h}.\]</span></p>
-<p>The response to a shock of size <span class="math inline">\(d\)</span> is <span class="math inline">\(\beta_{1h}d+\beta_{3h}d^3\)</span>. <code>predict()</code> evaluates this expression and its HAC variance, including the covariance between the linear and cubic coefficients.</p>
-<p>The smooth state-dependent projection is</p>
-<p><span class="math display">\[y_{t+h}=\delta_h t
-+M_t\left(\alpha_h^E+\beta_h^E s_t+\gamma_h^{E\prime}x_t\right)
-+(1-M_t)\left(\alpha_h^R+\beta_h^R s_t+\gamma_h^{R\prime}x_t\right)
-+u_{t+h}.\]</span></p>
-<p>This matches <code>stlpm.m</code>: the trend coefficient is common, while the intercept, shock, and controls receive expansion and recession coefficients. <code>fNLLP()</code> estimates both coefficients in one regression and returns their HAC covariance, so the standard error for <span class="math inline">\(\beta_h^E-\beta_h^R\)</span> is valid.</p>
-<p>The rest will come here….</p>
+<p>The notation follows <span class="citation" data-cites="tenreyro2016a">Tenreyro and Thwaites (<a href="#ref-tenreyro2016a" role="doc-biblioref">2016</a>)</span>: <span class="math inline">\(\varepsilon_t\)</span> is the identified monetary policy shock, <span class="math inline">\(t\)</span> a linear time trend, and <span class="math inline">\(\mathbf{x}_t\)</span> the controls, one lag each of the dependent variable and the federal funds rate. Superscripts <span class="math inline">\(b\)</span> and <span class="math inline">\(r\)</span> denote an expansion (boom) and a recession. <code>fNLLP()</code> follows the rules of <code>fLP()</code>: the RHS is estimated as written, and only the intercept is added internally, so the trend and the lags appear in every formula below.</p>
+<section id="state-dependent-projection" class="level3" data-number="1.1">
+<h3 data-number="1.1" class="anchored" data-anchor-id="state-dependent-projection"><span class="header-section-number">1.1</span> State-dependent projection</h3>
+<p>The impulse response of <span class="math inline">\(y\)</span> at horizon <span class="math inline">\(h\in\{0,\dots,H\}\)</span> in state <span class="math inline">\(j\in\{b,r\}\)</span> is the coefficient <span class="math inline">\(\beta_h^j\)</span> in</p>
+<p><span class="math display">\[y_{t+h}=\tau_h t+F(z_t)\left(\alpha_h^b+\beta_h^b\varepsilon_t+\boldsymbol{\gamma}_h^{b\prime}\mathbf{x}_t\right)+\left(1-F(z_t)\right)\left(\alpha_h^r+\beta_h^r\varepsilon_t+\boldsymbol{\gamma}_h^{r\prime}\mathbf{x}_t\right)+u_{t+h}, \tag{1}\]</span></p>
+<p>where <span class="math inline">\(F(z_t)\)</span> is a logistic function of the state indicator <span class="math inline">\(z_t\)</span>,</p>
+<p><span class="math display">\[F(z_t)=\frac{\exp\left(\theta\,\frac{z_t-c}{\sigma_z}\right)}{1+\exp\left(\theta\,\frac{z_t-c}{\sigma_z}\right)}.\]</span></p>
+<p><span class="math inline">\(z_t\)</span> is a trailing seven-quarter moving average of real GDP growth and <span class="math inline">\(\sigma_z\)</span> its standard deviation. <span class="math inline">\(c\)</span> is set so that 20 percent of the sample is classified as recession, and <span class="math inline">\(\theta=3\)</span> sets how sharply the economy switches between regimes.</p>
+<p>In <code>fNLLP()</code> this is <code>type = "state"</code>. Every RHS term is interacted with <span class="math inline">\(F(z_t)\)</span> and <span class="math inline">\(1-F(z_t)\)</span>, and the intercept is split the same way. Terms listed in <code>common</code> keep a single coefficient: <code>common = "trend"</code> gives the shared <span class="math inline">\(\tau_h t\)</span> of equation (1). <code>regimes</code> only labels the two components. Both regime coefficients come from one regression together with their HAC covariance, so the standard error of <span class="math inline">\(\beta_h^b-\beta_h^r\)</span> is valid.</p>
+</section>
+<section id="positive-versus-negative-shocks" class="level3" data-number="1.2">
+<h3 data-number="1.2" class="anchored" data-anchor-id="positive-versus-negative-shocks"><span class="header-section-number">1.2</span> Positive versus negative shocks</h3>
+<p>The state-independent model with sign asymmetry is</p>
+<p><span class="math display">\[y_{t+h}=\tau_h t+\alpha_h+\beta_h^+\max[0,\varepsilon_t]+\beta_h^-\min[0,\varepsilon_t]+\boldsymbol{\gamma}_h^{\prime}\mathbf{x}_t+u_{t+h}.\]</span></p>
+<p>This is <code>type = "sign"</code>. <code>fNLLP()</code> reports the two coefficients as estimated: <code>positive</code> is <span class="math inline">\(\beta_h^+\)</span> and <code>negative</code> is <span class="math inline">\(\beta_h^-\)</span>. Both are responses per unit of the shock, so under linearity <span class="math inline">\(\beta_h^+=\beta_h^-\)</span>, and <code>difference</code> <span class="math inline">\(=\beta_h^+-\beta_h^-\)</span> tests symmetry. The response to a loosening of size one is <span class="math inline">\(-\beta_h^-\)</span>.</p>
+</section>
+<section id="small-versus-large-shocks" class="level3" data-number="1.3">
+<h3 data-number="1.3" class="anchored" data-anchor-id="small-versus-large-shocks"><span class="header-section-number">1.3</span> Small versus large shocks</h3>
+<p>Adding the cubed shock gives</p>
+<p><span class="math display">\[y_{t+h}=\tau_h t+\alpha_h+\beta_h^s\varepsilon_t+\beta_h^l\varepsilon_t^3+\boldsymbol{\gamma}_h^{\prime}\mathbf{x}_t+u_{t+h}.\]</span></p>
+<p>This is <code>type = "cubic"</code>, with components <code>linear</code> (<span class="math inline">\(\beta_h^s\)</span>) and <code>cubic</code> (<span class="math inline">\(\beta_h^l\)</span>). The response to a shock of size <span class="math inline">\(d\)</span> is <span class="math inline">\(\beta_h^s d+\beta_h^l d^3\)</span>. <code>predict()</code> evaluates this expression and its HAC variance, including the covariance between the two coefficients.</p>
+</section>
+<section id="corrections-to-the-printed-equations" class="level3" data-number="1.4">
+<h3 data-number="1.4" class="anchored" data-anchor-id="corrections-to-the-printed-equations"><span class="header-section-number">1.4</span> Corrections to the printed equations</h3>
+<p>The equations above differ from the printed article in four places. Each follows from the article’s own description of the method or from the replication code.</p>
+<ul>
+<li><strong>Horizon subscripts.</strong> The article prints <span class="math inline">\(\tau t\)</span>, <span class="math inline">\(\boldsymbol{\gamma}^{b}\)</span>, <span class="math inline">\(\boldsymbol{\gamma}^{r}\)</span>, and <span class="math inline">\(\boldsymbol{\gamma}\)</span> without <span class="math inline">\(h\)</span>. Each horizon is a separate regression, which the article itself notes when it invokes Kruskal’s theorem for equation-by-equation OLS. <code>stlpm.m</code> re-estimates the whole coefficient vector, trend included, at every <span class="math inline">\(h\)</span>. The trend and control coefficients are therefore <span class="math inline">\(\tau_h\)</span> and <span class="math inline">\(\boldsymbol{\gamma}_h\)</span>.</li>
+<li><strong>Timing of the error.</strong> The article prints <span class="math inline">\(u_t\)</span>. The residual of a horizon-<span class="math inline">\(h\)</span> projection is dated <span class="math inline">\(t+h\)</span>, which is why it is serially correlated and needs HAC inference.</li>
+<li><strong>Intercept in the sign and cubic models.</strong> The article prints <span class="math inline">\(\alpha_h^b\)</span>, a regime superscript, in two equations that have no regimes. <code>stlpm2.m</code> and <code>stlpm3.m</code> estimate a single constant, <span class="math inline">\(\alpha_h\)</span>.</li>
+<li><strong>Nonlinear Romer-Romer regression.</strong> Equation (3) of the article has <span class="math inline">\(FFR_t\)</span> on the left-hand side. The linear version, equation (2), and <code>generate_shocks.m</code> both use the change <span class="math inline">\(\Delta FFR_t\)</span>; see the data section.</li>
+</ul>
+</section>
+<section id="fixed-regressor-sample" class="level3" data-number="1.5">
+<h3 data-number="1.5" class="anchored" data-anchor-id="fixed-regressor-sample"><span class="header-section-number">1.5</span> Fixed regressor sample</h3>
+<p><code>balanced = TRUE</code> fixes the regressor dates across horizons and reads <span class="math inline">\(y_{t+h}\)</span> from later rows of the data, as <code>stlpm.m</code> does with <code>startS:endS</code> and <code>startS+h:endS+h</code>. Shocks run from 1969Q1 to 2002Q4, and the outcomes are read up to five years later, the end of 2007. The data must therefore run <span class="math inline">\(H\)</span> quarters past the last shock.</p>
+<hr>
+</section>
+</section>
+<section id="setup" class="level2" data-number="2">
+<h2 data-number="2" class="anchored" data-anchor-id="setup"><span class="header-section-number">2</span> Setup</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyMacro)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(zoo)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">set_theme</span>(<span class="fu">fThemeTidyMacro</span>())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<hr>
+</section>
+<section id="data" class="level2" data-number="3">
+<h2 data-number="3" class="anchored" data-anchor-id="data"><span class="header-section-number">3</span> Data</h2>
+<p><code>TenreyroThwaites2016</code> holds the series from the replication workbook in their original units: log real GDP, PCE inflation at an annual rate (as a fraction), the federal funds rate, and the quarterly Romer-Romer shocks for 1969Q1-2002Q4. The article’s text and the workbook use the PCE deflator, while its figure notes say “GDP deflator”; this chapter follows the data.</p>
+<p>The shocks are residuals from the Romer and Romer (2004) reaction function, estimated at FOMC meetings and summed within each quarter. With <span class="math inline">\(\mathbf{X}_t\)</span> the Romer-Romer controls, <code>RRShock</code> is <span class="math inline">\(\widehat{\varepsilon}_t\)</span> from the linear regression</p>
+<p><span class="math display">\[\Delta FFR_t=\boldsymbol{\beta}^{\prime}\mathbf{X}_t+\varepsilon_t, \tag{2}\]</span></p>
+<p>and <code>RRShockNL</code> is <span class="math inline">\(\widehat{\widetilde{\varepsilon}}_t\)</span> from its state-dependent analogue</p>
+<p><span class="math display">\[\Delta FFR_t=F(z_t)\,\boldsymbol{\beta}^{b\prime}\mathbf{X}_t+\left(1-F(z_t)\right)\boldsymbol{\beta}^{r\prime}\mathbf{X}_t+\widetilde{\varepsilon}_t. \tag{3}\]</span></p>
+<p>Equation (3) carries the <span class="math inline">\(\Delta\)</span> that the printed article omits.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(<span class="st">"TenreyroThwaites2016"</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>TenreyroThwaites2016 <span class="sc">|&gt;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(RRShock)) <span class="sc">|&gt;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>()</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # A tibble: 6 × 6</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   Date       logGDP Inflation   FFR RRShock RRShockNL</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   &lt;date&gt;      &lt;dbl&gt;     &lt;dbl&gt; &lt;dbl&gt;   &lt;dbl&gt;     &lt;dbl&gt;</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1 1969-01-01   8.35    0.0392  6.79 -0.184    -0.253 </span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2 1969-04-01   8.36    0.0509  8.9   0.535     0.645 </span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3 1969-07-01   8.36    0.0489  9.15  0.521    -0.0598</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4 1969-10-01   8.36    0.0460  8.97  0.154    -0.115 </span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5 1970-01-01   8.36    0.0462  7.76 -0.578    -0.426 </span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6 1970-04-01   8.36    0.0440  7.6   0.0138    0.229</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>The cleaning step builds every variable the projections use:</p>
+<ul>
+<li><code>GDP</code>: log real GDP × 100, so responses are in percent.</li>
+<li><code>Inflation</code>: in percent at an annual rate.</li>
+<li><code>Prices</code>: the log price level × 100, the running sum of quarterly inflation. <code>cumulative = TRUE</code> regresses <span class="math inline">\(p_{t+h}-p_{t-1}=\sum_{j=0}^{h}\pi_{t+j}\)</span> on the regressors at <span class="math inline">\(t\)</span>. With <code>balanced = TRUE</code> the regressor rows are the same at every horizon, so by linearity of OLS its coefficient equals <span class="math inline">\(\sum_{j=0}^{h}\beta_j\)</span> of the inflation projections, the cumulated response the archive reports. In a sample that shrinks with <span class="math inline">\(h\)</span> the two differ, and long-differencing inflation itself would not give the cumulated inflation response.</li>
+<li><code>Growth7</code>: the state indicator <span class="math inline">\(z_t\)</span>, a trailing seven-quarter mean of quarterly GDP growth. It is lagging rather than centred, so future values of the outcomes do not enter the state.</li>
+<li><code>trend</code>: the linear trend <span class="math inline">\(t\)</span>.</li>
+<li><code>Expansion</code>: the transition weight <span class="math inline">\(F(z_t)\)</span>. Within the shock sample, <span class="math inline">\(z_t\)</span> is centred at its 20th percentile (<span class="math inline">\(c\)</span>), divided by its standard deviation (<span class="math inline">\(\sigma_z\)</span>), and passed through the logistic function with <span class="math inline">\(\theta=3\)</span>. <code>quantile(type = 5)</code> is the percentile rule of MATLAB’s <code>prctile</code>.</li>
+</ul>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>tt <span class="ot">&lt;-</span> TenreyroThwaites2016 <span class="sc">|&gt;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">GDP =</span> <span class="dv">100</span> <span class="sc">*</span> logGDP,</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">Inflation =</span> <span class="dv">100</span> <span class="sc">*</span> Inflation,</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">Prices =</span> <span class="fu">cumsum</span>(<span class="fu">coalesce</span>(Inflation, <span class="dv">0</span>)) <span class="sc">/</span> <span class="dv">4</span>,</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">Growth7 =</span> <span class="fu">rollmeanr</span>(GDP <span class="sc">-</span> <span class="fu">lag</span>(GDP), <span class="dv">7</span>, <span class="at">fill =</span> <span class="cn">NA</span>),</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">trend =</span> <span class="fu">row_number</span>()</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">z =</span> <span class="fu">if_else</span>(<span class="fu">is.na</span>(RRShock), <span class="cn">NA</span>, Growth7),</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">z =</span> (z <span class="sc">-</span> <span class="fu">quantile</span>(z, <span class="fl">0.20</span>, <span class="at">type =</span> <span class="dv">5</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="sc">/</span> <span class="fu">sd</span>(z, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">Expansion =</span> <span class="fu">plogis</span>(<span class="dv">3</span> <span class="sc">*</span> z)</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">filter</span>(Date <span class="sc">&gt;=</span> <span class="st">"1968-10-01"</span>, Date <span class="sc">&lt;=</span> <span class="st">"2007-10-01"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(Date, GDP, Inflation, Prices, FFR, RRShock, Growth7, Expansion, trend)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>The sample starts one quarter before the first shock, for the lags, and ends 20 quarters after the last one, 2002Q4, for the outcomes at the longest horizon.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>tt <span class="sc">|&gt;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(RRShock)) <span class="sc">|&gt;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> Date)) <span class="sc">+</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>, <span class="at">linewidth =</span> <span class="fl">0.4</span>, <span class="at">colour =</span> <span class="st">"#707372"</span>) <span class="sc">+</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> RRShock, <span class="at">colour =</span> <span class="st">"Romer-Romer shock"</span>), <span class="at">linewidth =</span> <span class="fl">0.6</span>) <span class="sc">+</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> Expansion, <span class="at">colour =</span> <span class="st">"Expansion weight"</span>), <span class="at">linewidth =</span> <span class="fl">0.9</span>) <span class="sc">+</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_colour_manual</span>(</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">values =</span> <span class="fu">c</span>(<span class="st">"Romer-Romer shock"</span> <span class="ot">=</span> <span class="st">"#407EC9"</span>, <span class="st">"Expansion weight"</span> <span class="ot">=</span> <span class="st">"#910048"</span>)</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="cn">NULL</span>, <span class="at">y =</span> <span class="cn">NULL</span>, <span class="at">colour =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"bottom"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div id="fig-shock-state" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-shock-state-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="05_4_LP_NL_StateDep_files/figure-html/fig-shock-state-1.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-shock-state-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Romer-Romer shocks and the expansion weight
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<hr>
+</section>
+<section id="state-dependent-responses" class="level2" data-number="4">
+<h2 data-number="4" class="anchored" data-anchor-id="state-dependent-responses"><span class="header-section-number">4</span> 1 · State-dependent responses</h2>
+<p>Each outcome gets its own regression, as in the archive. The GDP and price equations control for one lag of their own variable and of the federal funds rate, and the federal funds rate equation for one lag of itself. The trend is written into every formula and declared <code>common</code>. The price level is projected with <code>cumulative = TRUE</code>, so its LHS is <span class="math inline">\(p_{t+h}-p_{t-1}\)</span>. <code>nw_lags = 0</code> and <code>nw_offset = 0</code> set the Newey-West lag at horizon <span class="math inline">\(h\)</span> to <span class="math inline">\(h\)</span>, the rule of <span class="citation" data-cites="jorda2005">Jordà (<a href="#ref-jorda2005" role="doc-biblioref">2005</a>)</span> and of <code>LPmodel.m</code> in Cesa-Bianchi’s VAR Toolbox: a horizon-<span class="math inline">\(h\)</span> projection has MA(<span class="math inline">\(h\)</span>) residuals. The last section compares the resulting bands with the paper’s.</p>
+<p>Only the GDP call is written out in full. <code>update()</code> re-runs a fit with the arguments given changed and all others kept, so the price and federal funds rate fits only state their own formula and, for prices, <code>cumulative = TRUE</code>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>gdp_state <span class="ot">&lt;-</span> <span class="fu">fNLLP</span>(</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  GDP <span class="sc">~</span> RRShock <span class="sc">+</span> <span class="fu">l</span>(GDP, <span class="dv">1</span>) <span class="sc">+</span> <span class="fu">l</span>(FFR, <span class="dv">1</span>) <span class="sc">+</span> trend,</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> tt,</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">horizons =</span> <span class="dv">20</span>,</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">shock =</span> <span class="st">"RRShock"</span>,</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">type =</span> <span class="st">"state"</span>,</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">state =</span> <span class="st">"Expansion"</span>,</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">common =</span> <span class="st">"trend"</span>,</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">regimes =</span> <span class="fu">c</span>(<span class="st">"Expansion"</span>, <span class="st">"Recession"</span>),</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">balanced =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">nw_lags =</span> <span class="dv">0</span>,</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">nw_offset =</span> <span class="dv">0</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>prices_state <span class="ot">&lt;-</span> <span class="fu">update</span>(</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>  gdp_state,</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>  Prices <span class="sc">~</span> RRShock <span class="sc">+</span> <span class="fu">l</span>(Inflation, <span class="dv">1</span>) <span class="sc">+</span> <span class="fu">l</span>(FFR, <span class="dv">1</span>) <span class="sc">+</span> trend,</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">cumulative =</span> <span class="cn">TRUE</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>ffr_state <span class="ot">&lt;-</span> <span class="fu">update</span>(gdp_state, FFR <span class="sc">~</span> RRShock <span class="sc">+</span> <span class="fu">l</span>(FFR, <span class="dv">1</span>) <span class="sc">+</span> trend)</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a><span class="co"># Show</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>gdp_state</span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Nonlinear Local Projections (fNLLP)</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; --------------------------------------------- </span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Original formula :  GDP ~ RRShock + l(GDP, 1) + l(FFR, 1) + trend </span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Expanded formula :  GDP ~ RRShock + GDP_l1 + FFR_l1 + trend </span></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Type             :  smooth state dependence </span></span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Shock            :  RRShock </span></span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; State            :  Expansion (Expansion = Expansion, Recession = 1 - Expansion) </span></span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Common terms     :  trend </span></span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Design columns   :  Expansion:(Intercept), Expansion:RRShock, Expansion:GDP_l1, Expansion:FFR_l1, (1-Expansion):(Intercept), (1-Expansion):RRShock, (1-Expansion):GDP_l1, (1-Expansion):FFR_l1, trend </span></span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Horizons         : 0 to 20 </span></span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Sample           :  fixed regressor dates (balanced) </span></span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Cumulative       :  FALSE </span></span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Confidence       :  90% </span></span>
+<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; NW lags          : base = 0 , offset = 0 -&gt; effective at horizon h: max(base + h + 0, 0)</span></span>
+<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Observations     :  136 </span></span>
+<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Response of 'GDP' (shock = 'RRShock'):</span></span>
+<span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    Expansion Recession difference  t_diff</span></span>
+<span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0    -0.1319    0.3180    -0.4499 -1.5455</span></span>
+<span id="cb5-45"><a href="#cb5-45" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1    -0.4443    0.7462    -1.1905 -2.1839</span></span>
+<span id="cb5-46"><a href="#cb5-46" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2    -0.7835    0.2984    -1.0819 -1.7729</span></span>
+<span id="cb5-47"><a href="#cb5-47" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3    -0.8713   -0.0719    -0.7994 -1.0790</span></span>
+<span id="cb5-48"><a href="#cb5-48" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4    -0.9371   -0.0124    -0.9248 -1.1548</span></span>
+<span id="cb5-49"><a href="#cb5-49" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5    -0.9824   -0.6661    -0.3163 -0.3441</span></span>
+<span id="cb5-50"><a href="#cb5-50" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6    -0.9531   -0.7572    -0.1960 -0.1921</span></span>
+<span id="cb5-51"><a href="#cb5-51" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 7    -1.0425   -0.6320    -0.4105 -0.4714</span></span>
+<span id="cb5-52"><a href="#cb5-52" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 8    -1.2304   -0.7342    -0.4963 -0.6165</span></span>
+<span id="cb5-53"><a href="#cb5-53" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 9    -1.3358   -0.5996    -0.7362 -1.0743</span></span>
+<span id="cb5-54"><a href="#cb5-54" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 10   -1.5291   -0.2661    -1.2630 -1.6889</span></span>
+<span id="cb5-55"><a href="#cb5-55" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 11   -1.1884   -0.2142    -0.9742 -1.1059</span></span>
+<span id="cb5-56"><a href="#cb5-56" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 12   -0.8159   -0.2277    -0.5883 -0.5945</span></span>
+<span id="cb5-57"><a href="#cb5-57" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 13   -0.2560   -0.3754     0.1194  0.1107</span></span>
+<span id="cb5-58"><a href="#cb5-58" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 14    0.0193   -0.3658     0.3851  0.4201</span></span>
+<span id="cb5-59"><a href="#cb5-59" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 15    0.1014   -0.4506     0.5521  0.7403</span></span>
+<span id="cb5-60"><a href="#cb5-60" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 16    0.6278   -0.6026     1.2304  1.7354</span></span>
+<span id="cb5-61"><a href="#cb5-61" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 17    1.0419   -0.5539     1.5958  2.1746</span></span>
+<span id="cb5-62"><a href="#cb5-62" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 18    1.0985   -0.4046     1.5031  2.0992</span></span>
+<span id="cb5-63"><a href="#cb5-63" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 19    1.1257   -0.2112     1.3369  1.7819</span></span>
+<span id="cb5-64"><a href="#cb5-64" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 20    1.1370   -0.1581     1.2952  1.6707</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>The printout lists the design columns: each regime has its own intercept, shock, and control coefficients, and the trend enters once.</p>
+<p><code>fPlotNLLP()</code> accepts several fits and draws one panel per outcome.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">fPlotNLLP</span>(gdp_state, prices_state, ffr_state)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div id="fig-state" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-state-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="05_4_LP_NL_StateDep_files/figure-html/fig-state-1.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-state-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: Responses to a unit Romer-Romer shock in expansions and recessions (90% bands)
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>The difference <span class="math inline">\(\beta_h^b-\beta_h^r\)</span> uses the joint HAC covariance of the two regime coefficients.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">fPlotNLLP</span>(gdp_state, prices_state, ffr_state, <span class="at">what =</span> <span class="st">"difference"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div id="fig-state-diff" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-state-diff-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="05_4_LP_NL_StateDep_files/figure-html/fig-state-diff-1.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-state-diff-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: Expansion minus recession response (90% bands)
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p><code>tidy.fNLLP()</code> returns the same numbers in long form. The table below shows them at the horizons used in the paper’s tables; <code>t_stat</code> in the <code>difference</code> rows tests <span class="math inline">\(\beta_h^b=\beta_h^r\)</span>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bind_rows</span>(</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tidy.fNLLP</span>(gdp_state),</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tidy.fNLLP</span>(prices_state),</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tidy.fNLLP</span>(ffr_state)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">filter</span>(horizon <span class="sc">%in%</span> <span class="fu">c</span>(<span class="dv">4</span>, <span class="dv">8</span>, <span class="dv">12</span>, <span class="dv">16</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">t_stat =</span> estimate <span class="sc">/</span> se) <span class="sc">|&gt;</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(lhs, horizon, component, estimate, t_stat) <span class="sc">|&gt;</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="fu">c</span>(estimate, t_stat), \(v) <span class="fu">round</span>(v, <span class="dv">3</span>)))</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;       lhs horizon  component estimate t_stat</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1     GDP       4  Expansion   -0.937 -1.794</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2     GDP       8  Expansion   -1.230 -2.402</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3     GDP      12  Expansion   -0.816 -1.155</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4     GDP      16  Expansion    0.628  1.333</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5     GDP       4  Recession   -0.012 -0.035</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6     GDP       8  Recession   -0.734 -1.958</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 7     GDP      12  Recession   -0.228 -0.694</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 8     GDP      16  Recession   -0.603 -1.642</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 9     GDP       4 difference   -0.925 -1.155</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 10    GDP       8 difference   -0.496 -0.617</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 11    GDP      12 difference   -0.588 -0.594</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 12    GDP      16 difference    1.230  1.735</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 13 Prices       4  Expansion    0.264  0.586</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 14 Prices       8  Expansion   -0.326 -0.467</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 15 Prices      12  Expansion   -1.961 -2.245</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 16 Prices      16  Expansion   -3.173 -2.632</span></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 17 Prices       4  Recession   -0.056 -0.207</span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 18 Prices       8  Recession    0.145  0.413</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 19 Prices      12  Recession    0.218  0.559</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 20 Prices      16  Recession   -0.448 -0.992</span></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 21 Prices       4 difference    0.320  0.510</span></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 22 Prices       8 difference   -0.470 -0.530</span></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 23 Prices      12 difference   -2.179 -1.999</span></span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 24 Prices      16 difference   -2.725 -1.824</span></span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 25    FFR       4  Expansion    0.977  1.680</span></span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 26    FFR       8  Expansion    0.421  0.453</span></span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 27    FFR      12  Expansion   -0.902 -0.984</span></span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 28    FFR      16  Expansion   -0.726 -0.737</span></span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 29    FFR       4  Recession    0.618  0.716</span></span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 30    FFR       8  Recession    0.355  0.535</span></span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 31    FFR      12  Recession    0.894  2.439</span></span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 32    FFR      16  Recession   -0.267 -0.828</span></span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 33    FFR       4 difference    0.359  0.284</span></span>
+<span id="cb8-44"><a href="#cb8-44" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 34    FFR       8 difference    0.065  0.043</span></span>
+<span id="cb8-45"><a href="#cb8-45" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 35    FFR      12 difference   -1.796 -1.432</span></span>
+<span id="cb8-46"><a href="#cb8-46" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 36    FFR      16 difference   -0.459 -0.369</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>The responses here are per unit of the shock. The paper instead rescales each regime’s responses so that the federal funds rate rises by one percentage point on impact. That ratio is a nonlinear function of coefficients from two different equations, which needs their joint covariance; <code>fNLLP()</code> estimates each outcome separately and does not provide it.</p>
+<hr>
+</section>
+<section id="positive-versus-negative-shocks-1" class="level2" data-number="5">
+<h2 data-number="5" class="anchored" data-anchor-id="positive-versus-negative-shocks-1"><span class="header-section-number">5</span> 2 · Positive versus negative shocks</h2>
+<p><code>type = "sign"</code> replaces the shock by <span class="math inline">\(\max[0,\varepsilon_t]\)</span> and <span class="math inline">\(\min[0,\varepsilon_t]\)</span>. The controls are unchanged, and the trend is again written explicitly. <code>state</code>, <code>common</code>, and <code>regimes</code> belong to the state design, so the GDP fit is written out again rather than updated from <code>gdp_state</code>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>gdp_sign <span class="ot">&lt;-</span> <span class="fu">fNLLP</span>(</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  GDP <span class="sc">~</span> RRShock <span class="sc">+</span> <span class="fu">l</span>(GDP, <span class="dv">1</span>) <span class="sc">+</span> <span class="fu">l</span>(FFR, <span class="dv">1</span>) <span class="sc">+</span> trend,</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> tt,</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">horizons =</span> <span class="dv">20</span>,</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">shock =</span> <span class="st">"RRShock"</span>,</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">type =</span> <span class="st">"sign"</span>,</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">balanced =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">nw_lags =</span> <span class="dv">0</span>,</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">nw_offset =</span> <span class="dv">0</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>prices_sign <span class="ot">&lt;-</span> <span class="fu">update</span>(</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>  gdp_sign,</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>  Prices <span class="sc">~</span> RRShock <span class="sc">+</span> <span class="fu">l</span>(Inflation, <span class="dv">1</span>) <span class="sc">+</span> <span class="fu">l</span>(FFR, <span class="dv">1</span>) <span class="sc">+</span> trend,</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">cumulative =</span> <span class="cn">TRUE</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>ffr_sign <span class="ot">&lt;-</span> <span class="fu">update</span>(gdp_sign, FFR <span class="sc">~</span> RRShock <span class="sc">+</span> <span class="fu">l</span>(FFR, <span class="dv">1</span>) <span class="sc">+</span> trend)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">fPlotNLLP</span>(gdp_sign, prices_sign, ffr_sign, <span class="at">colors =</span> <span class="fu">c</span>(<span class="st">"#910048"</span>, <span class="st">"#00843D"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div id="fig-sign" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-sign-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="05_4_LP_NL_StateDep_files/figure-html/fig-sign-1.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-sign-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4: Coefficients on positive and negative shocks, per unit of the shock (90% bands)
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">fPlotNLLP</span>(gdp_sign, prices_sign, ffr_sign, <span class="at">what =</span> <span class="st">"difference"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div id="fig-sign-diff" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-sign-diff-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="05_4_LP_NL_StateDep_files/figure-html/fig-sign-diff-1.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-sign-diff-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;5: Positive minus negative coefficient (90% bands); zero under symmetry
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<hr>
+</section>
+<section id="large-versus-small-shocks" class="level2" data-number="6">
+<h2 data-number="6" class="anchored" data-anchor-id="large-versus-small-shocks"><span class="header-section-number">6</span> 3 · Large versus small shocks</h2>
+<p><code>type = "cubic"</code> adds <span class="math inline">\(\varepsilon_t^3\)</span> next to <span class="math inline">\(\varepsilon_t\)</span>. Following the paper, the cubic coefficient <span class="math inline">\(\beta_h^l\)</span> is the object of interest: if it is significantly positive (negative), large shocks of either sign are proportionally more (less) powerful. The regressors are those of the sign design, so each fit is the corresponding sign fit with <code>type</code> changed.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>gdp_cubic    <span class="ot">&lt;-</span> <span class="fu">update</span>(gdp_sign,    <span class="at">type =</span> <span class="st">"cubic"</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>prices_cubic <span class="ot">&lt;-</span> <span class="fu">update</span>(prices_sign, <span class="at">type =</span> <span class="st">"cubic"</span>)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>ffr_cubic    <span class="ot">&lt;-</span> <span class="fu">update</span>(ffr_sign,    <span class="at">type =</span> <span class="st">"cubic"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">fPlotNLLP</span>(gdp_cubic, prices_cubic, ffr_cubic)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div id="fig-cubic" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-cubic-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="05_4_LP_NL_StateDep_files/figure-html/fig-cubic-1.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-cubic-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;6: Linear and cubic shock coefficients (90% bands)
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p><code>predict()</code> turns the two coefficients into the response to a shock of a given size. Dividing by the size gives the response per unit of the shock, which is constant across sizes in a linear model. The comparison below uses a small shock (0.25) and a large one (2, about three standard deviations of <code>RRShock</code>).</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>sizes <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">0.25</span>, <span class="dv">2</span>)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="fu">bind_rows</span>(</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">predict</span>(gdp_cubic, <span class="at">size =</span> sizes),</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">predict</span>(prices_cubic, <span class="at">size =</span> sizes),</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">predict</span>(ffr_cubic, <span class="at">size =</span> sizes)</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">estimate =</span> estimate <span class="sc">/</span> size,</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">lower =</span> lower <span class="sc">/</span> size,</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">upper =</span> upper <span class="sc">/</span> size,</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">size =</span> <span class="fu">factor</span>(size, <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"small (0.25)"</span>, <span class="st">"large (2)"</span>)),</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">lhs =</span> <span class="fu">factor</span>(lhs, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"GDP"</span>, <span class="st">"Prices"</span>, <span class="st">"FFR"</span>))</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> horizon, <span class="at">y =</span> estimate, <span class="at">colour =</span> size, <span class="at">fill =</span> size)) <span class="sc">+</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_ribbon</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> lower, <span class="at">ymax =</span> upper), <span class="at">alpha =</span> <span class="fl">0.15</span>, <span class="at">colour =</span> <span class="cn">NA</span>) <span class="sc">+</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">linewidth =</span> <span class="fl">0.8</span>) <span class="sc">+</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">colour =</span> <span class="st">"#707372"</span>) <span class="sc">+</span></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>lhs, <span class="at">scales =</span> <span class="st">"free_y"</span>, <span class="at">nrow =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_colour_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"#407EC9"</span>, <span class="st">"#910048"</span>)) <span class="sc">+</span></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"#407EC9"</span>, <span class="st">"#910048"</span>)) <span class="sc">+</span></span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Horizon"</span>, <span class="at">y =</span> <span class="cn">NULL</span>, <span class="at">colour =</span> <span class="cn">NULL</span>, <span class="at">fill =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"bottom"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div id="fig-cubic-size" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-cubic-size-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="05_4_LP_NL_StateDep_files/figure-html/fig-cubic-size-1.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-cubic-size-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;7: Response per unit of shock: small versus large shocks (90% bands)
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<hr>
+</section>
+<section id="relation-to-the-matlab-archive" class="level2" data-number="7">
+<h2 data-number="7" class="anchored" data-anchor-id="relation-to-the-matlab-archive"><span class="header-section-number">7</span> Relation to the MATLAB archive</h2>
+<p>The point estimates match the archive’s raw coefficients. The notes below list where its shock choice, presentation, and inference differ, and two errors in its code. Click to expand.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Differences from the archive
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-1" class="callout-1-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<ul>
+<li><strong>Shock.</strong> The archive’s GDP and inflation equations use the linearly identified shock even in the baseline, and only its federal funds rate equation switches to <code>RRShockNL</code>. This chapter uses <code>RRShock</code> in all three equations; replacing it with <code>RRShockNL</code> in the federal funds rate formula reproduces the baseline exactly.</li>
+<li><strong>Presentation.</strong> The archive rescales responses by the federal funds rate’s impact response in each regime and smooths them with a centred three-quarter moving average. The figures here show the unscaled, unsmoothed coefficients.</li>
+<li><strong>Scaling of the recession responses in the published tables.</strong> Rebuilding Table 1 of the paper from the raw <code>fNLLP()</code> coefficients (cumulated, divided by the federal funds rate’s impact response, with <code>RRShockNL</code> in the federal funds rate equation as in the archive’s baseline) reproduces all eight expansion entries to four decimals. The recession entries match only with the denominator the archive’s code actually uses. In <code>stlpm.m</code> the recession response is scaled as <code>betaNL(:,2)/betaRNL(2)</code>; because <code>betaRNL</code> is a 21 × 2 matrix, <code>betaRNL(2)</code> is element (2,1), the <em>expansion</em> federal funds rate response at horizon 1 (about 1.17), rather than the <em>recession</em> impact response <code>betaRNL(1,2)</code> (about 2.28). The published recession responses are therefore about 1.9 times the intended scaled values; with the intended denominator, for example, GDP at horizon 4 is 0.0056 instead of the published 0.0109. The delta-method standard errors in <code>stlpm_inference.m</code> use the intended denominator, <code>results(end).NL.beta(1,2)</code>. The unscaled coefficients reported in this chapter are unaffected.</li>
+<li><strong>Variance of the positive-minus-negative difference.</strong> In <code>stlpm_inference2.m</code> (line 45) and <code>stlpm_inference3.m</code> (line 43), the variance of the difference between the two <em>scaled, unsmoothed</em> responses is computed as <code>var_pos - var_neg</code>, which is not the variance of a difference; it is <span class="math inline">\(V_{11}+V_{22}-2V_{12}\)</span>. The smoothed and cumulated blocks of the same files use the correct delta-method formula, and the paper’s tables and figures use those, so the published results are not affected. <code>fNLLP()</code> reports <span class="math inline">\(V_{11}+V_{22}-2V_{12}\)</span>.</li>
+<li><strong>Inference.</strong> The point estimates agree, but the confidence intervals do not, for three reasons.
+<ul>
+<li><em>Lag length.</em> Both approaches use a Newey-West estimator with Bartlett weights. This chapter sets the lag to <span class="math inline">\(h\)</span> at horizon <span class="math inline">\(h\)</span>. The archive’s Driscoll-Kraay covariance (<code>NeweyWestDK.m</code>) uses a fixed lag of <span class="math inline">\(L=H+1=21\)</span> at every horizon and multiplies by <span class="math inline">\(N/(N-k)\approx1.06\)</span>. The article writes “<span class="math inline">\(L = h + 1\)</span>, where <span class="math inline">\(h\)</span> is the maximum horizon”, which is <span class="math inline">\(H+1\)</span> in the notation used here. Stacking the horizons does not change the standard error of a single coefficient; it supplies the covariances across horizons that the paper’s cumulated and smoothed responses need.</li>
+<li><em>Size of the gap.</em> For the raw expansion and recession shock coefficients of GDP, inflation, and the federal funds rate, the standard errors here relative to the archive’s are 0.78 to 2.96 at <span class="math inline">\(h=0\)</span>–4 (median 1.55), 0.95 to 1.48 at <span class="math inline">\(h=5\)</span>–9 (median 1.13), and 0.89 to 1.40 at <span class="math inline">\(h=10\)</span>–20 (median 1.01). The gap is largest on impact, where the lag here is 0 against 21 in the archive, and it closes as <span class="math inline">\(h\)</span> approaches 21. Rebuilding the archive’s standard error as Newey-West with lag 21 times <span class="math inline">\(N/(N-k)\)</span> reproduces <code>stlpm_inference.m</code> to within <span class="math inline">\(10^{-7}\)</span>.</li>
+<li><em>Objects and methods.</em> The paper’s bands are for responses scaled by the federal funds rate’s impact response and smoothed, using the delta method, and the paper also reports a block bootstrap. Neither is reproduced here.</li>
+</ul></li>
+</ul>
+</div>
+</div>
+</div>
 
 
 
 </section>
 
 <a onclick="window.scrollTo(0, 0); return false;" role="button" id="quarto-back-to-top"><i class="bi bi-arrow-up"></i> Back to top</a><div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" role="list">
+<div id="ref-jorda2005" class="csl-entry" role="listitem">
+Jordà, Òscar. 2005. <span>“Estimation and Inference of Impulse Responses by Local Projections.”</span> <em>American Economic Review</em> 95 (1): 161–82. <a href="https://doi.org/10.1257/0002828053828518">https://doi.org/10.1257/0002828053828518</a>.
+</div>
 <div id="ref-tenreyro2016a" class="csl-entry" role="listitem">
 Tenreyro, Silvana, and Gregory Thwaites. 2016. <span>“Pushing on a <span>String</span>: <span>US Monetary Policy Is Less Powerful</span> in <span>Recessions</span>.”</span> <em>American Economic Journal: Macroeconomics</em> 8 (4): 43–74. <a href="https://doi.org/10.1257/mac.20150016">https://doi.org/10.1257/mac.20150016</a>.
 </div>

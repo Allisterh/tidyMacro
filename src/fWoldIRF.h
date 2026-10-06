@@ -13,6 +13,11 @@ struct WoldIRFResult {
 // Accepts VARResult struct directly for efficient C++ to C++ calls
 WoldIRFResult fWoldIRF_cpp(const VARResult& var_result, int horizon);
 
+// Same multipliers written into a caller-owned cube, which is reused when it
+// already has the right size.  For hot loops that redraw beta.
+void fWoldIRF_into_cpp(const arma::mat& beta, int c, int p, int horizon,
+                       arma::cube& irfwold);
+
 // R wrapper function (for calling from R)
 arma::cube fWoldIRF(const Rcpp::List& fVAR, int horizon);
 

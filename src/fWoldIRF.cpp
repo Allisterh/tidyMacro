@@ -5,32 +5,39 @@
 // [[Rcpp::depends(RcppArmadillo)]]
 
 // Internal C++ function (called from other C++ code)
-// Uses block recursion Phi_h = sum_{l=1..min(h,p)} Phi_{h-l} * A_l
-// O(N^3 * p) per step vs O((N*p)^3) for companion matrix powers.
-WoldIRFResult fWoldIRF_cpp(const VARResult& var_result, int horizon) {
-  const arma::mat& beta = var_result.beta;
-  const int c = var_result.c;
-  const int p = var_result.p;
-  const int N = static_cast<int>(beta.n_cols);
+// Block recursion Phi_h = sum_{l=1..min(h,p)} Phi_{h-l} * A_l, evaluated as
+// one product per horizon: cube slices are contiguous, so slices h-L..h-1 form
+// the N x (N L) matrix [Phi_{h-L} ... Phi_{h-1}], which multiplies the stacked
+// coefficients [A_L; ...; A_1].  O(N^3 * p) per step vs O((N*p)^3) for
+// companion matrix powers.
+void fWoldIRF_into_cpp(const arma::mat& beta, int c, int p, int horizon,
+                       arma::cube& irfwold) {
+  const arma::uword N = beta.n_cols;
 
-  // Pre-extract A_l coefficient matrices (each N x N, 0-indexed: A[0]=A_1...)
-  std::vector<arma::mat> A(p);
-  for (int l = 0; l < p; ++l)
-    A[l] = beta.rows(c + l * N, c + (l + 1) * N - 1).t();
+  // S = [A_p; ...; A_1], with A_l = beta block l transposed.
+  arma::mat S(N * p, N, arma::fill::none);
+  for (int l = 1; l <= p; ++l)
+    S.rows((p - l) * N, (p - l + 1) * N - 1) =
+      beta.rows(c + (l - 1) * N, c + l * N - 1).t();
 
-  arma::cube irfwold(N, N, horizon + 1, arma::fill::none);
-  irfwold.slice(0) = arma::eye<arma::mat>(N, N);
+  if (irfwold.n_rows != N || irfwold.n_cols != N ||
+      irfwold.n_slices != static_cast<arma::uword>(horizon + 1))
+    irfwold.set_size(N, N, horizon + 1);
+  irfwold.slice(0).eye();
 
   for (int h = 1; h <= horizon; ++h) {
-    arma::mat Phi_h(N, N, arma::fill::zeros);
-    const int lmax = std::min(h, p);
-    for (int l = 1; l <= lmax; ++l)
-      Phi_h += irfwold.slice(h - l) * A[l - 1];
-    irfwold.slice(h) = Phi_h;
+    const int L = std::min(h, p);
+    const arma::mat lagged(irfwold.slice_memptr(h - L), N, N * L, false, true);
+    arma::mat out(irfwold.slice_memptr(h), N, N, false, true);
+    if (L == p) out = lagged * S;
+    else        out = lagged * S.tail_rows(N * L);
   }
+}
 
+WoldIRFResult fWoldIRF_cpp(const VARResult& var_result, int horizon) {
   WoldIRFResult result;
-  result.irfwold = irfwold;
+  fWoldIRF_into_cpp(var_result.beta, var_result.c, var_result.p, horizon,
+                    result.irfwold);
   return result;
 }
 

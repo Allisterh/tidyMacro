@@ -116,8 +116,9 @@ fPlotLP <- function(x,
         horizon  = horizon,
         conf     = as.numeric(k),
         point    = point_i,
-        upper    = get_band("upper", k, j),
-        lower    = get_band("lower", k, j)
+        # A negative scale flips the sign; pmin/pmax keep lower <= upper.
+        upper    = pmax(get_band("upper", k, j), get_band("lower", k, j)),
+        lower    = pmin(get_band("upper", k, j), get_band("lower", k, j))
       )
       idx <- idx + 1L
     }

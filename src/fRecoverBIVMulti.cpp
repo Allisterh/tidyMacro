@@ -58,7 +58,11 @@ arma::mat chol_lower_safe(const arma::mat& A) {
 //'   (instrument-subsample covariance), \code{fs_beta}, \code{fs_F} and
 //'   \code{fs_r2} (first-stage coefficients, F statistics and R-squared, one
 //'   per instrumented equation), \code{relEig} (eigenvalues of the
-//'   reliability matrix, descending) and \code{n_iv}.
+//'   reliability matrix, descending) and \code{n_iv}. As in
+//'   \code{VARiriv_B.m}, the F statistics and R-squared are computed on the
+//'   rows where at least one instrument is non-zero, while the estimation uses
+//'   every row; \code{\link{fRecoverBIV_cpp}} keeps zero rows in its
+//'   diagnostics, so the two can differ for a censored instrument.
 //'
 //' @references
 //' Mertens, K., & Ravn, M. O. (2013). The dynamic effects of personal and

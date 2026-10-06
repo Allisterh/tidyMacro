@@ -103,3 +103,77 @@ test_that("fSignRestr is invariant to the number of threads", {
                   n_threads = 2, seed = 3)
   expect_equal(a$IRmed, b$IRmed, tolerance = 1e-12)
 })
+
+test_that("fSR_cpp returns the draws as N x N x nsteps x ndraws arrays", {
+  r <- fSR_cpp(sim_sr_data(), 1, 1, SIGN2, nsteps = 5, ndraws = 8,
+               n_threads = 1, seed = 1)
+  expect_equal(dim(r$IRall), c(2, 2, 5, 8))
+  expect_equal(dim(r$VDall), c(2, 2, 5, 8))
+})
+
+test_that("weighted bands follow the rescaled-midpoint percentile rule", {
+  # Draw i sits at the midpoint of its weight cell; positions are rescaled so
+  # the extremes are the 0th and 100th percentiles (type 7 with equal weights).
+  wq <- function(x, w, prob) {
+    o <- order(x)
+    cpos <- cumsum(w[o]) - w[o] / 2
+    pos <- (cpos - cpos[1]) / (cpos[length(cpos)] - cpos[1])
+    stats::approx(pos, x[o], xout = prob / 100, ties = "ordered")$y
+  }
+  z <- c(3, 1, 2, 5, 4)
+  expect_equal(wq(z, rep(1, 5), c(10, 50, 90)),
+               quantile(z, c(0.1, 0.5, 0.9), type = 7, names = FALSE))
+
+  r <- sr_fit(ndraws = 40, conf = 68, narr_weight_mc = 200,
+              narrative = list(sign = list(shock = 1, period = 100, sign = 1),
+                               dom  = list(shock = 1, period = 100, var = 1)))
+  expect_gt(stats::sd(r$weights), 0)
+  draws <- matrix(r$IRall, ncol = dim(r$IRall)[4])
+  expect_equal(as.numeric(r$IRmed),
+               apply(draws, 1, wq, w = r$weights, prob = 50), tolerance = 1e-10)
+  expect_equal(as.numeric(r$IRinf),
+               apply(draws, 1, wq, w = r$weights, prob = 16), tolerance = 1e-10)
+})
+
+sim_iv_infeasible <- function() {
+  # With sigma %*% 1 held fixed, the free columns contain no impact vector
+  # that raises all four variables, so SIGN below cannot hold at OLS.
+  set.seed(11)
+  y <- matrix(0, 400, 4)
+  e <- matrix(rnorm(1600), 400)
+  for (t in 2:400) y[t, ] <- 0.3 * y[t - 1, ] + e[t, ]
+  y
+}
+SIGN4 <- cbind(rep(1, 4), 0, 0)
+
+test_that("a certified infeasible specification stops without rotating", {
+  y <- sim_iv_infeasible()
+  v <- fVAR(y, p = 1, c = 1)
+  b_inf <- v$sigma %*% rep(1, 4)
+  expect_error(fSR_cpp(y, 1, 1, SIGN4, ndraws = 50, inference = 0,
+                       Bfix = b_inf, n_threads = 1),
+               "cannot hold at the OLS estimate")
+  expect_error(fSR_cpp(y, 1, 1, SIGN4, ndraws = 5, inference = 1,
+                       Bfix = b_inf, max_post_draws = 20, n_threads = 1),
+               "certified infeasible")
+})
+
+test_that("certified parameter draws are skipped and counted", {
+  y <- sim_iv_infeasible()
+  v <- fVAR(y, p = 1, c = 1)
+  r <- fSR_cpp(y, 1, 1, SIGN4, nsteps = 3, ndraws = 20, inference = 1,
+               Bfix = v$sigma %*% c(1, 1, 1, 0.02), max_post_draws = 2000,
+               sr_rot = 300, n_threads = 1, seed = 5)
+  expect_gt(r$n_ruled_out, 0)
+  expect_lt(r$n_ruled_out, r$n_param_draws)
+  expect_true(all(r$Ball[, 2, ] >= -1e-12))
+})
+
+test_that("fHDShock pairs Bfp with the Fry-Pagan draw's coefficients", {
+  y <- sim_sr_data()
+  r <- sr_fit(y)
+  hd <- fHDShock(r, y = y)
+  ref <- fHDShock_cpp(y, r$beta_all[, , r$fp_index], r$Bfp, 1, 1)
+  expect_equal(hd$shock, ref$shock)
+  expect_equal(hd$endo[-1, ], unname(y[-1, ]), tolerance = 1e-8)
+})

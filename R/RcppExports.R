@@ -451,8 +451,8 @@ fBootstrapVAR <- function(y, fVAR_result, bootscheme = "residual") {
 #' Check Narrative Sign Restrictions for One Draw
 #'
 #' Evaluates Antolin-Diaz and Rubio-Ramirez (2018) narrative restrictions for a
-#' candidate structural impact matrix, and optionally returns the importance
-#' weight that makes plain rejection sampling agree with their algorithm.
+#' candidate structural impact matrix, and optionally returns their importance
+#' weight for the narrative restrictions.
 #'
 #' @param B N x N structural impact matrix.
 #' @param resid T x N matrix of reduced-form VAR residuals. Row 1 is the first
@@ -483,8 +483,12 @@ fBootstrapVAR <- function(y, fVAR_result, bootscheme = "residual") {
 #' the unexpected movement in variable \code{i} at date \code{t} than all other
 #' shocks combined. The importance weight is the reciprocal of the probability
 #' that the restrictions hold when shocks are drawn from their unconditional
-#' \eqn{N(0, I)} distribution; the VAR Toolbox omits it, which makes plain
-#' rejection sampling an approximation to the ADRR posterior.
+#' \eqn{N(0, I)} distribution; the VAR Toolbox omits it. The weight corrects
+#' for the narrative restrictions only. Weighted draws target Algorithm 1 of
+#' Antolin-Diaz and Rubio-Ramirez (2018) only when each parameter draw is paired
+#' with a single rotation (\code{sr_rot = 1} in \code{\link{fSR_cpp}}), the
+#' residuals come from the same parameter draw, and up to Monte Carlo error in
+#' the estimated weight.
 #'
 #' @references
 #' Antolin-Diaz, J., & Rubio-Ramirez, J. F. (2018). Narrative sign restrictions
@@ -1315,6 +1319,10 @@ fMaxIRF <- function(wold, S, var_idx) {
     .Call(`_tidyMacro_fMaxIRF`, wold, S, var_idx)
 }
 
+fNLLP_cpp <- function(Y, X, H, shock_col, specification, state, common_cols = as.integer( c()), nw_lags_base = 0L, store_full = FALSE, cumulative = FALSE, balanced = FALSE, n_threads = 0L, nw_offset = 1L, verbose = FALSE, Y_pre = NULL) {
+    .Call(`_tidyMacro_fNLLP_cpp`, Y, X, H, shock_col, specification, state, common_cols, nw_lags_base, store_full, cumulative, balanced, n_threads, nw_offset, verbose, Y_pre)
+}
+
 #' Ordinary Least Squares Regression
 #'
 #' @param y Dependent variable matrix (T x 1)
@@ -1383,7 +1391,12 @@ fPolyConvolve <- function(A, B, nlags) {
 #'   first column proportional to \code{b1}), \code{sigma_b} (instrument-subsample covariance),
 #'   \code{fs_beta}, \code{fs_F} and \code{fs_r2} (first-stage coefficients,
 #'   F statistic on the excluded instruments, and R-squared), \code{shock_sd}
-#'   (the implied shock standard deviation) and \code{n_iv}.
+#'   (the implied shock standard deviation) and \code{n_iv}. As in
+#'   \code{recover_B.m}, \code{fs_F} and \code{fs_r2} use all \code{n_iv}
+#'   rows, including rows where the instrument is exactly zero;
+#'   \code{\link{fRecoverBIVMulti_cpp}} follows \code{VARiriv_B.m} and drops
+#'   such rows from its diagnostics, so the two can differ for a censored
+#'   instrument. Both use every row in the estimation itself.
 #'
 #' @details
 #' Columns 2 to N of \code{B} are a Cholesky-QR completion with no economic
@@ -1434,7 +1447,11 @@ fRecoverBIV_cpp <- function(resid_sub, Z_sub, sigma, ntotcoeff) {
 #'   (instrument-subsample covariance), \code{fs_beta}, \code{fs_F} and
 #'   \code{fs_r2} (first-stage coefficients, F statistics and R-squared, one
 #'   per instrumented equation), \code{relEig} (eigenvalues of the
-#'   reliability matrix, descending) and \code{n_iv}.
+#'   reliability matrix, descending) and \code{n_iv}. As in
+#'   \code{VARiriv_B.m}, the F statistics and R-squared are computed on the
+#'   rows where at least one instrument is non-zero, while the estimation uses
+#'   every row; \code{\link{fRecoverBIV_cpp}} keeps zero rows in its
+#'   diagnostics, so the two can differ for a censored instrument.
 #'
 #' @references
 #' Mertens, K., & Ravn, M. O. (2013). The dynamic effects of personal and
@@ -1534,7 +1551,11 @@ fRemoveBias <- function(beta, c, p, boot_beta) {
 #' @param narr_weight_mc Integer. When positive, each accepted draw is weighted
 #'   by the ADRR importance weight, estimated with this many Monte Carlo
 #'   replications, and bands become weighted percentiles. \code{0} (default)
-#'   reproduces the plain rejection sampling of the VAR Toolbox.
+#'   reproduces the plain rejection sampling of the VAR Toolbox. The weights
+#'   correct for the narrative restrictions only; they target Algorithm 1 of
+#'   Antolin-Diaz and Rubio-Ramirez (2018) only with \code{sr_rot = 1}, with
+#'   \code{resid_from_draw = TRUE} when \code{inference = 1}, and up to Monte
+#'   Carlo error in the weights.
 #' @param resid_from_draw Logical. \code{FALSE} (default) evaluates narrative
 #'   restrictions on the OLS residuals, as the VAR Toolbox does; \code{TRUE}
 #'   recomputes residuals from each parameter draw.
@@ -1562,11 +1583,10 @@ fRemoveBias <- function(beta, c, p, boot_beta) {
 #'   \code{Ball} and coefficient draws \code{beta_all}; the median impact matrix
 #'   \code{Bmed} and the Fry-Pagan draw \code{Bfp} with its \code{IRfp},
 #'   \code{VDfp} and index \code{fp_index}; the importance \code{weights};
-#'   \code{accept_rate}, \code{ndraws_tried}, \code{n_tried} and
-#'   \code{n_failed}; and, when \code{store_draws = TRUE}, the flattened draw
-#'   distributions \code{IRall} and \code{VDall}, each
-#'   \code{(N * N * nsteps) x ndraws} and reshapeable to
-#'   \code{c(N, N, nsteps, ndraws)}.
+#'   \code{accept_rate}, \code{ndraws_tried}, \code{n_tried},
+#'   \code{n_param_draws}, \code{n_ruled_out} and \code{n_failed}; and, when
+#'   \code{store_draws = TRUE}, the draw distributions \code{IRall} and
+#'   \code{VDall}, each an \code{N x N x nsteps x ndraws} array.
 #'
 #' @details
 #' Each accepted draw is produced independently: parameters are drawn from the
@@ -1575,15 +1595,26 @@ fRemoveBias <- function(beta, c, p, boot_beta) {
 #' exhausts \code{max_post_draws} parameter draws is reported in
 #' \code{n_failed} rather than silently dropped.
 #'
+#' When at most three columns are free, a linear-infeasibility certificate can
+#' prove that no rotation satisfies the impact signs of a shock. A parameter
+#' draw so certified is skipped without spending \code{sr_rot} rotations and
+#' is counted in \code{n_ruled_out}. The certificate depends on the covariance,
+#' so with \code{inference = 1} each draw is checked separately; with
+#' \code{inference = 0} every draw shares the OLS covariance and a certified
+#' specification stops with an error before any draw is made.
+#'
 #' FEVD shares are returned on the \code{[0, 1]} scale, not in percent.
 #'
-#' The instrument-identified column is fixed at
-#' its OLS point estimate while the rest of the system is redrawn, so the
-#' reported bands omit the instrument's own sampling uncertainty. This
-#' reproduces the VAR Toolbox exactly. The fixed column is rescaled by
-#' \eqn{1/\|L^{-1}b_1\|} against each draw's Cholesky factor \eqn{L}, so its
-#' direction is held constant but its length is not; this too matches the
-#' toolbox.
+#' The instrument-identified columns come from a first stage estimated once at
+#' the OLS point estimate while the rest of the system is redrawn, so the
+#' reported bands omit the instrument's own sampling uncertainty, as in the
+#' VAR Toolbox. The fixed columns are then completed against each draw's
+#' Cholesky factor \eqn{L}: the first is rescaled by \eqn{1/\|L^{-1}b_1\|},
+#' keeping its direction but not its length, as in the toolbox; with several
+#' instruments the later columns are Gram-Schmidt orthogonalised in the
+#' \eqn{L^{-1}} metric, which can change their direction as well as their
+#' length whenever the draw covariance differs from the instrument-sample
+#' covariance.
 #'
 #' @references
 #' Uhlig, H. (2005). What are the effects of monetary policy on output?

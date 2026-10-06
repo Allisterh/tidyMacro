@@ -129,7 +129,12 @@ IVColumnResult fIVColumn_cpp(const arma::mat& resid_sub,
 //'   first column proportional to \code{b1}), \code{sigma_b} (instrument-subsample covariance),
 //'   \code{fs_beta}, \code{fs_F} and \code{fs_r2} (first-stage coefficients,
 //'   F statistic on the excluded instruments, and R-squared), \code{shock_sd}
-//'   (the implied shock standard deviation) and \code{n_iv}.
+//'   (the implied shock standard deviation) and \code{n_iv}. As in
+//'   \code{recover_B.m}, \code{fs_F} and \code{fs_r2} use all \code{n_iv}
+//'   rows, including rows where the instrument is exactly zero;
+//'   \code{\link{fRecoverBIVMulti_cpp}} follows \code{VARiriv_B.m} and drops
+//'   such rows from its diagnostics, so the two can differ for a censored
+//'   instrument. Both use every row in the estimation itself.
 //'
 //' @details
 //' Columns 2 to N of \code{B} are a Cholesky-QR completion with no economic

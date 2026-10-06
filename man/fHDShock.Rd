@@ -13,14 +13,19 @@ supplied, \code{beta}, \code{p} and \code{c} are taken from it and only
 \code{y} or \code{B} need overriding.}
 
 \item{B}{Structural impact matrix. Defaults to the Fry-Pagan draw
-\code{Bfp} when \code{x} is an \code{"fSignRestr"} object, since that is a
-genuine structural representation; the element-wise median \code{Bmed} is
-not, and its components would not sum back to the data.}
+\code{Bfp} when \code{x} is an \code{"fSignRestr"} object, because it is
+an accepted model draw; the element-wise median \code{Bmed} need not be.
+Any invertible \code{B} reconstructs the data, since residuals and
+deterministic terms are computed from the same \code{beta}.}
 
 \item{y}{Optional T x N matrix of endogenous variables, required when
 \code{x} is not a matrix and the data are not recoverable from it.}
 
-\item{beta}{Reduced-form coefficient matrix, \code{[const | lags | exog]}.}
+\item{beta}{Reduced-form coefficient matrix, \code{[const | lags | exog]}.
+Defaults to the coefficients of the Fry-Pagan draw,
+\code{beta_all[, , fp_index]}, when \code{x} is an \code{"fSignRestr"}
+object, so that \code{B} and \code{beta} come from the same draw (the OLS
+coefficients when \code{inference = 0}).}
 
 \item{p}{Integer lag order.}
 

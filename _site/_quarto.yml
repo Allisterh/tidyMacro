@@ -113,7 +113,7 @@ website:
         text: LP with Exogenous Shocks and IV
 
       - href: 05_4_LP_NL_StateDep.qmd
-        text: Nonlinear and State-Dependent LP
+        text: LP Nonlinear and State-Dependent
         
       - href: 06_LP_Panel.qmd
         text: LP Panel

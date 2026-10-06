@@ -82,7 +82,11 @@ combined. All 1-indexed; default NULL.}
 \item{narr_weight_mc}{Integer. When positive, each accepted draw is weighted
 by the ADRR importance weight, estimated with this many Monte Carlo
 replications, and bands become weighted percentiles. \code{0} (default)
-reproduces the plain rejection sampling of the VAR Toolbox.}
+reproduces the plain rejection sampling of the VAR Toolbox. The weights
+correct for the narrative restrictions only; they target Algorithm 1 of
+Antolin-Diaz and Rubio-Ramirez (2018) only with \code{sr_rot = 1}, with
+\code{resid_from_draw = TRUE} when \code{inference = 1}, and up to Monte
+Carlo error in the weights.}
 
 \item{resid_from_draw}{Logical. \code{FALSE} (default) evaluates narrative
 restrictions on the OLS residuals, as the VAR Toolbox does; \code{TRUE}
@@ -118,11 +122,10 @@ A list with medians and credible bands for the IRFs (\code{IRmed},
   \code{Ball} and coefficient draws \code{beta_all}; the median impact matrix
   \code{Bmed} and the Fry-Pagan draw \code{Bfp} with its \code{IRfp},
   \code{VDfp} and index \code{fp_index}; the importance \code{weights};
-  \code{accept_rate}, \code{ndraws_tried}, \code{n_tried} and
-  \code{n_failed}; and, when \code{store_draws = TRUE}, the flattened draw
-  distributions \code{IRall} and \code{VDall}, each
-  \code{(N * N * nsteps) x ndraws} and reshapeable to
-  \code{c(N, N, nsteps, ndraws)}.
+  \code{accept_rate}, \code{ndraws_tried}, \code{n_tried},
+  \code{n_param_draws}, \code{n_ruled_out} and \code{n_failed}; and, when
+  \code{store_draws = TRUE}, the draw distributions \code{IRall} and
+  \code{VDall}, each an \code{N x N x nsteps x ndraws} array.
 }
 \description{
 Identifies a structural VAR by sign restrictions, optionally combined with
@@ -138,15 +141,26 @@ candidate is then screened against the narrative restrictions. A slot that
 exhausts \code{max_post_draws} parameter draws is reported in
 \code{n_failed} rather than silently dropped.
 
+When at most three columns are free, a linear-infeasibility certificate can
+prove that no rotation satisfies the impact signs of a shock. A parameter
+draw so certified is skipped without spending \code{sr_rot} rotations and
+is counted in \code{n_ruled_out}. The certificate depends on the covariance,
+so with \code{inference = 1} each draw is checked separately; with
+\code{inference = 0} every draw shares the OLS covariance and a certified
+specification stops with an error before any draw is made.
+
 FEVD shares are returned on the \code{[0, 1]} scale, not in percent.
 
-The instrument-identified column is fixed at
-its OLS point estimate while the rest of the system is redrawn, so the
-reported bands omit the instrument's own sampling uncertainty. This
-reproduces the VAR Toolbox exactly. The fixed column is rescaled by
-\eqn{1/\|L^{-1}b_1\|} against each draw's Cholesky factor \eqn{L}, so its
-direction is held constant but its length is not; this too matches the
-toolbox.
+The instrument-identified columns come from a first stage estimated once at
+the OLS point estimate while the rest of the system is redrawn, so the
+reported bands omit the instrument's own sampling uncertainty, as in the
+VAR Toolbox. The fixed columns are then completed against each draw's
+Cholesky factor \eqn{L}: the first is rescaled by \eqn{1/\|L^{-1}b_1\|},
+keeping its direction but not its length, as in the toolbox; with several
+instruments the later columns are Gram-Schmidt orthogonalised in the
+\eqn{L^{-1}} metric, which can change their direction as well as their
+length whenever the draw covariance differs from the instrument-sample
+covariance.
 }
 \references{
 Uhlig, H. (2005). What are the effects of monetary policy on output?

@@ -158,8 +158,8 @@ double fNarrativeWeight_cpp(const arma::mat&             B,
 //' Check Narrative Sign Restrictions for One Draw
 //'
 //' Evaluates Antolin-Diaz and Rubio-Ramirez (2018) narrative restrictions for a
-//' candidate structural impact matrix, and optionally returns the importance
-//' weight that makes plain rejection sampling agree with their algorithm.
+//' candidate structural impact matrix, and optionally returns their importance
+//' weight for the narrative restrictions.
 //'
 //' @param B N x N structural impact matrix.
 //' @param resid T x N matrix of reduced-form VAR residuals. Row 1 is the first
@@ -190,8 +190,12 @@ double fNarrativeWeight_cpp(const arma::mat&             B,
 //' the unexpected movement in variable \code{i} at date \code{t} than all other
 //' shocks combined. The importance weight is the reciprocal of the probability
 //' that the restrictions hold when shocks are drawn from their unconditional
-//' \eqn{N(0, I)} distribution; the VAR Toolbox omits it, which makes plain
-//' rejection sampling an approximation to the ADRR posterior.
+//' \eqn{N(0, I)} distribution; the VAR Toolbox omits it. The weight corrects
+//' for the narrative restrictions only. Weighted draws target Algorithm 1 of
+//' Antolin-Diaz and Rubio-Ramirez (2018) only when each parameter draw is paired
+//' with a single rotation (\code{sr_rot = 1} in \code{\link{fSR_cpp}}), the
+//' residuals come from the same parameter draw, and up to Monte Carlo error in
+//' the estimated weight.
 //'
 //' @references
 //' Antolin-Diaz, J., & Rubio-Ramirez, J. F. (2018). Narrative sign restrictions

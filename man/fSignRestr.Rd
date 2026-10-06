@@ -86,13 +86,24 @@ the \code{sign+iv} scheme. With \code{k = 1} the single shock is identified
 by \code{\link{fRecoverBIV_cpp}} (Gertler-Karadi/Mertens-Ravn); with
 \code{k > 1} the k shocks are jointly identified by
 \code{\link{fRecoverBIVMulti_cpp}}, following the block generalisation in
-\code{VARiriv_B.m} (Cesa-Bianchi & Sokol 2022). Either way the identified
-column(s) are held at their OLS value across draws, as the VAR Toolbox
-does, so the bands do not carry the instrument's own sampling uncertainty.}
+\code{VARiriv_B.m} (Cesa-Bianchi & Sokol 2022). Either way the first stage
+is estimated once at OLS and not re-estimated across draws, as in the VAR
+Toolbox, so the bands do not carry the instrument's own sampling
+uncertainty. The identified columns are then completed against each draw's
+covariance: the first keeps its direction but is rescaled, and with
+\code{k > 1} the later columns are Gram-Schmidt orthogonalised, which can
+change their direction as well as their length.}
 
 \item{narr_weight_mc}{Integer. Positive values switch on the ADRR importance
 reweighting, using this many Monte Carlo replications per draw. \code{0}
-(default) uses plain rejection sampling, as the VAR Toolbox does.}
+(default) uses plain rejection sampling, as the VAR Toolbox does. The
+weights correct for the narrative restrictions only. They target
+Algorithm 1 of Antolin-Diaz and Rubio-Ramirez (2018) only with
+\code{sr_rot = 1}, since keeping the first admissible of several
+rotations reweights the parameter draws; with
+\code{resid_from_draw = TRUE} when \code{inference = 1}, so the narrative
+shocks use each draw's own coefficients; and up to Monte Carlo error in
+the weights.}
 
 \item{resid_from_draw}{Logical. \code{FALSE} (default) evaluates narrative
 restrictions on OLS residuals, matching the VAR Toolbox; \code{TRUE} uses
@@ -117,8 +128,8 @@ the residuals implied by each parameter draw.}
 }
 \value{
 An object of class \code{"fSignRestr"}: the list returned by
-  \code{\link{fSR_cpp}}, with \code{IRall} and \code{VDall} reshaped to
-  \code{c(N, N, nsteps, ndraws)} and with \code{var}, \code{varnames},
+  \code{\link{fSR_cpp}} (\code{IRall} and \code{VDall} are
+  \code{N x N x nsteps x ndraws} arrays), with \code{var}, \code{varnames},
   \code{ident}, \code{p}, \code{c}, \code{nsteps} and \code{iv} attached.
 }
 \description{

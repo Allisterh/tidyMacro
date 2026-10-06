@@ -8,8 +8,6 @@ editor_options:
   chunk_output_type: console
 ---
 
-## Getting started
-
 ### How do I install the package?
 
 ``` r
@@ -18,14 +16,6 @@ devtools::install_github("muhsinciftci/tidyMacro")
 ```
 
 The package compiles C++ at install time, so you need a working toolchain: Rtools on Windows, Xcode command line tools on macOS, `g++` on Linux.
-
-### What does tidyMacro depend on?
-
-No other econometrics package. Estimation is written from the ground up in C++ via Rcpp and RcppArmadillo.
-
-### Which R version do I need?
-
-R \>= 3.5.0
 
 ### How does threading work?
 
@@ -38,6 +28,29 @@ The parallel regions are guarded, and the build uses R's standard `SHLIB_OPENMP_
 ### Why is it fast?
 
 Estimation and bootstrapping live entirely in C++/RcppArmadillo rather than in R loops, and the bootstrap draws are distributed across threads. R is used only to marshal the data in and to build the plots.
+
+### I found a bug, or something is missing. Where do I go?
+
+Open an issue at <https://github.com/muhsinciftci/tidyMacro/issues>. Every page on this site also has an "Report an issue" link in its right-hand margin.
+
+### Will thepackage be maintained and extended? 
+
+Yes. Even if published on CRAN, I will keep it up to date for future research.
+
+### Use of Artificial Intelligence (AI)
+
+- Do you use AI for package development?
+  - Yes
+- Which AI platforms do you use?
+  - Mostly Claude but I also use codex for cross checking
+- Do you build all functions at once?
+  - No. I implement functions one by one and move sequentially.
+- How much time do you spend?
+  - Much more than I expected. Despite AI, I spend a lot of time for cross checks, model outputs, design and correctness of functions.
+- Is there any case you spotted errors of AI
+  - Yes. There are also different implementations and those are explicitly mentioned in the text. I also change the design of model outputs, inputs, functions, speed, memory efficiency etc.
+- How do I make sure that the results are reliable for my research?
+  - Replications of key economics papers serve as a means to ensure the reliability of the package.
 
 ### How do I cite tidyMacro?
 
@@ -53,27 +66,4 @@ Ciftci, Muhsin (2026). *tidyMacro: A Fast, Tidy Toolkit for Applied Macroeconome
 }
 ```
 
-### I found a bug, or something is missing. Where do I go?
-
-Open an issue at <https://github.com/muhsinciftci/tidyMacro/issues>. Every page on this site also has an "Report an issue" link in its right-hand margin.
-
-### What licence is it under?
-
-MIT.
-
-## Use of Artificial Intelligence (AI)
-
-- Do you use AI for package development?
-  - Yes
-- Which AI platforms do you use?
-  - Mostly Claude but I also use codex for cross checking
-- Do you build all functions at once?
-  - No. I implement functions one by one and move sequentially.
-- How much time do you spend?
-  - Much more than I expected. Despite AI, I spend a lot of time for cross checks, model outputs, design and correctness of functions.
-- Is there any case you spotted errors of AI
-  - Yes. But I mostly change the design of model outputs and inputs.
-- How do I make sure that the results are reliable for my research?
-  - Replications of key economics papers serve as a means to ensure the reliability of the package.
-
-## References {.unnumbered}
+### References {.unnumbered}

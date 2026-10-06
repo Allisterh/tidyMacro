@@ -47,12 +47,23 @@
 #'   by \code{\link{fRecoverBIV_cpp}} (Gertler-Karadi/Mertens-Ravn); with
 #'   \code{k > 1} the k shocks are jointly identified by
 #'   \code{\link{fRecoverBIVMulti_cpp}}, following the block generalisation in
-#'   \code{VARiriv_B.m} (Cesa-Bianchi & Sokol 2022). Either way the identified
-#'   column(s) are held at their OLS value across draws, as the VAR Toolbox
-#'   does, so the bands do not carry the instrument's own sampling uncertainty.
+#'   \code{VARiriv_B.m} (Cesa-Bianchi & Sokol 2022). Either way the first stage
+#'   is estimated once at OLS and not re-estimated across draws, as in the VAR
+#'   Toolbox, so the bands do not carry the instrument's own sampling
+#'   uncertainty. The identified columns are then completed against each draw's
+#'   covariance: the first keeps its direction but is rescaled, and with
+#'   \code{k > 1} the later columns are Gram-Schmidt orthogonalised, which can
+#'   change their direction as well as their length.
 #' @param narr_weight_mc Integer. Positive values switch on the ADRR importance
 #'   reweighting, using this many Monte Carlo replications per draw. \code{0}
-#'   (default) uses plain rejection sampling, as the VAR Toolbox does.
+#'   (default) uses plain rejection sampling, as the VAR Toolbox does. The
+#'   weights correct for the narrative restrictions only. They target
+#'   Algorithm 1 of Antolin-Diaz and Rubio-Ramirez (2018) only with
+#'   \code{sr_rot = 1}, since keeping the first admissible of several
+#'   rotations reweights the parameter draws; with
+#'   \code{resid_from_draw = TRUE} when \code{inference = 1}, so the narrative
+#'   shocks use each draw's own coefficients; and up to Monte Carlo error in
+#'   the weights.
 #' @param resid_from_draw Logical. \code{FALSE} (default) evaluates narrative
 #'   restrictions on OLS residuals, matching the VAR Toolbox; \code{TRUE} uses
 #'   the residuals implied by each parameter draw.
@@ -65,8 +76,8 @@
 #' @param verbose Logical; print progress diagnostics (default FALSE).
 #'
 #' @return An object of class \code{"fSignRestr"}: the list returned by
-#'   \code{\link{fSR_cpp}}, with \code{IRall} and \code{VDall} reshaped to
-#'   \code{c(N, N, nsteps, ndraws)} and with \code{var}, \code{varnames},
+#'   \code{\link{fSR_cpp}} (\code{IRall} and \code{VDall} are
+#'   \code{N x N x nsteps x ndraws} arrays), with \code{var}, \code{varnames},
 #'   \code{ident}, \code{p}, \code{c}, \code{nsteps} and \code{iv} attached.
 #'
 #' @details
@@ -250,12 +261,6 @@ fSignRestr <- function(y, p, c = 1, sign,
                    seed = as.integer(seed), verbose = isTRUE(verbose),
                    bands_conf = conf, fitted_var = var_ols)
 
-    nkeep <- dim(res$Ball)[3]
-    if (!is.null(res$IRall)) {
-        dim(res$IRall) <- c(N, N, nsteps, nkeep)
-        dim(res$VDall) <- c(N, N, nsteps, nkeep)
-    }
-
     ## arma vectors arrive as one-column matrices; flatten for R ergonomics.
     res$weights <- as.numeric(res$weights)
     res$n_tried <- as.integer(res$n_tried)
@@ -354,6 +359,10 @@ print.fSignRestr <- function(x, ...) {
         "   acceptance: ", sprintf("%.3f%%", 100 * x$accept_rate), "\n", sep = "")
     cat("  Horizons       : ", x$nsteps, "   bands: ",
         paste0(format(x$conf), collapse = ", "), "%\n", sep = "")
+    if (isTRUE(x$n_ruled_out > 0))
+        cat("  Ruled out      : ", format(x$n_ruled_out, big.mark = ","), " of ",
+            format(x$n_param_draws, big.mark = ","),
+            " parameter draws (impact signs infeasible)\n", sep = "")
     if (x$narrative_active) cat("  Narrative restrictions: active\n")
     iv <- x[["iv"]]
     if (!is.null(iv)) {
@@ -361,67 +370,7 @@ print.fSignRestr <- function(x, ...) {
             paste(sprintf("%.2f", iv$fs_F), collapse = ", "),
             ", R2 = ", paste(sprintf("%.3f", iv$fs_r2), collapse = ", "),
             ", n = ", iv$n_iv, "\n", sep = "")
-        cat("  IV column(s)   : fixed at OLS (VAR Toolbox convention)\n", sep = "")
+        cat("  IV first stage : estimated once at OLS (VAR Toolbox convention)\n", sep = "")
     }
     invisible(x)
-}
-
-
-#' Percentile bands at one or more coverage levels
-#'
-#' Mirrors the percentile rules used inside \code{fSR_cpp} so that a level
-#' recomputed here is identical to the one the C++ driver reports: plain
-#' quantiles (type 7) when every draw carries the same weight, and the
-#' mass-interpolating weighted percentile when the ADRR importance weights are
-#' active.
-#'
-#' @keywords internal
-#' @noRd
-.fSR_bands <- function(res, conf) {
-
-    if (is.null(res$IRall)) {
-        if (length(conf) > 1L)
-            stop("Several `conf` levels require `store_draws = TRUE`.")
-        return(stats::setNames(
-            list(list(IRinf = res$IRinf, IRsup = res$IRsup,
-                      VDinf = res$VDinf, VDsup = res$VDsup)),
-            format(conf)))
-    }
-
-    w        <- as.numeric(res$weights)
-    weighted <- length(w) > 1L && stats::sd(w) > 0
-
-    ## Weighted percentile of `nth_pct_w`: walk the sorted draws until the
-    ## cumulative weight reaches the target mass, then interpolate inside the
-    ## straddling cell.
-    wq <- function(x, prob) {
-        o     <- order(x)
-        xs    <- x[o]
-        ws    <- w[o]
-        total <- sum(ws)
-        if (!(total > 0)) return(xs[length(xs) %/% 2 + 1L])
-        target <- prob / 100 * total
-        cum    <- cumsum(ws)
-        i      <- which(cum >= target)[1L]
-        if (is.na(i)) return(xs[length(xs)])
-        if (i == 1L || ws[i] <= 0) return(xs[i])
-        frac <- (target - cum[i - 1L]) / ws[i]
-        xs[i - 1L] + frac * (xs[i] - xs[i - 1L])
-    }
-
-    quant <- function(arr, prob) {
-        d   <- dim(arr)
-        mat <- matrix(arr, nrow = prod(d[1:3]), ncol = d[4])
-        out <- if (weighted) apply(mat, 1L, wq, prob = prob)
-               else          apply(mat, 1L, stats::quantile, probs = prob / 100,
-                                   names = FALSE, type = 7)
-        array(out, dim = d[1:3])
-    }
-
-    stats::setNames(lapply(conf, function(level) {
-        lo <- (100 - level) / 2
-        hi <- 100 - lo
-        list(IRinf = quant(res$IRall, lo), IRsup = quant(res$IRall, hi),
-             VDinf = quant(res$VDall, lo), VDsup = quant(res$VDall, hi))
-    }), format(conf))
 }

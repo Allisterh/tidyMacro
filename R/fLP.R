@@ -218,6 +218,41 @@
 }
 
 
+# Reject formula syntax the LP engines cannot honour, instead of estimating
+# something else silently:
+#   - LHS transformations, e.g. log(y): all.vars() would keep only "y".
+#     The LHS must be a name or c(name, name, ...).
+#   - intercept removal (- 1, + 0): the engines always add the intercept.
+#   - RHS terms that are not plain columns, e.g. log(x), I(x^2), x:z.
+# Transformed variables belong in `data` as their own columns.
+.fLP_check_formula <- function(formula_expanded, fn = "fLP") {
+  lhs <- formula_expanded[[2]]
+  lhs_ok <- is.name(lhs) ||
+    (is.call(lhs) && identical(lhs[[1]], as.name("c")) && length(lhs) > 1 &&
+       all(vapply(as.list(lhs)[-1], is.name, logical(1))))
+  if (!lhs_ok)
+    stop(sprintf(paste0(
+      "%s: the LHS must be a variable name or c(y1, y2, ...); got '%s'.\n",
+      "  Create transformed outcomes (e.g. log(y)) as columns of `data` first."),
+      fn, paste(deparse(lhs), collapse = " ")), call. = FALSE)
+
+  tt <- terms(formula_expanded, keep.order = TRUE)
+  if (attr(tt, "intercept") == 0)
+    stop(sprintf(paste0(
+      "%s: the intercept is always included; remove '- 1' / '+ 0' from the ",
+      "formula."), fn), call. = FALSE)
+
+  labs <- attr(tt, "term.labels")
+  plain <- vapply(labs, function(l) is.name(str2lang(l)), logical(1))
+  if (!all(plain))
+    stop(sprintf(paste0(
+      "%s: RHS terms must be columns of `data` (or l()/f() lags and leads); ",
+      "got %s.\n  Create transformed regressors as columns of `data` first."),
+      fn, paste(sprintf("'%s'", labs[!plain]), collapse = ", ")), call. = FALSE)
+  invisible(TRUE)
+}
+
+
 .fLP_estimation_sample <- function(data, all_needed, lhs_vars, cumulative,
                                    fn = "fLP") {
   raw  <- data[, all_needed, drop = FALSE]
@@ -315,19 +350,34 @@
       col_name <- if (op == "l") sprintf("%s_l%d", var, k) else
                                  sprintf("%s_f%d", var, k)
 
-      # Create the column only if it doesn't already exist
-      if (!col_name %in% names(data)) {
-        if (k == 0L) {
-          data[[col_name]] <- x_raw
-        } else if (k >= T_dat) {
-          data[[col_name]] <- rep(NA_real_, T_dat)
-        } else if (op == "l") {
-          # lag: shift forward k rows, fill head with NA
-          data[[col_name]] <- c(rep(NA_real_, k), x_raw[seq_len(T_dat - k)])
-        } else {
-          # lead: shift backward k rows, fill tail with NA
-          data[[col_name]] <- c(x_raw[seq.int(k + 1L, T_dat)], rep(NA_real_, k))
-        }
+      shifted <- if (k == 0L) {
+        x_raw
+      } else if (k >= T_dat) {
+        rep(NA_real_, T_dat)
+      } else if (op == "l") {
+        # lag: shift forward k rows, fill head with NA
+        c(rep(NA_real_, k), x_raw[seq_len(T_dat - k)])
+      } else {
+        # lead: shift backward k rows, fill tail with NA
+        c(x_raw[seq.int(k + 1L, T_dat)], rep(NA_real_, k))
+      }
+
+      # A column with the generated name may already exist (e.g. the same
+      # l() term twice). Reuse it only if it IS this lag/lead; an unrelated
+      # column that happens to be called x_l1 must not be estimated silently.
+      if (col_name %in% names(data)) {
+        old <- data[[col_name]]
+        same <- length(old) == T_dat &&
+          identical(is.na(old), is.na(shifted)) &&
+          isTRUE(all(old[!is.na(old)] == shifted[!is.na(shifted)]))
+        if (!same)
+          stop(sprintf(paste0(
+            "fLP: `data` already has a column '%s' that is not %s of '%s'.\n",
+            "  Rename that column, or drop it, before using %s."),
+            col_name, if (op == "l") sprintf("lag %d", k) else sprintf("lead %d", k),
+            var, full_match), call. = FALSE)
+      } else {
+        data[[col_name]] <- shifted
       }
       new_cols[i] <- col_name
     }
@@ -508,6 +558,8 @@ fLP <- function(formula, data, horizons = 12L,
       "\n  ", conditionMessage(e)
     )
   )
+
+  .fLP_check_formula(formula_expanded, "fLP")
 
   lhs_expr <- formula_expanded[[2L]]
   rhs_expr <- formula_expanded[[3L]]

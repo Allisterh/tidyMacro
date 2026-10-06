@@ -320,7 +320,7 @@ window.Quarto = {
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./05_4_LP_NL_StateDep.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Nonlinear and State-Dependent LP</span></a>
+ <span class="menu-text">LP Nonlinear and State-Dependent</span></a>
   </div>
 </li>
         <li class="sidebar-item">
@@ -490,7 +490,7 @@ window.Quarto = {
 <span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   Rotations tried: 84,233   acceptance: 2.374%</span></span>
 <span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   Horizons       : 36   bands: 68, 90%</span></span>
 <span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   Instrument     : first-stage F = 6.47, R2 = 0.020, n = 323</span></span>
-<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   IV column(s)   : fixed at OLS (VAR Toolbox convention)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   IV first stage : estimated once at OLS (VAR Toolbox convention)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="financial-shock-responses" class="level3" data-number="3.2">
@@ -535,23 +535,23 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
 <span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="fu">where</span>(is.numeric), \(x) <span class="fu">round</span>(x, <span class="dv">3</span>))) <span class="sc">|&gt;</span></span>
 <span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  gt<span class="sc">::</span><span class="fu">gt</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
-<div id="tsgwhkecoy" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#tsgwhkecoy table {
+<div id="twgyuydusq" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#twgyuydusq table {
   font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-#tsgwhkecoy thead, #tsgwhkecoy tbody, #tsgwhkecoy tfoot, #tsgwhkecoy tr, #tsgwhkecoy td, #tsgwhkecoy th {
+#twgyuydusq thead, #twgyuydusq tbody, #twgyuydusq tfoot, #twgyuydusq tr, #twgyuydusq td, #twgyuydusq th {
   border-style: none;
 }
 
-#tsgwhkecoy p {
+#twgyuydusq p {
   margin: 0;
   padding: 0;
 }
 
-#tsgwhkecoy .gt_table {
+#twgyuydusq .gt_table {
   display: table;
   border-collapse: collapse;
   line-height: normal;
@@ -577,12 +577,12 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   border-left-color: #D3D3D3;
 }
 
-#tsgwhkecoy .gt_caption {
+#twgyuydusq .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
 
-#tsgwhkecoy .gt_title {
+#twgyuydusq .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -594,7 +594,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   border-bottom-width: 0;
 }
 
-#tsgwhkecoy .gt_subtitle {
+#twgyuydusq .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -606,7 +606,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   border-top-width: 0;
 }
 
-#tsgwhkecoy .gt_heading {
+#twgyuydusq .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -618,13 +618,13 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   border-right-color: #D3D3D3;
 }
 
-#tsgwhkecoy .gt_bottom_border {
+#twgyuydusq .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#tsgwhkecoy .gt_col_headings {
+#twgyuydusq .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -639,7 +639,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   border-right-color: #D3D3D3;
 }
 
-#tsgwhkecoy .gt_col_heading {
+#twgyuydusq .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -659,7 +659,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   overflow-x: hidden;
 }
 
-#tsgwhkecoy .gt_column_spanner_outer {
+#twgyuydusq .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -671,15 +671,15 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   padding-right: 4px;
 }
 
-#tsgwhkecoy .gt_column_spanner_outer:first-child {
+#twgyuydusq .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#tsgwhkecoy .gt_column_spanner_outer:last-child {
+#twgyuydusq .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#tsgwhkecoy .gt_column_spanner {
+#twgyuydusq .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -691,11 +691,11 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   width: 100%;
 }
 
-#tsgwhkecoy .gt_spanner_row {
+#twgyuydusq .gt_spanner_row {
   border-bottom-style: hidden;
 }
 
-#tsgwhkecoy .gt_group_heading {
+#twgyuydusq .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -721,7 +721,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   text-align: left;
 }
 
-#tsgwhkecoy .gt_empty_group_heading {
+#twgyuydusq .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -736,15 +736,15 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   vertical-align: middle;
 }
 
-#tsgwhkecoy .gt_from_md > :first-child {
+#twgyuydusq .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#tsgwhkecoy .gt_from_md > :last-child {
+#twgyuydusq .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#tsgwhkecoy .gt_row {
+#twgyuydusq .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -763,7 +763,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   overflow-x: hidden;
 }
 
-#tsgwhkecoy .gt_stub {
+#twgyuydusq .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -776,7 +776,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   padding-right: 5px;
 }
 
-#tsgwhkecoy .gt_stub_row_group {
+#twgyuydusq .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -790,15 +790,15 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   vertical-align: top;
 }
 
-#tsgwhkecoy .gt_row_group_first td {
+#twgyuydusq .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#tsgwhkecoy .gt_row_group_first th {
+#twgyuydusq .gt_row_group_first th {
   border-top-width: 2px;
 }
 
-#tsgwhkecoy .gt_summary_row {
+#twgyuydusq .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -808,16 +808,16 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   padding-right: 5px;
 }
 
-#tsgwhkecoy .gt_first_summary_row {
+#twgyuydusq .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#tsgwhkecoy .gt_first_summary_row.thick {
+#twgyuydusq .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#tsgwhkecoy .gt_last_summary_row {
+#twgyuydusq .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -827,7 +827,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   border-bottom-color: #D3D3D3;
 }
 
-#tsgwhkecoy .gt_grand_summary_row {
+#twgyuydusq .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -837,7 +837,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   padding-right: 5px;
 }
 
-#tsgwhkecoy .gt_first_grand_summary_row {
+#twgyuydusq .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -847,7 +847,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   border-top-color: #D3D3D3;
 }
 
-#tsgwhkecoy .gt_last_grand_summary_row_top {
+#twgyuydusq .gt_last_grand_summary_row_top {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -857,11 +857,11 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   border-bottom-color: #D3D3D3;
 }
 
-#tsgwhkecoy .gt_striped {
+#twgyuydusq .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#tsgwhkecoy .gt_table_body {
+#twgyuydusq .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -870,7 +870,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   border-bottom-color: #D3D3D3;
 }
 
-#tsgwhkecoy .gt_footnotes {
+#twgyuydusq .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -884,7 +884,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   border-right-color: #D3D3D3;
 }
 
-#tsgwhkecoy .gt_footnote {
+#twgyuydusq .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-top: 4px;
@@ -893,7 +893,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   padding-right: 5px;
 }
 
-#tsgwhkecoy .gt_sourcenotes {
+#twgyuydusq .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -907,7 +907,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   border-right-color: #D3D3D3;
 }
 
-#tsgwhkecoy .gt_sourcenote {
+#twgyuydusq .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -915,72 +915,72 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   padding-right: 5px;
 }
 
-#tsgwhkecoy .gt_left {
+#twgyuydusq .gt_left {
   text-align: left;
 }
 
-#tsgwhkecoy .gt_center {
+#twgyuydusq .gt_center {
   text-align: center;
 }
 
-#tsgwhkecoy .gt_right {
+#twgyuydusq .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#tsgwhkecoy .gt_font_normal {
+#twgyuydusq .gt_font_normal {
   font-weight: normal;
 }
 
-#tsgwhkecoy .gt_font_bold {
+#twgyuydusq .gt_font_bold {
   font-weight: bold;
 }
 
-#tsgwhkecoy .gt_font_italic {
+#twgyuydusq .gt_font_italic {
   font-style: italic;
 }
 
-#tsgwhkecoy .gt_super {
+#twgyuydusq .gt_super {
   font-size: 65%;
 }
 
-#tsgwhkecoy .gt_footnote_marks {
+#twgyuydusq .gt_footnote_marks {
   font-size: 75%;
   vertical-align: 0.4em;
   position: initial;
 }
 
-#tsgwhkecoy .gt_asterisk {
+#twgyuydusq .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#tsgwhkecoy .gt_indent_1 {
+#twgyuydusq .gt_indent_1 {
   text-indent: 5px;
 }
 
-#tsgwhkecoy .gt_indent_2 {
+#twgyuydusq .gt_indent_2 {
   text-indent: 10px;
 }
 
-#tsgwhkecoy .gt_indent_3 {
+#twgyuydusq .gt_indent_3 {
   text-indent: 15px;
 }
 
-#tsgwhkecoy .gt_indent_4 {
+#twgyuydusq .gt_indent_4 {
   text-indent: 20px;
 }
 
-#tsgwhkecoy .gt_indent_5 {
+#twgyuydusq .gt_indent_5 {
   text-indent: 25px;
 }
 
-#tsgwhkecoy .katex-display {
+#twgyuydusq .katex-display {
   display: inline-flex !important;
   margin-bottom: 0.75em !important;
 }
 
-#tsgwhkecoy div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+#twgyuydusq div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
   height: 0px !important;
 }
 </style>
@@ -1015,7 +1015,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
 <h2 data-number="4" class="anchored" data-anchor-id="cesa-bianchi-and-sokol-2022"><span class="header-section-number">4</span> Cesa-Bianchi and Sokol (2022)</h2>
 <p><span class="citation" data-cites="cesabianchi2021">Cesa-Bianchi and Sokol (<a href="#ref-cesabianchi2021" role="doc-biblioref">2022</a>)</span> reports the domestic responses to an adverse US financial shock. The model is a five-variable monthly VAR(12) with a constant, estimated from 1979:M7 through 2016:M12. The endogenous variables are ordered as the one-year Treasury rate, corporate bond yield, real GDP, CPI and the excess bond premium. Monetary policy and central-bank-information shocks are jointly identified by the two high-frequency surprises of <span class="citation" data-cites="jarocinski2020">Jarociński and Karadi (<a href="#ref-jarocinski2020" role="doc-biblioref">2020</a>)</span>. Conditional on those two columns, the financial shock is the first shock left for sign identification.</p>
 <p>The financial shock lowers the policy rate, real GDP and CPI while raising the borrowing rate and the excess bond premium. These signs hold on impact and for the following two months. The remaining demand and supply shocks are unrestricted.</p>
-<p>For the supplied US data at the OLS estimate, the impact signs have no nonzero direction in the complement of the two IV columns. More rotations of that fixed model cannot help. The all-rotation C++ collector now checks for a well-conditioned linear certificate of this incompatibility in small free subspaces, returning <code>infeasible = TRUE</code>, <code>n_tried = 0</code> and the excluded rotation budget in <code>n_ruled_out</code>. Every bootstrap VAR must be checked separately: this OLS finding is not a claim that the entire bootstrap has no admissible models.</p>
+<p>For the supplied US data at the OLS estimate, the impact signs have no nonzero direction in the complement of the two IV columns. More rotations of that fixed model cannot help. The all-rotation C++ collector checks for a well-conditioned linear certificate of this incompatibility in small free subspaces, returning <code>infeasible = TRUE</code>, <code>n_tried = 0</code> and the excluded rotation budget in <code>n_ruled_out</code>. <code>fSignRestr()</code> applies the same certificate to every parameter draw: a certified draw is skipped without spending <code>sr_rot</code> rotations and counted in <code>n_ruled_out</code>, and with <code>inference = 0</code>, where every draw shares the OLS covariance, a certified specification stops at once. Every bootstrap VAR or posterior draw must be checked separately: this OLS finding is not a claim that every draw is inadmissible.</p>
 <section id="replication-code" class="level3" data-number="4.1">
 <h3 data-number="4.1" class="anchored" data-anchor-id="replication-code"><span class="header-section-number">4.1</span> Replication code</h3>
 <div class="cell">

@@ -20,8 +20,10 @@ struct IVColumnResult {
 };
 
 // Complete one identified impact column to a full invertible B with
-// B B' = sigma exactly and B(:,1) = b1 exactly.  Columns 2:N carry no
-// economic content; they exist so that B can be inverted.
+// B B' = sigma exactly.  B(:,1) has the direction of b1 but is rescaled by
+// 1 / ||chol(sigma)^{-1} b1||, so it equals b1 only when b1 was calibrated on
+// sigma itself.  Columns 2:N carry no economic content; they exist so that B
+// can be inverted.
 arma::mat fCompleteB_cpp(const arma::vec& b1, const arma::mat& sigma);
 
 // resid_sub and Z_sub must already be row-aligned on the instrument subsample.

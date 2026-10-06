@@ -11,11 +11,11 @@ void fGenerateQ_inplace(arma::mat& Q,
                         arma::mat& G,
                         arma::uword N);
 
-// Same, but driven by a caller-owned RNG.  Required inside OpenMP regions,
-// where arma::randn (which reads R's global RNG state) must not be used.
+// Same distribution, driven by a caller-owned RNG.  Required inside OpenMP
+// regions, where arma::randn (which reads R's global RNG state) must not be
+// used.  Gram-Schmidt on Gaussian columns needs no scratch and avoids the
+// LAPACK call overhead that dominates at the small N of a rotation search.
 void fGenerateQ_inplace(arma::mat& Q,
-                        arma::mat& R,
-                        arma::mat& G,
                         arma::uword N,
                         tidymacro::RNG& rng);
 

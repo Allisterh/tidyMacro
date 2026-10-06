@@ -267,7 +267,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./05_4_LP_NL_StateDep.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Nonlinear and State-Dependent LP</span></a>
+ <span class="menu-text">LP Nonlinear and State-Dependent</span></a>
   </div>
 </li>
         <li class="sidebar-item">
@@ -292,19 +292,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#getting-started" id="toc-getting-started" class="nav-link active" data-scroll-target="#getting-started">Getting started</a>
-  <ul class="collapse">
-  <li><a href="#how-do-i-install-the-package" id="toc-how-do-i-install-the-package" class="nav-link" data-scroll-target="#how-do-i-install-the-package">How do I install the package?</a></li>
-  <li><a href="#what-does-tidymacro-depend-on" id="toc-what-does-tidymacro-depend-on" class="nav-link" data-scroll-target="#what-does-tidymacro-depend-on">What does tidyMacro depend on?</a></li>
-  <li><a href="#which-r-version-do-i-need" id="toc-which-r-version-do-i-need" class="nav-link" data-scroll-target="#which-r-version-do-i-need">Which R version do I need?</a></li>
+  <li><a href="#how-do-i-install-the-package" id="toc-how-do-i-install-the-package" class="nav-link active" data-scroll-target="#how-do-i-install-the-package">How do I install the package?</a></li>
   <li><a href="#how-does-threading-work" id="toc-how-does-threading-work" class="nav-link" data-scroll-target="#how-does-threading-work">How does threading work?</a></li>
   <li><a href="#what-if-my-compiler-has-no-openmp" id="toc-what-if-my-compiler-has-no-openmp" class="nav-link" data-scroll-target="#what-if-my-compiler-has-no-openmp">What if my compiler has no OpenMP?</a></li>
   <li><a href="#why-is-it-fast" id="toc-why-is-it-fast" class="nav-link" data-scroll-target="#why-is-it-fast">Why is it fast?</a></li>
-  <li><a href="#how-do-i-cite-tidymacro" id="toc-how-do-i-cite-tidymacro" class="nav-link" data-scroll-target="#how-do-i-cite-tidymacro">How do I cite tidyMacro?</a></li>
   <li><a href="#i-found-a-bug-or-something-is-missing.-where-do-i-go" id="toc-i-found-a-bug-or-something-is-missing.-where-do-i-go" class="nav-link" data-scroll-target="#i-found-a-bug-or-something-is-missing.-where-do-i-go">I found a bug, or something is missing. Where do I go?</a></li>
-  <li><a href="#what-licence-is-it-under" id="toc-what-licence-is-it-under" class="nav-link" data-scroll-target="#what-licence-is-it-under">What licence is it under?</a></li>
-  </ul></li>
+  <li><a href="#will-thepackage-be-maintained-and-extended" id="toc-will-thepackage-be-maintained-and-extended" class="nav-link" data-scroll-target="#will-thepackage-be-maintained-and-extended">Will thepackage be maintained and extended?</a></li>
   <li><a href="#use-of-artificial-intelligence-ai" id="toc-use-of-artificial-intelligence-ai" class="nav-link" data-scroll-target="#use-of-artificial-intelligence-ai">Use of Artificial Intelligence (AI)</a></li>
+  <li><a href="#how-do-i-cite-tidymacro" id="toc-how-do-i-cite-tidymacro" class="nav-link" data-scroll-target="#how-do-i-cite-tidymacro">How do I cite tidyMacro?</a></li>
   <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/muhsinciftci/tidyMacro/edit/main/_site/faq.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/muhsinciftci/tidyMacro/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
@@ -332,21 +327,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<section id="getting-started" class="level2">
-<h2 class="anchored" data-anchor-id="getting-started">Getting started</h2>
 <section id="how-do-i-install-the-package" class="level3">
 <h3 class="anchored" data-anchor-id="how-do-i-install-the-package">How do I install the package?</h3>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># install.packages("devtools")</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>devtools<span class="sc">::</span><span class="fu">install_github</span>(<span class="st">"muhsinciftci/tidyMacro"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>The package compiles C++ at install time, so you need a working toolchain: Rtools on Windows, Xcode command line tools on macOS, <code>g++</code> on Linux.</p>
-</section>
-<section id="what-does-tidymacro-depend-on" class="level3">
-<h3 class="anchored" data-anchor-id="what-does-tidymacro-depend-on">What does tidyMacro depend on?</h3>
-<p>No other econometrics package. Estimation is written from the ground up in C++ via Rcpp and RcppArmadillo.</p>
-</section>
-<section id="which-r-version-do-i-need" class="level3">
-<h3 class="anchored" data-anchor-id="which-r-version-do-i-need">Which R version do I need?</h3>
-<p>R &gt;= 3.5.0</p>
 </section>
 <section id="how-does-threading-work" class="level3">
 <h3 class="anchored" data-anchor-id="how-does-threading-work">How does threading work?</h3>
@@ -360,28 +345,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h3 class="anchored" data-anchor-id="why-is-it-fast">Why is it fast?</h3>
 <p>Estimation and bootstrapping live entirely in C++/RcppArmadillo rather than in R loops, and the bootstrap draws are distributed across threads. R is used only to marshal the data in and to build the plots.</p>
 </section>
-<section id="how-do-i-cite-tidymacro" class="level3">
-<h3 class="anchored" data-anchor-id="how-do-i-cite-tidymacro">How do I cite tidyMacro?</h3>
-<p>Ciftci, Muhsin (2026). <em>tidyMacro: A Fast, Tidy Toolkit for Applied Macroeconometrics.</em> Available at SSRN: <a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7150339" class="uri">https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7150339</a></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode bibtex code-with-copy"><code class="sourceCode bibtex"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="va">@article</span>{<span class="ot">ciftci2026tidymacro</span>,</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">title</span>   = {tidyMacro: A Fast, Tidy Toolkit for Applied Macroeconometrics},</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">author</span>  = {Ciftci, Muhsin},</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">year</span>    = {2026},</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">journal</span> = {SSRN Electronic Journal},</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">url</span>     = {https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7150339}</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</section>
 <section id="i-found-a-bug-or-something-is-missing.-where-do-i-go" class="level3">
 <h3 class="anchored" data-anchor-id="i-found-a-bug-or-something-is-missing.-where-do-i-go">I found a bug, or something is missing. Where do I go?</h3>
 <p>Open an issue at <a href="https://github.com/muhsinciftci/tidyMacro/issues" class="uri">https://github.com/muhsinciftci/tidyMacro/issues</a>. Every page on this site also has an “Report an issue” link in its right-hand margin.</p>
 </section>
-<section id="what-licence-is-it-under" class="level3">
-<h3 class="anchored" data-anchor-id="what-licence-is-it-under">What licence is it under?</h3>
-<p>MIT.</p>
+<section id="will-thepackage-be-maintained-and-extended" class="level3">
+<h3 class="anchored" data-anchor-id="will-thepackage-be-maintained-and-extended">Will thepackage be maintained and extended?</h3>
+<p>Yes. Even if published on CRAN, I will keep it up to date for future research.</p>
 </section>
-</section>
-<section id="use-of-artificial-intelligence-ai" class="level2">
-<h2 class="anchored" data-anchor-id="use-of-artificial-intelligence-ai">Use of Artificial Intelligence (AI)</h2>
+<section id="use-of-artificial-intelligence-ai" class="level3">
+<h3 class="anchored" data-anchor-id="use-of-artificial-intelligence-ai">Use of Artificial Intelligence (AI)</h3>
 <ul>
 <li>Do you use AI for package development?
 <ul>
@@ -401,7 +374,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul></li>
 <li>Is there any case you spotted errors of AI
 <ul>
-<li>Yes. But I mostly change the design of model outputs and inputs.</li>
+<li>Yes. There are also different implementations and those are explicitly mentioned in the text. I also change the design of model outputs, inputs, functions, speed, memory efficiency etc.</li>
 </ul></li>
 <li>How do I make sure that the results are reliable for my research?
 <ul>
@@ -409,8 +382,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul></li>
 </ul>
 </section>
-<section id="references" class="level2 unnumbered">
-<h2 class="unnumbered anchored" data-anchor-id="references">References</h2>
+<section id="how-do-i-cite-tidymacro" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-i-cite-tidymacro">How do I cite tidyMacro?</h3>
+<p>Ciftci, Muhsin (2026). <em>tidyMacro: A Fast, Tidy Toolkit for Applied Macroeconometrics.</em> Available at SSRN: <a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7150339" class="uri">https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7150339</a></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode bibtex code-with-copy"><code class="sourceCode bibtex"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="va">@article</span>{<span class="ot">ciftci2026tidymacro</span>,</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">title</span>   = {tidyMacro: A Fast, Tidy Toolkit for Applied Macroeconometrics},</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">author</span>  = {Ciftci, Muhsin},</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">year</span>    = {2026},</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">journal</span> = {SSRN Electronic Journal},</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">url</span>     = {https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7150339}</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="references" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="references">References</h3>
 
 
 </section>

@@ -670,6 +670,31 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// fNLLP_cpp
+Rcpp::List fNLLP_cpp(const arma::mat& Y, const arma::mat& X, int H, int shock_col, int specification, const arma::vec& state, Rcpp::IntegerVector common_cols, int nw_lags_base, bool store_full, bool cumulative, bool balanced, int n_threads, int nw_offset, bool verbose, Rcpp::Nullable<arma::mat> Y_pre);
+RcppExport SEXP _tidyMacro_fNLLP_cpp(SEXP YSEXP, SEXP XSEXP, SEXP HSEXP, SEXP shock_colSEXP, SEXP specificationSEXP, SEXP stateSEXP, SEXP common_colsSEXP, SEXP nw_lags_baseSEXP, SEXP store_fullSEXP, SEXP cumulativeSEXP, SEXP balancedSEXP, SEXP n_threadsSEXP, SEXP nw_offsetSEXP, SEXP verboseSEXP, SEXP Y_preSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type Y(YSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< int >::type H(HSEXP);
+    Rcpp::traits::input_parameter< int >::type shock_col(shock_colSEXP);
+    Rcpp::traits::input_parameter< int >::type specification(specificationSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type state(stateSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type common_cols(common_colsSEXP);
+    Rcpp::traits::input_parameter< int >::type nw_lags_base(nw_lags_baseSEXP);
+    Rcpp::traits::input_parameter< bool >::type store_full(store_fullSEXP);
+    Rcpp::traits::input_parameter< bool >::type cumulative(cumulativeSEXP);
+    Rcpp::traits::input_parameter< bool >::type balanced(balancedSEXP);
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    Rcpp::traits::input_parameter< int >::type nw_offset(nw_offsetSEXP);
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<arma::mat> >::type Y_pre(Y_preSEXP);
+    rcpp_result_gen = Rcpp::wrap(fNLLP_cpp(Y, X, H, shock_col, specification, state, common_cols, nw_lags_base, store_full, cumulative, balanced, n_threads, nw_offset, verbose, Y_pre));
+    return rcpp_result_gen;
+END_RCPP
+}
 // fOLS
 Rcpp::List fOLS(arma::mat y, arma::mat X, int c, int lag);
 RcppExport SEXP _tidyMacro_fOLS(SEXP ySEXP, SEXP XSEXP, SEXP cSEXP, SEXP lagSEXP) {
@@ -959,6 +984,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_tidyMacro_fMBBVAR", (DL_FUNC) &_tidyMacro_fMBBVAR, 4},
     {"_tidyMacro_fMSW", (DL_FUNC) &_tidyMacro_fMSW, 9},
     {"_tidyMacro_fMaxIRF", (DL_FUNC) &_tidyMacro_fMaxIRF, 3},
+    {"_tidyMacro_fNLLP_cpp", (DL_FUNC) &_tidyMacro_fNLLP_cpp, 15},
     {"_tidyMacro_fOLS", (DL_FUNC) &_tidyMacro_fOLS, 4},
     {"_tidyMacro_fPolyConvolve", (DL_FUNC) &_tidyMacro_fPolyConvolve, 3},
     {"_tidyMacro_fRecoverBIV_cpp", (DL_FUNC) &_tidyMacro_fRecoverBIV_cpp, 4},

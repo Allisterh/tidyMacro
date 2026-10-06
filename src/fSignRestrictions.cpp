@@ -11,10 +11,13 @@
 #include <stdexcept>
 
 namespace {
-// A conservative Gordan/Farkas certificate for the small free subspaces in
-// the two-IV replication. If m+1 signed rows of full rank have a strictly
-// positive null combination, A*q >= 0 implies q=0: no unit rotation can pass.
-// Only well-conditioned certificates, far from zero weights, are used.
+// A conservative Gordan/Farkas certificate for small free subspaces (m <= 3),
+// such as the complement of two IV columns in a five-variable VAR. If m+1
+// signed impact rows of full rank have a strictly positive null combination,
+// A*q >= 0 implies q=0, and so does A*q <= 0: no unit column of any rotation
+// can match the shock. Only well-conditioned certificates, far from zero
+// weights, are used. The certificate depends on sigma, so it is re-evaluated
+// for every parameter draw.
 bool infeasible_impact_cpp(const arma::mat& checks, arma::uword nrows) {
     const arma::uword m = checks.n_rows;
     if (m == 0 || m > 3 || nrows < m + 1) return false;
@@ -149,9 +152,8 @@ bool fSignRotation_cpp(const arma::mat&  SIGN,
                     checks.col(h * rows.n_elem + r) =
                         SIGN(rows(r), ii) * basis.slice(h).row(rows(r)).t();
         }
-        if (scr.impact_match_first && ws > 0)
-            for (arma::uword ii = 0; ii < ds && !scr.infeasible; ++ii)
-                scr.infeasible = infeasible_impact_cpp(scr.signed_basis[ii], scr.n_restr[ii]);
+        for (arma::uword ii = 0; ii < ds && !scr.infeasible; ++ii)
+            scr.infeasible = infeasible_impact_cpp(scr.signed_basis[ii], scr.n_restr[ii]);
         scr.restrictions_ready = true;
     }
 
@@ -161,7 +163,7 @@ bool fSignRotation_cpp(const arma::mat&  SIGN,
         return false;
     }
     for (int attempt = 1; attempt <= sr_rot; ++attempt) {
-        fGenerateQ_inplace(scr.Qs, scr.Rs, scr.Gs, m, rng);
+        fGenerateQ_inplace(scr.Qs, m, rng);
         std::fill(scr.used.begin(), scr.used.end(), 0);
         std::fill(scr.orientation.begin(), scr.orientation.end(), 1.0);
         for (arma::uword i = 0; i < N; ++i) scr.order[i] = i;

@@ -46,26 +46,34 @@ double nth_pct(std::vector<double>& v, double pct) {
 }
 
 // Weighted percentile used when ADRR importance weights are switched on.
-// `idx` is a scratch permutation buffer reused across calls.
+// The i-th smallest draw sits at the midpoint of its weight cell,
+// c_i = W_{i-1} + w_i / 2, and positions are rescaled so that the smallest
+// draw is the 0th and the largest the 100th percentile; values in between are
+// interpolated linearly. With equal weights this is exactly the type-7 rule of
+// nth_pct, so weighted and unweighted bands agree when the weights do.
+// `idx` must order `v` ascending.
 double nth_pct_w(const std::vector<double>& v, const std::vector<double>& w,
-                 std::vector<int>& idx, double pct) {
+                 const std::vector<int>& idx, double pct) {
     const int n = static_cast<int>(v.size());
+    if (n == 1) return v[idx[0]];
     double total = 0.0;
     for (int i = 0; i < n; ++i) total += w[idx[i]];
-    if (!(total > 0.0)) return v[idx[n / 2]];
+    const double c_first = 0.5 * w[idx[0]];
+    const double c_last  = total - 0.5 * w[idx[n - 1]];
+    if (!(c_last > c_first)) return v[idx[n / 2]];   // degenerate weights
 
-    const double target = (pct / 100.0) * total;
-    double cum = 0.0;
+    const double target = c_first + (pct / 100.0) * (c_last - c_first);
+    double cum = 0.0, c_prev = c_first;
     for (int i = 0; i < n; ++i) {
-        const double next = cum + w[idx[i]];
-        if (next >= target) {
-            if (i == 0 || w[idx[i]] <= 0.0) return v[idx[i]];
-            // Interpolate inside the cell that straddles the target mass.
-            const double frac = (target - cum) / w[idx[i]];
+        const double c = cum + 0.5 * w[idx[i]];
+        if (c >= target) {
+            if (i == 0 || !(c > c_prev)) return v[idx[i]];
+            const double frac = (target - c_prev) / (c - c_prev);
             const double prev = v[idx[i - 1]];
             return prev + frac * (v[idx[i]] - prev);
         }
-        cum = next;
+        c_prev = c;
+        cum   += w[idx[i]];
     }
     return v[idx[n - 1]];
 }
@@ -143,7 +151,11 @@ void ir_and_vd(const arma::cube& wold, const arma::mat& B, int nsteps,
 //' @param narr_weight_mc Integer. When positive, each accepted draw is weighted
 //'   by the ADRR importance weight, estimated with this many Monte Carlo
 //'   replications, and bands become weighted percentiles. \code{0} (default)
-//'   reproduces the plain rejection sampling of the VAR Toolbox.
+//'   reproduces the plain rejection sampling of the VAR Toolbox. The weights
+//'   correct for the narrative restrictions only; they target Algorithm 1 of
+//'   Antolin-Diaz and Rubio-Ramirez (2018) only with \code{sr_rot = 1}, with
+//'   \code{resid_from_draw = TRUE} when \code{inference = 1}, and up to Monte
+//'   Carlo error in the weights.
 //' @param resid_from_draw Logical. \code{FALSE} (default) evaluates narrative
 //'   restrictions on the OLS residuals, as the VAR Toolbox does; \code{TRUE}
 //'   recomputes residuals from each parameter draw.
@@ -171,11 +183,10 @@ void ir_and_vd(const arma::cube& wold, const arma::mat& B, int nsteps,
 //'   \code{Ball} and coefficient draws \code{beta_all}; the median impact matrix
 //'   \code{Bmed} and the Fry-Pagan draw \code{Bfp} with its \code{IRfp},
 //'   \code{VDfp} and index \code{fp_index}; the importance \code{weights};
-//'   \code{accept_rate}, \code{ndraws_tried}, \code{n_tried} and
-//'   \code{n_failed}; and, when \code{store_draws = TRUE}, the flattened draw
-//'   distributions \code{IRall} and \code{VDall}, each
-//'   \code{(N * N * nsteps) x ndraws} and reshapeable to
-//'   \code{c(N, N, nsteps, ndraws)}.
+//'   \code{accept_rate}, \code{ndraws_tried}, \code{n_tried},
+//'   \code{n_param_draws}, \code{n_ruled_out} and \code{n_failed}; and, when
+//'   \code{store_draws = TRUE}, the draw distributions \code{IRall} and
+//'   \code{VDall}, each an \code{N x N x nsteps x ndraws} array.
 //'
 //' @details
 //' Each accepted draw is produced independently: parameters are drawn from the
@@ -184,15 +195,26 @@ void ir_and_vd(const arma::cube& wold, const arma::mat& B, int nsteps,
 //' exhausts \code{max_post_draws} parameter draws is reported in
 //' \code{n_failed} rather than silently dropped.
 //'
+//' When at most three columns are free, a linear-infeasibility certificate can
+//' prove that no rotation satisfies the impact signs of a shock. A parameter
+//' draw so certified is skipped without spending \code{sr_rot} rotations and
+//' is counted in \code{n_ruled_out}. The certificate depends on the covariance,
+//' so with \code{inference = 1} each draw is checked separately; with
+//' \code{inference = 0} every draw shares the OLS covariance and a certified
+//' specification stops with an error before any draw is made.
+//'
 //' FEVD shares are returned on the \code{[0, 1]} scale, not in percent.
 //'
-//' The instrument-identified column is fixed at
-//' its OLS point estimate while the rest of the system is redrawn, so the
-//' reported bands omit the instrument's own sampling uncertainty. This
-//' reproduces the VAR Toolbox exactly. The fixed column is rescaled by
-//' \eqn{1/\|L^{-1}b_1\|} against each draw's Cholesky factor \eqn{L}, so its
-//' direction is held constant but its length is not; this too matches the
-//' toolbox.
+//' The instrument-identified columns come from a first stage estimated once at
+//' the OLS point estimate while the rest of the system is redrawn, so the
+//' reported bands omit the instrument's own sampling uncertainty, as in the
+//' VAR Toolbox. The fixed columns are then completed against each draw's
+//' Cholesky factor \eqn{L}: the first is rescaled by \eqn{1/\|L^{-1}b_1\|},
+//' keeping its direction but not its length, as in the toolbox; with several
+//' instruments the later columns are Gram-Schmidt orthogonalised in the
+//' \eqn{L^{-1}} metric, which can change their direction as well as their
+//' length whenever the draw covariance differs from the instrument-sample
+//' covariance.
 //'
 //' @references
 //' Uhlig, H. (2005). What are the effects of monetary policy on output?
@@ -321,7 +343,28 @@ Rcpp::List fSR_cpp(const arma::mat& y, int p, int c, const arma::mat& SIGN,
 
     // Wold multipliers are draw-invariant when the coefficients are held at OLS.
     arma::cube wold_fixed;
-    if (inference == 0) wold_fixed = fWoldIRF_cpp(var_ols, H_wold - 1).irfwold;
+    if (inference == 0) {
+        wold_fixed = fWoldIRF_cpp(var_ols, H_wold - 1).irfwold;
+
+        // Every draw then shares the OLS covariance, so one infeasibility
+        // certificate rules out the whole run; stop before spending
+        // ndraws * max_post_draws * sr_rot rotations on it.
+        tidymacro::RNG rng0(static_cast<std::uint64_t>(seed));
+        SignRotScratch probe;
+        arma::mat B0;
+        int n0 = 0;
+        try {
+            fSignRotationPrep_cpp(var_ols.sigma, Bfix_mat, rng0, probe);
+            fSignRotation_cpp(SIGN, wold_fixed, sr_hor, 1, n_fixed, rng0, probe, B0, n0);
+        } catch (const std::exception& e) {
+            Rcpp::stop(e.what());
+        }
+        if (probe.infeasible)
+            Rcpp::stop("The impact sign restrictions cannot hold at the OLS estimate: "
+                       "no direction in the free columns satisfies them (linear-"
+                       "infeasibility certificate). With inference = 0 every draw "
+                       "shares this covariance, so more rotations cannot help.");
+    }
 
     // ---- 4. storage ---------------------------------------------------
     const double size_needed = static_cast<double>(N) * N * nsteps;
@@ -352,11 +395,12 @@ Rcpp::List fSR_cpp(const arma::mat& y, int p, int c, const arma::mat& SIGN,
     if (verbose) Rprintf("OpenMP not available. Running single-threaded.\n");
 #endif
 
-    double total_rot = 0.0;
+    double total_rot = 0.0, total_param = 0.0, total_ruled = 0.0;
 
     // ---- 5. draw loop -------------------------------------------------
 #ifdef _OPENMP
-#pragma omp parallel num_threads(actual_threads) reduction(+ : total_rot)
+#pragma omp parallel num_threads(actual_threads) \
+    reduction(+ : total_rot, total_param, total_ruled)
 #endif
     {
         NIWScratch     niw_scr;
@@ -381,10 +425,7 @@ Rcpp::List fSR_cpp(const arma::mat& y, int p, int c, const arma::mat& SIGN,
             const arma::cube* woldp;
             if (inference == 1) {
                 fNIWPosteriorDraw_cpp(post, rng, niw_scr, G, sigma_d, beta_d);
-                VARResult vd_draw;
-                vd_draw.beta = beta_d;
-                vd_draw.p = p; vd_draw.c = c; vd_draw.n_exog = var_ols.n_exog;
-                wold_local = fWoldIRF_cpp(vd_draw, sr_hor - 1).irfwold;
+                fWoldIRF_into_cpp(beta_d, c, p, sr_hor - 1, wold_local);
                 woldp = &wold_local;
             } else {
                 woldp = &wold_fixed;
@@ -395,8 +436,10 @@ Rcpp::List fSR_cpp(const arma::mat& y, int p, int c, const arma::mat& SIGN,
             int n_rot = 0;
             const bool found = fSignRotation_cpp(SIGN, *woldp, sr_hor, sr_rot,
                                                  n_fixed, rng, rot_scr, B, n_rot);
+            total_param += 1.0;
             total_rot += static_cast<double>(n_rot);
             n_tried_v(d) += n_rot;
+            if (rot_scr.infeasible) total_ruled += 1.0;
             if (!found) continue;
 
             // The narrative screen follows `resid_from_draw`: the toolbox
@@ -412,10 +455,7 @@ Rcpp::List fSR_cpp(const arma::mat& y, int p, int c, const arma::mat& SIGN,
 
             // Only accepted draws need the full reporting horizon.
             if (inference == 1 && nsteps > sr_hor) {
-                VARResult vd_draw;
-                vd_draw.beta = beta_d; vd_draw.p = p; vd_draw.c = c;
-                vd_draw.n_exog = var_ols.n_exog;
-                wold_local = fWoldIRF_cpp(vd_draw, nsteps - 1).irfwold;
+                fWoldIRF_into_cpp(beta_d, c, p, nsteps - 1, wold_local);
             }
             // ---- accepted ---------------------------------------------
             ir_and_vd(*woldp, B, nsteps, irf, vd, cum_sq, true);
@@ -457,6 +497,13 @@ Rcpp::List fSR_cpp(const arma::mat& y, int p, int c, const arma::mat& SIGN,
     if (n_ok == 0 && n_errors > 0)
         Rcpp::stop("No accepted draw; %d slots failed numerically. First error: %s",
                    n_errors, first_error.c_str());
+    if (n_ok == 0 && total_ruled > 0.0) {
+        Rcpp::stop("No draw satisfied the restrictions. %.0f of %.0f parameter draws "
+                   "were certified infeasible at impact: for those covariances no "
+                   "direction in the free columns satisfies the sign pattern, and "
+                   "raising sr_rot cannot help them.",
+                   total_ruled, total_param);
+    }
     if (n_ok == 0) {
         Rcpp::stop("No draw satisfied the restrictions. Loosen them, or raise "
                    "sr_rot / max_post_draws.");
@@ -572,6 +619,8 @@ Rcpp::List fSR_cpp(const arma::mat& y, int p, int c, const arma::mat& SIGN,
         Rcpp::Named("n_tried") = n_tried_v,
         Rcpp::Named("accept_rate") = accept_rate,
         Rcpp::Named("ndraws_tried") = total_rot,
+        Rcpp::Named("n_param_draws") = total_param,
+        Rcpp::Named("n_ruled_out") = total_ruled,
         Rcpp::Named("n_failed") = n_failed,
         Rcpp::Named("n_errors") = n_errors,
         Rcpp::Named("first_error") = first_error);
@@ -587,12 +636,23 @@ Rcpp::List fSR_cpp(const arma::mat& y, int p, int c, const arma::mat& SIGN,
         Rcpp::Named("residuals") = var_ols.residuals, Rcpp::Named("sigma") = var_ols.sigma,
         Rcpp::Named("p") = p, Rcpp::Named("c") = c, Rcpp::Named("n_exog") = var_ols.n_exog);
     if (store_draws) {
+        // Shape the R-owned buffers as N x N x nsteps x ndraws in place, so
+        // neither C++ nor the R wrapper copies the two largest arrays.
+        const Rcpp::IntegerVector dims = Rcpp::IntegerVector::create(
+            static_cast<int>(N), static_cast<int>(N), nsteps, n_ok);
         if (n_failed == 0) {
+            IR_storage.attr("dim") = dims;
+            VD_storage.attr("dim") = dims;
             out["IRall"] = IR_storage;
             out["VDall"] = VD_storage;
         } else {
-            out["IRall"] = arma::mat(IRall.cols(0, n_ok - 1));
-            out["VDall"] = arma::mat(VDall.cols(0, n_ok - 1));
+            const std::size_t kept = static_cast<std::size_t>(slice_sz) * n_ok;
+            Rcpp::NumericVector ir(IRall.memptr(), IRall.memptr() + kept);
+            Rcpp::NumericVector vdv(VDall.memptr(), VDall.memptr() + kept);
+            ir.attr("dim")  = dims;
+            vdv.attr("dim") = dims;
+            out["IRall"] = ir;
+            out["VDall"] = vdv;
         }
     }
     return out;

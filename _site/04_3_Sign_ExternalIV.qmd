@@ -169,7 +169,7 @@ For this specification, the first-stage F-statistic is approximately 6.47, which
 
 The financial shock lowers the policy rate, real GDP and CPI while raising the borrowing rate and the excess bond premium. These signs hold on impact and for the following two months. The remaining demand and supply shocks are unrestricted.
 
-For the supplied US data at the OLS estimate, the impact signs have no nonzero direction in the complement of the two IV columns. More rotations of that fixed model cannot help. The all-rotation C++ collector now checks for a well-conditioned linear certificate of this incompatibility in small free subspaces, returning `infeasible = TRUE`, `n_tried = 0` and the excluded rotation budget in `n_ruled_out`. Every bootstrap VAR must be checked separately: this OLS finding is not a claim that the entire bootstrap has no admissible models.
+For the supplied US data at the OLS estimate, the impact signs have no nonzero direction in the complement of the two IV columns. More rotations of that fixed model cannot help. The all-rotation C++ collector checks for a well-conditioned linear certificate of this incompatibility in small free subspaces, returning `infeasible = TRUE`, `n_tried = 0` and the excluded rotation budget in `n_ruled_out`. `fSignRestr()` applies the same certificate to every parameter draw: a certified draw is skipped without spending `sr_rot` rotations and counted in `n_ruled_out`, and with `inference = 0`, where every draw shares the OLS covariance, a certified specification stops at once. Every bootstrap VAR or posterior draw must be checked separately: this OLS finding is not a claim that every draw is inadmissible.
 
 ### Replication code
 
