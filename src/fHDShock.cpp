@@ -146,7 +146,8 @@ HDShockResult fHDCompute_cpp(const arma::mat& y,
 //'
 //' @seealso \code{\link{fSR_cpp}}, \code{\link{fHistDec}}
 //'
-//' @export
+//' @keywords internal
+//' @noRd
 // [[Rcpp::export]]
 Rcpp::List fHDShock_cpp(const arma::mat& y,
                         const arma::mat& beta,

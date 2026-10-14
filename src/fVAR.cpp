@@ -68,6 +68,38 @@ VARResult fVAR_cpp(const arma::mat &y, int p, int c,
   return fVAR_cpp_impl(y, p, c, &exog);
 }
 
+VARResult fVAR_cpp(const arma::mat &y, int p, int c,
+                   const arma::mat *exog_ptr) {
+  return fVAR_cpp_impl(y, p, c, exog_ptr);
+}
+
+VARResult fVARResultFromList_cpp(const Rcpp::List &var_result) {
+  VARResult vr;
+  vr.beta      = Rcpp::as<arma::mat>(var_result["beta"]);
+  vr.residuals = Rcpp::as<arma::mat>(var_result["residuals"]);
+  vr.sigma     = var_result.containsElementNamed("sigma")
+                     ? Rcpp::as<arma::mat>(var_result["sigma"])
+                     : arma::mat();
+  vr.p         = Rcpp::as<int>(var_result["p"]);
+  vr.c         = Rcpp::as<int>(var_result["c"]);
+  vr.n_exog    = var_result.containsElementNamed("n_exog")
+                     ? Rcpp::as<int>(var_result["n_exog"])
+                     : 0;
+  return vr;
+}
+
+void fCheckExogArg_cpp(int n_exog, bool has_exog) {
+  if (n_exog > 0 && !has_exog)
+    Rcpp::stop("Original VAR used exogenous variables. You must provide the 'exog' parameter.");
+  if (n_exog == 0 && has_exog)
+    Rcpp::stop("Original VAR did not use exogenous variables. Do not provide the 'exog' parameter.");
+}
+
+void fRequireNoExog_cpp(int n_exog, const char *fun) {
+  if (n_exog > 0)
+    Rcpp::stop("%s does not support VARs with exogenous variables.", fun);
+}
+
 
 //' Vector Autoregression (VAR) Model Estimation
 //'

@@ -35,63 +35,24 @@ fPlotIRFChol <- function(point, boot_result, shock, varnames,
                           facet_scales    = "free",
                           facet_ncol      = NULL) {
 
-    upper <- boot_result$upper
-    lower <- boot_result$lower
-
-    has_second_band <- !is.null(boot_result$upper2) && !is.null(boot_result$lower2)
-    if (has_second_band) {
-        upper2 <- boot_result$upper2
-        lower2 <- boot_result$lower2
-    }
-
-    dims    <- dim(point)
-    N       <- dims[1]
-    horizon <- dims[3]
-
+    N <- dim(point)[1]
     if (shock < 1 || shock > N)
         stop(sprintf("shock must be between 1 and %d", N))
-    if (length(varnames) != N)
-        stop(sprintf("varnames must have length %d (number of variables)", N))
     if (is.null(facet_ncol))
         facet_ncol <- ceiling(sqrt(N))
 
-    irf_list <- vector("list", N)
-    for (i in seq_len(N)) {
-        row <- tibble::tibble(
-            variable = varnames[i],
-            horizon  = 0L:(horizon - 1L),
-            point    = as.numeric(point[i, shock, ]),
-            upper    = as.numeric(upper[i, shock, ]),
-            lower    = as.numeric(lower[i, shock, ])
-        )
-        if (has_second_band) {
-            row$upper2 <- as.numeric(upper2[i, shock, ])
-            row$lower2 <- as.numeric(lower2[i, shock, ])
-        }
-        irf_list[[i]] <- row
-    }
-
-    irf_data <- do.call(rbind, irf_list)
-    irf_data$variable <- factor(irf_data$variable, levels = varnames)
+    two <- !is.null(boot_result$upper2) && !is.null(boot_result$lower2)
+    irf_data <- .fIRFLong(varnames, list(
+        point  = .fShockMat(point, shock),
+        upper  = .fShockMat(boot_result$upper, shock),
+        lower  = .fShockMat(boot_result$lower, shock),
+        upper2 = if (two) .fShockMat(boot_result$upper2, shock),
+        lower2 = if (two) .fShockMat(boot_result$lower2, shock)
+    ))
 
     if (return_data)
-        return(tibble::as_tibble(irf_data))
+        return(irf_data)
 
-    p <- ggplot2::ggplot(irf_data, ggplot2::aes(x = horizon)) +
-        ggplot2::geom_ribbon(ggplot2::aes(ymin = lower, ymax = upper),
-                             fill = ribbon_fill, alpha = ribbon_alpha)
-
-    if (has_second_band) {
-        p <- p + ggplot2::geom_ribbon(ggplot2::aes(ymin = lower2, ymax = upper2),
-                                      fill = ribbon_fill, alpha = ribbon_alpha2)
-    }
-
-    p <- p +
-        ggplot2::geom_line(ggplot2::aes(y = point),
-                           color = line_color, linewidth = 0.8) +
-        ggplot2::geom_hline(yintercept = 0,
-                            color = zero_line_color, linetype = "dashed", linewidth = 0.6) +
-        ggplot2::facet_wrap(~ variable, scales = facet_scales, ncol = facet_ncol)
-
-    return(p)
+    .fIRFPlot(irf_data, ~ variable, facet_scales, facet_ncol, ribbon_fill,
+              ribbon_alpha, ribbon_alpha2, line_color, zero_line_color)
 }

@@ -1,139 +1,32 @@
 // [[Rcpp::depends(RcppArmadillo)]]
 // [[Rcpp::plugins(openmp)]]
 
-// CRITICAL: Define this BEFORE including RcppArmadillo to prevent conflicts
 #define ARMA_DONT_USE_OPENMP
 
+#include <RcppArmadillo.h>
 #include "fBootstrapChol.h"
-#include "fVAR.h"
 #include "fBootstrapVAR.h"
 #include "fCholeskyIRF.h"
-#include "fWoldIRF.h"
-#include <RcppArmadillo.h>
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-#include <R_ext/Print.h>
-#include <algorithm>
-#include <vector>
 
-// Internal C++ function (called from other C++ code)
-BootstrapCholResult
-fBootstrapChol_cpp(const arma::mat &y, const VARResult &var_result, int nboot,
-                   int horizon, double conf, double conf2,
-                   const std::string &bootscheme,
-                   Rcpp::Nullable<arma::mat> exog, int n_threads = 0) {
+SVARBootResult fBootstrapChol_cpp(const arma::mat& y, const VARResult& var_result,
+                                  int nboot, int horizon, double conf, double conf2,
+                                  const std::string& bootscheme,
+                                  const arma::mat* exog_ptr, int n_threads) {
+  fCheckBootArgs_cpp(y, var_result, nboot, horizon, conf, conf2);
+  const int N = static_cast<int>(y.n_cols);
 
-  const int p      = var_result.p;
-  const int c      = var_result.c;
-  const int n_exog = var_result.n_exog;
-  const int N      = y.n_cols;
-  const int H      = horizon + 1;
-  const int n_coef = var_result.beta.n_rows;
-  const int slice_sz = N * N * H;
+  SVARBootResult r = fBootstrapSVAR_cpp(
+      y, var_result, nboot, horizon, bootscheme, exog_ptr, n_threads,
+      N * N * (horizon + 1), "Cholesky",
+      [](const VARResult& var_b, const arma::cube& wold_b, arma::vec& out) {
+        out = arma::vectorise(fCholeskyIRF(wold_b, fLowerChol_cpp(var_b.sigma)));
+      });
+  fSVARBootBands_cpp(r, conf, conf2, n_threads);
+  return r;
+}
 
-  if (n_exog > 0 && exog.isNull())
-    Rcpp::stop("Original VAR used exogenous variables. You must provide the 'exog' parameter.");
-  if (n_exog == 0 && exog.isNotNull())
-    Rcpp::stop("Original VAR did not use exogenous variables. Do not provide the 'exog' parameter.");
-
-  arma::mat bootchol_flat(slice_sz, nboot, arma::fill::zeros);
-  arma::cube boot_beta(N, n_coef, nboot, arma::fill::zeros);
-
-  // Convert exog once outside the parallel region (avoids repeated Rcpp::as).
-  const bool has_exog = exog.isNotNull();
-  arma::mat exog_mat;
-  if (has_exog) exog_mat = Rcpp::as<arma::mat>(exog);
-
-  int actual_threads = 1;
-#ifdef _OPENMP
-  actual_threads = (n_threads == 0)
-                       ? std::max(1, omp_get_max_threads() - 1)
-                       : n_threads;
-  omp_set_num_threads(actual_threads);
-  Rprintf("Using %d thread(s) for parallel bootstrap computation...\n",
-              actual_threads);
-#else
-  Rprintf("OpenMP not available. Running in single-threaded mode.\n");
-#endif
-
-#ifdef _OPENMP
-#pragma omp parallel for schedule(dynamic)
-#endif
-  for (int b = 0; b < nboot; ++b) {
-
-    // 1. Bootstrap a new dataset
-    BootstrapVARResult boot_data = fBootstrapVAR_cpp(y, var_result, bootscheme);
-
-    // 2. Estimate VAR on bootstrapped data
-    VARResult var_loop = has_exog
-                           ? fVAR_cpp(boot_data.ynext, p, c, exog_mat)
-                           : fVAR_cpp(boot_data.ynext, p, c, R_NilValue);
-    boot_beta.slice(b) = var_loop.beta.t();
-
-    // 3. Compute Wold IRFs
-    WoldIRFResult wold_result = fWoldIRF_cpp(var_loop, horizon);
-    const arma::cube &wold_loop = wold_result.irfwold;
-
-    // 4. Lower Cholesky factor of sigma
-    arma::mat S_loop = arma::chol(var_loop.sigma, "lower");
-
-    // 5. Cholesky IRFs
-    arma::cube cholirf_loop = fCholeskyIRF(wold_loop, S_loop);
-
-    bootchol_flat.col(b) = arma::vectorise(cholirf_loop);
-  }
-
-  // Compute percentile bands
-  const double up_pct   = 50.0 + conf  * 0.5;
-  const double low_pct  = 50.0 - conf  * 0.5;
-  const double up_pct2  = 50.0 + conf2 * 0.5;
-  const double low_pct2 = 50.0 - conf2 * 0.5;
-
-  arma::vec upper_vec(slice_sz);
-  arma::vec lower_vec(slice_sz);
-  arma::vec upper2_vec(slice_sz);
-  arma::vec lower2_vec(slice_sz);
-
-  auto nth_pct = [](std::vector<double>& v, double pct) -> double {
-    const int n = static_cast<int>(v.size());
-    const double raw = (pct / 100.0) * (n - 1);
-    const int lo = static_cast<int>(raw);
-    const double frac = raw - lo;
-    std::nth_element(v.begin(), v.begin() + lo, v.end());
-    const double lo_val = v[lo];
-    if (frac < 1e-12 || lo + 1 >= n) return lo_val;
-    return lo_val * (1.0 - frac) +
-           *std::min_element(v.begin() + lo + 1, v.end()) * frac;
-  };
-
-#ifdef _OPENMP
-#pragma omp parallel for schedule(static)
-#endif
-  for (int i = 0; i < slice_sz; ++i) {
-    arma::rowvec row_rv = bootchol_flat.row(i);
-    std::vector<double> sv(row_rv.begin(), row_rv.end());
-    upper_vec(i)  = nth_pct(sv, up_pct);
-    lower_vec(i)  = nth_pct(sv, low_pct);
-    upper2_vec(i) = nth_pct(sv, up_pct2);
-    lower2_vec(i) = nth_pct(sv, low_pct2);
-  }
-
-  arma::cube upper (upper_vec.memptr(),  N, N, H, false, true);
-  arma::cube lower (lower_vec.memptr(),  N, N, H, false, true);
-  arma::cube upper2(upper2_vec.memptr(), N, N, H, false, true);
-  arma::cube lower2(lower2_vec.memptr(), N, N, H, false, true);
-
-  BootstrapCholResult result;
-  result.bootchol_flat = bootchol_flat;
-  result.upper         = upper;
-  result.lower         = lower;
-  result.upper2        = upper2;
-  result.lower2        = lower2;
-  result.boot_beta     = boot_beta;
-  result.N             = N;
-  result.H             = H;
-  return result;
+static Rcpp::List chol_boot_list(const SVARBootResult& r, int N, int horizon) {
+  return fSVARBootList_cpp(r, "bootchol", {N, N, horizon + 1});
 }
 
 //' Bootstrap Cholesky Identified Impulse Response Functions
@@ -169,30 +62,61 @@ Rcpp::List fBootstrapChol(const arma::mat &y, const Rcpp::List &var_result,
                           const std::string &bootscheme = "residual",
                           Rcpp::Nullable<arma::mat> exog = R_NilValue,
                           int n_threads = 0) {
+  VARResult vr = fVARResultFromList_cpp(var_result);
+  fCheckExogArg_cpp(vr.n_exog, exog.isNotNull());
+  arma::mat exog_mat;
+  if (exog.isNotNull()) exog_mat = Rcpp::as<arma::mat>(exog);
 
-  VARResult var_result_struct;
-  var_result_struct.beta      = Rcpp::as<arma::mat>(var_result["beta"]);
-  var_result_struct.residuals = Rcpp::as<arma::mat>(var_result["residuals"]);
-  var_result_struct.sigma     = Rcpp::as<arma::mat>(var_result["sigma"]);
-  var_result_struct.p         = Rcpp::as<int>(var_result["p"]);
-  var_result_struct.c         = Rcpp::as<int>(var_result["c"]);
-  var_result_struct.n_exog    = var_result.containsElementNamed("n_exog")
-                                  ? Rcpp::as<int>(var_result["n_exog"])
-                                  : 0;
+  SVARBootResult r = fBootstrapChol_cpp(y, vr, nboot, horizon, conf, conf2,
+                                        bootscheme,
+                                        exog.isNotNull() ? &exog_mat : nullptr,
+                                        n_threads);
+  return chol_boot_list(r, y.n_cols, horizon);
+}
 
-  BootstrapCholResult result = fBootstrapChol_cpp(y, var_result_struct, nboot,
-                                                  horizon, conf, conf2,
-                                                  bootscheme, exog, n_threads);
+//' Bootstrap Bias-Corrected Cholesky Identified Impulse Response Functions
+//'
+//' @param y T x N matrix of original endogenous variables.
+//' @param var_result List from \code{fVAR()}.
+//' @param nboot1 Number of first-pass replications for bias estimation.
+//' @param nboot2 Number of second-pass replications for confidence bands.
+//' @param horizon Maximum IRF horizon.
+//' @param conf Outer confidence level in percent (e.g. 90).
+//' @param conf2 Inner confidence level in percent (e.g. 68).
+//' @param bootscheme \code{"residual"} or \code{"wild"}.
+//' @param exog Optional T x M matrix of exogenous variables. Must be provided
+//'   if the original VAR was estimated with exogenous variables; must be
+//'   omitted otherwise.
+//' @param n_threads Number of OpenMP threads. 0 = all cores minus one.
+//'   Default 0.
+//'
+//' @return List with elements:
+//'   \describe{
+//'     \item{bootchol}{N x N x (horizon+1) x nboot2 array of bootstrapped Cholesky IRFs}
+//'     \item{upper}{N x N x (horizon+1) outer upper confidence bands}
+//'     \item{lower}{N x N x (horizon+1) outer lower confidence bands}
+//'     \item{upper2}{N x N x (horizon+1) inner upper confidence bands}
+//'     \item{lower2}{N x N x (horizon+1) inner lower confidence bands}
+//'     \item{boot_beta}{N x (Np+c) x nboot2 array of bootstrapped coefficients}
+//'   }
+//'
+//' @export
+// [[Rcpp::export]]
+Rcpp::List fBootstrapCholCorrected(const arma::mat &y, const Rcpp::List &var_result,
+                                    int nboot1, int nboot2, int horizon,
+                                    double conf = 90.0, double conf2 = 68.0,
+                                    const std::string &bootscheme = "residual",
+                                    Rcpp::Nullable<arma::mat> exog = R_NilValue,
+                                    int n_threads = 0) {
+  VARResult vr = fVARResultFromList_cpp(var_result);
+  fCheckExogArg_cpp(vr.n_exog, exog.isNotNull());
+  arma::mat exog_mat;
+  if (exog.isNotNull()) exog_mat = Rcpp::as<arma::mat>(exog);
+  const arma::mat* exog_ptr = exog.isNotNull() ? &exog_mat : nullptr;
 
-  Rcpp::NumericVector bootchol_out(result.bootchol_flat.begin(),
-                                   result.bootchol_flat.end());
-  bootchol_out.attr("dim") = Rcpp::IntegerVector::create(result.N, result.N,
-                                                          result.H, nboot);
-
-  return Rcpp::List::create(Rcpp::Named("bootchol")   = bootchol_out,
-                            Rcpp::Named("upper")      = result.upper,
-                            Rcpp::Named("lower")      = result.lower,
-                            Rcpp::Named("upper2")     = result.upper2,
-                            Rcpp::Named("lower2")     = result.lower2,
-                            Rcpp::Named("boot_beta")  = result.boot_beta);
+  VARResult corrected = fBiasCorrectedVAR_cpp(y, vr, nboot1, bootscheme,
+                                              exog_ptr, n_threads);
+  SVARBootResult r = fBootstrapChol_cpp(y, corrected, nboot2, horizon, conf,
+                                        conf2, bootscheme, exog_ptr, n_threads);
+  return chol_boot_list(r, y.n_cols, horizon);
 }

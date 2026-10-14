@@ -39,8 +39,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // fBootstrapBQ
-Rcpp::List fBootstrapBQ(const arma::mat& y, const Rcpp::List& var_result, int nboot, int horizon, double conf, double conf2, const std::string& bootscheme, Rcpp::IntegerVector cumulate, Rcpp::Nullable<arma::vec> scaling, int n_threads);
-RcppExport SEXP _tidyMacro_fBootstrapBQ(SEXP ySEXP, SEXP var_resultSEXP, SEXP nbootSEXP, SEXP horizonSEXP, SEXP confSEXP, SEXP conf2SEXP, SEXP bootschemeSEXP, SEXP cumulateSEXP, SEXP scalingSEXP, SEXP n_threadsSEXP) {
+Rcpp::List fBootstrapBQ(const arma::mat& y, const Rcpp::List& var_result, int nboot, int horizon, double conf, double conf2, const std::string& bootscheme, Rcpp::IntegerVector cumulate, Rcpp::Nullable<arma::vec> scaling, Rcpp::Nullable<arma::mat> exog, int n_threads);
+RcppExport SEXP _tidyMacro_fBootstrapBQ(SEXP ySEXP, SEXP var_resultSEXP, SEXP nbootSEXP, SEXP horizonSEXP, SEXP confSEXP, SEXP conf2SEXP, SEXP bootschemeSEXP, SEXP cumulateSEXP, SEXP scalingSEXP, SEXP exogSEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -53,8 +53,9 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const std::string& >::type bootscheme(bootschemeSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type cumulate(cumulateSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<arma::vec> >::type scaling(scalingSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<arma::mat> >::type exog(exogSEXP);
     Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(fBootstrapBQ(y, var_result, nboot, horizon, conf, conf2, bootscheme, cumulate, scaling, n_threads));
+    rcpp_result_gen = Rcpp::wrap(fBootstrapBQ(y, var_result, nboot, horizon, conf, conf2, bootscheme, cumulate, scaling, exog, n_threads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -521,8 +522,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // fLP_cpp
-Rcpp::List fLP_cpp(const arma::mat& Y, const arma::mat& X, int H, int shock_col, double conf_level, int nw_lags_base, bool store_full, bool cumulative, int n_threads, int nw_offset, bool verbose, Rcpp::Nullable<arma::mat> Y_pre);
-RcppExport SEXP _tidyMacro_fLP_cpp(SEXP YSEXP, SEXP XSEXP, SEXP HSEXP, SEXP shock_colSEXP, SEXP conf_levelSEXP, SEXP nw_lags_baseSEXP, SEXP store_fullSEXP, SEXP cumulativeSEXP, SEXP n_threadsSEXP, SEXP nw_offsetSEXP, SEXP verboseSEXP, SEXP Y_preSEXP) {
+Rcpp::List fLP_cpp(const arma::mat& Y, const arma::mat& X, int H, int shock_col, double conf_level, int nw_lags_base, bool store_full, bool cumulative, int n_threads, int nw_offset, bool verbose, Rcpp::Nullable<arma::mat> Y_pre, bool nw_prewhite);
+RcppExport SEXP _tidyMacro_fLP_cpp(SEXP YSEXP, SEXP XSEXP, SEXP HSEXP, SEXP shock_colSEXP, SEXP conf_levelSEXP, SEXP nw_lags_baseSEXP, SEXP store_fullSEXP, SEXP cumulativeSEXP, SEXP n_threadsSEXP, SEXP nw_offsetSEXP, SEXP verboseSEXP, SEXP Y_preSEXP, SEXP nw_prewhiteSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -538,7 +539,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type nw_offset(nw_offsetSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<arma::mat> >::type Y_pre(Y_preSEXP);
-    rcpp_result_gen = Rcpp::wrap(fLP_cpp(Y, X, H, shock_col, conf_level, nw_lags_base, store_full, cumulative, n_threads, nw_offset, verbose, Y_pre));
+    Rcpp::traits::input_parameter< bool >::type nw_prewhite(nw_prewhiteSEXP);
+    rcpp_result_gen = Rcpp::wrap(fLP_cpp(Y, X, H, shock_col, conf_level, nw_lags_base, store_full, cumulative, n_threads, nw_offset, verbose, Y_pre, nw_prewhite));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -568,8 +570,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // fLPIV_cpp
-Rcpp::List fLPIV_cpp(const arma::mat& Y, const arma::vec& D, const arma::mat& Z, const arma::mat& C, int H, double conf_level, int nw_lags_iv, bool cumulative, int n_threads, bool verbose, Rcpp::Nullable<arma::mat> Y_pre);
-RcppExport SEXP _tidyMacro_fLPIV_cpp(SEXP YSEXP, SEXP DSEXP, SEXP ZSEXP, SEXP CSEXP, SEXP HSEXP, SEXP conf_levelSEXP, SEXP nw_lags_ivSEXP, SEXP cumulativeSEXP, SEXP n_threadsSEXP, SEXP verboseSEXP, SEXP Y_preSEXP) {
+Rcpp::List fLPIV_cpp(const arma::mat& Y, const arma::vec& D, const arma::mat& Z, const arma::mat& C, int H, double conf_level, int nw_lags_iv, bool cumulative, int n_threads, bool verbose, Rcpp::Nullable<arma::mat> Y_pre, bool nw_prewhite);
+RcppExport SEXP _tidyMacro_fLPIV_cpp(SEXP YSEXP, SEXP DSEXP, SEXP ZSEXP, SEXP CSEXP, SEXP HSEXP, SEXP conf_levelSEXP, SEXP nw_lags_ivSEXP, SEXP cumulativeSEXP, SEXP n_threadsSEXP, SEXP verboseSEXP, SEXP Y_preSEXP, SEXP nw_prewhiteSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -584,7 +586,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<arma::mat> >::type Y_pre(Y_preSEXP);
-    rcpp_result_gen = Rcpp::wrap(fLPIV_cpp(Y, D, Z, C, H, conf_level, nw_lags_iv, cumulative, n_threads, verbose, Y_pre));
+    Rcpp::traits::input_parameter< bool >::type nw_prewhite(nw_prewhiteSEXP);
+    rcpp_result_gen = Rcpp::wrap(fLPIV_cpp(Y, D, Z, C, H, conf_level, nw_lags_iv, cumulative, n_threads, verbose, Y_pre, nw_prewhite));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -671,8 +674,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // fNLLP_cpp
-Rcpp::List fNLLP_cpp(const arma::mat& Y, const arma::mat& X, int H, int shock_col, int specification, const arma::vec& state, Rcpp::IntegerVector common_cols, int nw_lags_base, bool store_full, bool cumulative, bool balanced, int n_threads, int nw_offset, bool verbose, Rcpp::Nullable<arma::mat> Y_pre);
-RcppExport SEXP _tidyMacro_fNLLP_cpp(SEXP YSEXP, SEXP XSEXP, SEXP HSEXP, SEXP shock_colSEXP, SEXP specificationSEXP, SEXP stateSEXP, SEXP common_colsSEXP, SEXP nw_lags_baseSEXP, SEXP store_fullSEXP, SEXP cumulativeSEXP, SEXP balancedSEXP, SEXP n_threadsSEXP, SEXP nw_offsetSEXP, SEXP verboseSEXP, SEXP Y_preSEXP) {
+Rcpp::List fNLLP_cpp(const arma::mat& Y, const arma::mat& X, int H, int shock_col, int specification, const arma::vec& state, Rcpp::IntegerVector common_cols, int nw_lags_base, bool store_full, bool cumulative, bool balanced, int n_threads, int nw_offset, bool verbose, Rcpp::Nullable<arma::mat> Y_pre, bool nw_prewhite);
+RcppExport SEXP _tidyMacro_fNLLP_cpp(SEXP YSEXP, SEXP XSEXP, SEXP HSEXP, SEXP shock_colSEXP, SEXP specificationSEXP, SEXP stateSEXP, SEXP common_colsSEXP, SEXP nw_lags_baseSEXP, SEXP store_fullSEXP, SEXP cumulativeSEXP, SEXP balancedSEXP, SEXP n_threadsSEXP, SEXP nw_offsetSEXP, SEXP verboseSEXP, SEXP Y_preSEXP, SEXP nw_prewhiteSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -691,7 +694,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type nw_offset(nw_offsetSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<arma::mat> >::type Y_pre(Y_preSEXP);
-    rcpp_result_gen = Rcpp::wrap(fNLLP_cpp(Y, X, H, shock_col, specification, state, common_cols, nw_lags_base, store_full, cumulative, balanced, n_threads, nw_offset, verbose, Y_pre));
+    Rcpp::traits::input_parameter< bool >::type nw_prewhite(nw_prewhiteSEXP);
+    rcpp_result_gen = Rcpp::wrap(fNLLP_cpp(Y, X, H, shock_col, specification, state, common_cols, nw_lags_base, store_full, cumulative, balanced, n_threads, nw_offset, verbose, Y_pre, nw_prewhite));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -746,20 +750,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::mat& >::type Z_sub(Z_subSEXP);
     Rcpp::traits::input_parameter< int >::type ntotcoeff(ntotcoeffSEXP);
     rcpp_result_gen = Rcpp::wrap(fRecoverBIVMulti_cpp(resid_sub, Z_sub, ntotcoeff));
-    return rcpp_result_gen;
-END_RCPP
-}
-// fRemoveBias
-Rcpp::List fRemoveBias(const arma::mat& beta, int c, int p, const arma::cube& boot_beta);
-RcppExport SEXP _tidyMacro_fRemoveBias(SEXP betaSEXP, SEXP cSEXP, SEXP pSEXP, SEXP boot_betaSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::mat& >::type beta(betaSEXP);
-    Rcpp::traits::input_parameter< int >::type c(cSEXP);
-    Rcpp::traits::input_parameter< int >::type p(pSEXP);
-    Rcpp::traits::input_parameter< const arma::cube& >::type boot_beta(boot_betaSEXP);
-    rcpp_result_gen = Rcpp::wrap(fRemoveBias(beta, c, p, boot_beta));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -948,7 +938,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_tidyMacro_fAICBIC", (DL_FUNC) &_tidyMacro_fAICBIC, 4},
     {"_tidyMacro_fBQIRF", (DL_FUNC) &_tidyMacro_fBQIRF, 3},
-    {"_tidyMacro_fBootstrapBQ", (DL_FUNC) &_tidyMacro_fBootstrapBQ, 10},
+    {"_tidyMacro_fBootstrapBQ", (DL_FUNC) &_tidyMacro_fBootstrapBQ, 11},
     {"_tidyMacro_fBootstrapChol", (DL_FUNC) &_tidyMacro_fBootstrapChol, 9},
     {"_tidyMacro_fBootstrapCholCorrected", (DL_FUNC) &_tidyMacro_fBootstrapCholCorrected, 10},
     {"_tidyMacro_fBootstrapIVInvertible", (DL_FUNC) &_tidyMacro_fBootstrapIVInvertible, 10},
@@ -976,20 +966,19 @@ static const R_CallMethodDef CallEntries[] = {
     {"_tidyMacro_fHeteroIRF", (DL_FUNC) &_tidyMacro_fHeteroIRF, 7},
     {"_tidyMacro_fBootstrapHetero", (DL_FUNC) &_tidyMacro_fBootstrapHetero, 13},
     {"_tidyMacro_fHistDec", (DL_FUNC) &_tidyMacro_fHistDec, 4},
-    {"_tidyMacro_fLP_cpp", (DL_FUNC) &_tidyMacro_fLP_cpp, 12},
+    {"_tidyMacro_fLP_cpp", (DL_FUNC) &_tidyMacro_fLP_cpp, 13},
     {"_tidyMacro_fLPDID_cpp", (DL_FUNC) &_tidyMacro_fLPDID_cpp, 15},
-    {"_tidyMacro_fLPIV_cpp", (DL_FUNC) &_tidyMacro_fLPIV_cpp, 11},
+    {"_tidyMacro_fLPIV_cpp", (DL_FUNC) &_tidyMacro_fLPIV_cpp, 12},
     {"_tidyMacro_fLPPanel_cpp", (DL_FUNC) &_tidyMacro_fLPPanel_cpp, 14},
     {"_tidyMacro_fLagMakerMatrix", (DL_FUNC) &_tidyMacro_fLagMakerMatrix, 2},
     {"_tidyMacro_fMBBVAR", (DL_FUNC) &_tidyMacro_fMBBVAR, 4},
     {"_tidyMacro_fMSW", (DL_FUNC) &_tidyMacro_fMSW, 9},
     {"_tidyMacro_fMaxIRF", (DL_FUNC) &_tidyMacro_fMaxIRF, 3},
-    {"_tidyMacro_fNLLP_cpp", (DL_FUNC) &_tidyMacro_fNLLP_cpp, 15},
+    {"_tidyMacro_fNLLP_cpp", (DL_FUNC) &_tidyMacro_fNLLP_cpp, 16},
     {"_tidyMacro_fOLS", (DL_FUNC) &_tidyMacro_fOLS, 4},
     {"_tidyMacro_fPolyConvolve", (DL_FUNC) &_tidyMacro_fPolyConvolve, 3},
     {"_tidyMacro_fRecoverBIV_cpp", (DL_FUNC) &_tidyMacro_fRecoverBIV_cpp, 4},
     {"_tidyMacro_fRecoverBIVMulti_cpp", (DL_FUNC) &_tidyMacro_fRecoverBIVMulti_cpp, 3},
-    {"_tidyMacro_fRemoveBias", (DL_FUNC) &_tidyMacro_fRemoveBias, 4},
     {"_tidyMacro_fSR_cpp", (DL_FUNC) &_tidyMacro_fSR_cpp, 27},
     {"_tidyMacro_fSVARSteps", (DL_FUNC) &_tidyMacro_fSVARSteps, 0},
     {"_tidyMacro_fSignRestrictions_cpp", (DL_FUNC) &_tidyMacro_fSignRestrictions_cpp, 9},

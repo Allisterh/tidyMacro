@@ -12,6 +12,7 @@ fLP(
   conf = 90,
   nw_lags = NULL,
   nw_offset = 1L,
+  nw_prewhite = FALSE,
   store_full = FALSE,
   cumulative = FALSE,
   shock_size = c("unit", "sd"),
@@ -64,6 +65,12 @@ Toolbox (\code{LPmodel.m}: \code{OLSmodel(Y,X,0,hh-1)} with 1-indexed
 \code{hh}, so \code{hh-1 == h}) — needed to match that toolbox's SEs
 exactly, e.g. in the Jordà-Taylor (2025) replication.}
 
+\item{nw_prewhite}{Logical. If \code{TRUE}, apply Andrews-Monahan (1992)
+VAR(1) prewhitening to the regression scores before the Newey-West sum
+(same bandwidth), shrinking the VAR(1) matrix when its spectral radius
+exceeds 0.97. Default \code{FALSE} (plain Newey-West, as in the VAR
+Toolbox).}
+
 \item{store_full}{Logical. If \code{TRUE}, return full coefficient and
 standard-error matrices for every horizon. Defaults to \code{FALSE} to
 keep the result small and fast.}
@@ -84,7 +91,7 @@ Cesa-Bianchi's \code{LPmodel.m}; note the standard deviation is taken
 over the lag-trimmed estimation sample, not the raw input column.}
 
 \item{n_threads}{Integer. Number of OpenMP threads for the horizon loop.
-\code{0} = all available cores. Default \code{0}.}
+\code{0} = all cores minus one. Default \code{0}.}
 }
 \value{
 An object of class \code{"fLP"}.

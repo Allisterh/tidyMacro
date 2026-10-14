@@ -1,5 +1,6 @@
 #include <RcppArmadillo.h>
 #include "fOLS.h"
+#include "se_newey_west.h"
 // [[Rcpp::depends(RcppArmadillo)]]
 
 // Internal C++ function (called from other C++ code)
@@ -65,25 +66,13 @@ OLSResult fOLS_cpp(arma::mat y, arma::mat X, int c, int robust, int lag, int mod
   arma::mat varbhat = rmse * rmse * invXpX;
 
   // Robust variance-covariance (White or HAC/Newey-West)
-  arma::mat Shat        = arma::zeros(k_reg, k_reg);
+  // Scores g_t = x_t e_t (first equation); White meat for robust = 1,
+  // Newey-West with `lag` lags for robust = 2.
   arma::mat varbhatrobust;
   if (robust >= 1) {
-    for (int i = 0; i < T; i++) {
-      arma::vec xi = X_reg.row(i).t();
-      Shat += err_vec(i) * err_vec(i) * xi * xi.t();
-    }
-    if (robust == 2) {
-      for (int l = 1; l <= lag; l++) {
-        double w = 1.0 - (double)l / ((double)lag + 1.0);  // Bartlett weight
-        arma::mat Shatl = arma::zeros(k_reg, k_reg);
-        for (int i = l; i < T; i++) {
-          arma::vec xi  = X_reg.row(i).t();
-          arma::vec xil = X_reg.row(i - l).t();
-          Shatl += w * err_vec(i) * err_vec(i - l) * (xi * xil.t() + xil * xi.t());
-        }
-        Shat += Shatl;
-      }
-    }
+    arma::mat g = X_reg;
+    g.each_col() %= err_vec.head(T);
+    const arma::mat Shat = se_newey_west_cpp(g, robust == 2 ? lag : 0, false);
     varbhatrobust = ((double)T / (double)(T - k_reg)) * invXpX * Shat * invXpX;
   }
 

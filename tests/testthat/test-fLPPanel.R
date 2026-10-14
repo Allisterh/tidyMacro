@@ -105,3 +105,15 @@ test_that("fLPPanel is invariant to the number of threads", {
   expect_equal(a$irfs, b$irfs, tolerance = 1e-12)
   expect_equal(a$irfs_se, b$irfs_se, tolerance = 1e-12)
 })
+
+test_that("fLPPanel rejects an existing x_l1 column that is not the lag of x", {
+  d <- sim_panel_df()
+  d$x <- rnorm(nrow(d))
+  d$x_l1 <- 999
+  expect_error(
+    fLPPanel(y ~ shock + l(x, 1) | unit + tt, data = d,
+             panel_id = c("unit", "tt"), shock = "shock", horizons = 1,
+             n_threads = NT),
+    "not lag 1"
+  )
+})

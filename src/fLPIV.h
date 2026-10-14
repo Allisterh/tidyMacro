@@ -68,7 +68,8 @@ LPIVResult fLPIV_internal(
     bool             cumulative,
     int              n_threads,
     bool             verbose,
-    const arma::mat& Y_pre       // 1 x n_y cumulative base, or empty
+    const arma::mat& Y_pre,      // 1 x n_y cumulative base, or empty
+    bool             nw_prewhite // VAR(1)-prewhitened HAC (se_newey_west_cpp)
 );
 
 Rcpp::List fLPIV_cpp(
@@ -82,7 +83,8 @@ Rcpp::List fLPIV_cpp(
     bool      cumulative,
     int       n_threads,
     bool      verbose,
-    Rcpp::Nullable<arma::mat> Y_pre
+    Rcpp::Nullable<arma::mat> Y_pre,
+    bool      nw_prewhite
 );
 
 #endif // FLPIV_H

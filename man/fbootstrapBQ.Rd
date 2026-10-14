@@ -14,6 +14,7 @@ fBootstrapBQ(
   bootscheme = "residual",
   cumulate = as.integer(c()),
   scaling = NULL,
+  exog = NULL,
   n_threads = 0L
 )
 }
@@ -39,6 +40,10 @@ estimated in first differences and level responses are required.}
 \item{scaling}{Optional numeric vector of length 2. First element is the
 variable index (1-based) for normalisation; second is the shock size.
 Default NULL (no normalisation).}
+
+\item{exog}{Optional T x M matrix of exogenous variables. Must be provided
+if the original VAR was estimated with exogenous variables; must be
+omitted otherwise.}
 
 \item{n_threads}{Number of OpenMP threads. 0 = all cores minus one.
 Default 0.}

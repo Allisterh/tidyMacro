@@ -203,7 +203,8 @@ double fNarrativeWeight_cpp(const arma::mat&             B,
 //'
 //' @seealso \code{\link{fSR_cpp}}
 //'
-//' @export
+//' @keywords internal
+//' @noRd
 // [[Rcpp::export]]
 Rcpp::List fCheckNarrative_cpp(const arma::mat& B,
                                const arma::mat& resid,

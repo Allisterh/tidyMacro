@@ -1,33 +1,16 @@
 #ifndef FBOOTSTRAPMAX_H
 #define FBOOTSTRAPMAX_H
 
-#include "fVAR.h"
 #include <RcppArmadillo.h>
+#include "fBootstrapVAR.h"
 
-struct BootstrapMaxResult {
-    arma::mat bootmax_flat; // (N*(horizon+1)) x nboot flattened
-    arma::mat upper;        // N x (horizon+1) upper bands (conf)
-    arma::mat lower;        // N x (horizon+1) lower bands (conf)
-    arma::mat upper2;       // N x (horizon+1) upper bands (conf2)
-    arma::mat lower2;       // N x (horizon+1) lower bands (conf2)
-    arma::cube boot_beta;   // N x n_coef x nboot bootstrapped coefficients
-    int N;
-    int H;
-};
+// LR-max residual bootstrap. Each draw stores the N x (horizon+1) response
+// to the identified shock, vectorised. var_idx and cumulate are 0-based.
+SVARBootResult fBootstrapMax_cpp(const arma::mat& y, const VARResult& var_result,
+                                 int nboot, int horizon, int var_idx,
+                                 double conf, double conf2,
+                                 const arma::uvec& cumulate,
+                                 bool has_scaling, int scale_idx, double scale_size,
+                                 const arma::mat* exog_ptr, int n_threads);
 
-BootstrapMaxResult
-fBootstrapMax_cpp(const arma::mat& y, const VARResult& var_result,
-                  int nboot, int horizon, int var_idx, double conf, double conf2,
-                  const arma::uvec& cumulate,
-                  Rcpp::Nullable<arma::vec> scaling,
-                  Rcpp::Nullable<arma::mat> exog,
-                  int n_threads);
-
-Rcpp::List fBootstrapMax(const arma::mat& y, const Rcpp::List& var_result,
-                         int nboot, int horizon, int var_idx, double conf, double conf2,
-                         const arma::uvec& cumulate,
-                         Rcpp::Nullable<arma::vec> scaling,
-                         Rcpp::Nullable<arma::mat> exog,
-                         int n_threads);
-
-#endif // FBOOTSTRAPMAX_H
+#endif

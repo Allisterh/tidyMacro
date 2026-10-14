@@ -40,6 +40,9 @@
 //   V_h = (X'X)^{-1} * ( sum_{a=0}^{nwL} w_a * (Gamma_a + Gamma_a', a>0) ) * (X'X)^{-1}
 //   with Gamma_a = sum_t (X_t u_t)(X_{t-a} u_{t-a})' and Bartlett weight
 //   w_a = (nwL + 1 - a) / (nwL + 1). Matches Cesa-Bianchi's OLSmodel.m.
+//   nw_prewhite = true: Andrews-Monahan VAR(1) prewhitening of the score
+//   vector g_t (se_newey_west_cpp); the full kr x kr meat is then formed even
+//   on the fast path, since prewhitening a projected score is not equivalent.
 //
 // Horizon loop is parallelized via OpenMP (each horizon h is independent).
 //
@@ -82,7 +85,8 @@ LPResult fLP_internal(
     int              n_threads,
     int              nw_offset,
     bool             verbose,
-    const arma::mat& Y_pre
+    const arma::mat& Y_pre,
+    bool             nw_prewhite
 );
 
 // R-callable wrapper
@@ -98,7 +102,8 @@ Rcpp::List fLP_cpp(
     int       n_threads,
     int       nw_offset,
     bool      verbose,
-    Rcpp::Nullable<arma::mat> Y_pre
+    Rcpp::Nullable<arma::mat> Y_pre,
+    bool      nw_prewhite
 );
 
 #endif // FLP_H

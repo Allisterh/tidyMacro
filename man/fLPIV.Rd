@@ -12,6 +12,7 @@ fLPIV(
   horizons = 12L,
   conf = 90,
   nw_lags_iv = NULL,
+  nw_prewhite = FALSE,
   cumulative = TRUE,
   shock_size = c("unit", "sd"),
   n_threads = 0L
@@ -45,6 +46,12 @@ Stata's \code{vce(hac nw <k>)} and the toolbox's LP-IV bands.
 Default \code{NULL} → use \code{ncol(Z) - 1}, i.e. the lag order implied
 by the instrument formula, which reproduces the toolbox default.}
 
+\item{nw_prewhite}{Logical. If \code{TRUE}, apply Andrews-Monahan (1992)
+VAR(1) prewhitening to the regression scores before the Newey-West sum
+(same bandwidth), shrinking the VAR(1) matrix when its spectral radius
+exceeds 0.97. Default \code{FALSE} (plain Newey-West, as in the VAR
+Toolbox).}
+
 \item{cumulative}{Logical. \code{TRUE} regresses
 \eqn{y_{t+h} - y_{t-1}} on the RHS. Default \code{TRUE} — the standard
 long-difference LP-IV convention. When generated lags trim the leading
@@ -59,7 +66,7 @@ estimation sample. These correspond to \code{LPopt.impact = 1} and
 \code{LPopt.impact = 0} in Cesa-Bianchi's \code{LPmodel.m}.}
 
 \item{n_threads}{Integer. OpenMP threads for the horizon loop. Default 0
-(= all available cores).}
+(= all cores minus one).}
 }
 \value{
 An object of class \code{c("fLPIV", "fLP")} so all existing

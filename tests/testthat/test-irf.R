@@ -97,3 +97,42 @@ test_that("fBootstrapChol returns coherent bands (small, single thread)", {
   expect_true(all(bs$lower <= bs$upper + 1e-12))
   expect_true(all(bs$upper2 <= bs$upper + 1e-12))
 })
+
+test_that("bootstrap samples keep the exogenous contribution", {
+  set.seed(5)
+  T <- 300
+  ex <- matrix(rnorm(T), T, 1)
+  y <- matrix(0, T, 2)
+  e <- matrix(rnorm(2 * T, sd = 0.3), T, 2)
+  for (t in 2:T) y[t, ] <- c(0.5, 0.2) * y[t - 1, ] + c(2, -1) * ex[t] + e[t, ]
+  fit <- fVAR(y, 1, 1, exog = ex)
+  set.seed(1)
+  bc <- suppressMessages(fBootstrapChol(y, fit, nboot = 40, horizon = 2,
+                                        exog = ex, n_threads = NT))
+  bq <- suppressMessages(fBootstrapBQ(y, fit, nboot = 40, horizon = 2,
+                                      exog = ex, n_threads = NT))
+  # Without exog in the bootstrap DGP the mean exog coefficient collapses to 0
+  expect_equal(rowMeans(bc$boot_beta[, 4, ]), fit$beta[4, ], tolerance = 0.05)
+  expect_equal(rowMeans(bq$boot_beta[, 4, ]), fit$beta[4, ], tolerance = 0.05)
+  expect_error(fBootstrapBQ(y, fit, nboot = 5, horizon = 2), "exog")
+})
+
+test_that("bootstrap bands are type-7 percentiles and thread-count invariant", {
+  skip_on_cran()
+  y <- sim_var(T = 150)
+  fit <- fVAR(y, p = 1, c = 1)
+  run <- function(f, nt) {
+    set.seed(3)
+    suppressMessages(f(nt))
+  }
+  chol <- function(nt) fBootstrapChol(y, fit, nboot = 30, horizon = 3,
+                                      bootscheme = "wild", n_threads = nt)
+  uhl  <- function(nt) fBootstrapUhlig(y, fit, nboot = 30, horizon = 3,
+                                       idx = 1, n_threads = nt)
+  expect_identical(run(chol, 1), run(chol, 2))
+  expect_identical(run(uhl, 1), run(uhl, 2))
+
+  u <- run(uhl, 1)
+  q <- apply(u$bootuhlig, 1:2, quantile, probs = 0.05, type = 7)
+  expect_equal(u$lower, q, ignore_attr = TRUE)
+})

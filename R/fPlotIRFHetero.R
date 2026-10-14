@@ -34,58 +34,22 @@ fPlotIRFHetero <- function(result, varnames, shockname,
                            facet_scales    = "free",
                            facet_ncol      = 2) {
 
-    point  <- result$point  * scale
-    upper  <- result$upper  * scale
-    lower  <- result$lower  * scale
+    two   <- !is.null(result$upper2) && !is.null(result$lower2)
+    band  <- .fScaleBand(result$upper, result$lower, scale)
+    band2 <- if (two) .fScaleBand(result$upper2, result$lower2, scale)
 
-    has_second_band <- !is.null(result$upper2) && !is.null(result$lower2)
-    if (has_second_band) {
-        upper2 <- result$upper2 * scale
-        lower2 <- result$lower2 * scale
-    }
-
-    N       <- nrow(point)
-    horizon <- ncol(point)
-
-    irf_list <- vector("list", N)
-    for (i in seq_len(N)) {
-        row <- tibble::tibble(
-            variable = varnames[i],
-            horizon  = 0L:(horizon - 1L),
-            point    = as.numeric(point[i, ]),
-            upper    = as.numeric(upper[i, ]),
-            lower    = as.numeric(lower[i, ]),
-            shock    = shockname
-        )
-        if (has_second_band) {
-            row$upper2 <- as.numeric(upper2[i, ])
-            row$lower2 <- as.numeric(lower2[i, ])
-        }
-        irf_list[[i]] <- row
-    }
-
-    irf_data <- do.call(rbind, irf_list)
-    irf_data$variable <- factor(irf_data$variable, levels = varnames)
+    irf_data <- .fIRFLong(varnames, list(
+        point  = result$point * scale,
+        upper  = band$upper,
+        lower  = band$lower,
+        shock  = shockname,
+        upper2 = band2$upper,
+        lower2 = band2$lower
+    ))
 
     if (return_data)
-        return(tibble::as_tibble(irf_data))
+        return(irf_data)
 
-    p <- ggplot2::ggplot(irf_data, ggplot2::aes(x = horizon)) +
-        ggplot2::geom_ribbon(ggplot2::aes(ymin = lower, ymax = upper),
-                             fill = ribbon_fill, alpha = ribbon_alpha)
-
-    if (has_second_band) {
-        p <- p + ggplot2::geom_ribbon(ggplot2::aes(ymin = lower2, ymax = upper2),
-                                      fill = ribbon_fill, alpha = ribbon_alpha2)
-    }
-
-    p <- p +
-        ggplot2::geom_line(ggplot2::aes(y = point),
-                           color = line_color, linewidth = 0.8) +
-        ggplot2::geom_hline(yintercept = 0,
-                            color = zero_line_color, linetype = "dashed",
-                            linewidth = 0.6) +
-        ggplot2::facet_wrap(~ variable, scales = facet_scales, ncol = facet_ncol)
-
-    return(p)
+    .fIRFPlot(irf_data, ~ variable, facet_scales, facet_ncol, ribbon_fill,
+              ribbon_alpha, ribbon_alpha2, line_color, zero_line_color)
 }

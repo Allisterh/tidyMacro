@@ -27,6 +27,8 @@
 
 #include "fNLLP.h"
 #include <RcppArmadillo.h>
+#include "omp_threads.h"
+#include "se_newey_west.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -180,49 +182,6 @@ LSSolver make_solver(const arma::mat& X, const arma::mat& XtX) {
   return S;
 }
 
-// Bartlett-weighted long-run moments of two series a, b of length n:
-//   v11 = sum_t a_t^2 + 2 sum_{l=1..L} w_l sum_{t>=l} a_t a_{t-l}
-//   v22 = same for b
-//   v12 = sum_t a_t b_t + sum_{l=1..L} w_l sum_{t>=l} (a_t b_{t-l} + b_t a_{t-l})
-// w_l = (L + 1 - l) / (L + 1). With a_t = u_t P(t, j) these are the HAC
-// variances and covariance of coefficients j (see the horizon loop).
-// One pass per lag over raw pointers: no temporaries, vectorisable.
-inline void bartlett2(const double* a, const double* b, int n, int L,
-                      double& v11, double& v22, double& v12) {
-  double s11 = 0.0, s22 = 0.0, s12 = 0.0;
-  for (int t = 0; t < n; ++t) {
-    s11 += a[t] * a[t];
-    s22 += b[t] * b[t];
-    s12 += a[t] * b[t];
-  }
-  for (int l = 1; l <= L; ++l) {
-    const double w = static_cast<double>(L + 1 - l) / static_cast<double>(L + 1);
-    double g11 = 0.0, g22 = 0.0, g12 = 0.0;
-    for (int t = l; t < n; ++t) {
-      g11 += a[t] * a[t - l];
-      g22 += b[t] * b[t - l];
-      g12 += a[t] * b[t - l] + b[t] * a[t - l];
-    }
-    s11 += 2.0 * w * g11;
-    s22 += 2.0 * w * g22;
-    s12 += w * g12;
-  }
-  v11 = s11; v22 = s22; v12 = s12;
-}
-
-// Bartlett-weighted long-run variance of one series (v11 of bartlett2).
-inline double bartlett1(const double* a, int n, int L) {
-  double s = 0.0;
-  for (int t = 0; t < n; ++t) s += a[t] * a[t];
-  for (int l = 1; l <= L; ++l) {
-    const double w = static_cast<double>(L + 1 - l) / static_cast<double>(L + 1);
-    double g = 0.0;
-    for (int t = l; t < n; ++t) g += a[t] * a[t - l];
-    s += 2.0 * w * g;
-  }
-  return s;
-}
-
 } // namespace
 
 
@@ -245,7 +204,8 @@ NLLPResult fNLLP_internal(
     int               n_threads,
     int               nw_offset,
     bool              verbose,
-    const arma::mat&  Y_pre
+    const arma::mat&  Y_pre,
+    bool              nw_prewhite
 ) {
   // ---------- dimensions -----------------------------------------------
   const int T  = static_cast<int>(X.n_rows);
@@ -350,9 +310,7 @@ NLLPResult fNLLP_internal(
   // ---------- threading setup ------------------------------------------
   int actual_threads = 1;
 #ifdef _OPENMP
-  actual_threads = (n_threads <= 0)
-                       ? std::max(1, omp_get_max_threads())
-                       : n_threads;
+  actual_threads = fResolveThreads_cpp(n_threads);
   actual_threads = std::min(actual_threads, H + 1);
   if (verbose) {
     Rprintf("fNLLP: using %d thread(s) for parallel horizon loop...\n",
@@ -420,21 +378,36 @@ NLLPResult fNLLP_internal(
 
     for (int eq = 0; eq < ny; eq++) {
       const arma::vec u = U.col(eq);
-      a1 = u % P.col(j1);
-      a2 = u % P.col(j2);
       double v11, v22, v12;
-      bartlett2(a1.memptr(), a2.memptr(), Th, nwL, v11, v22, v12);
 
-      if (store_full) {
-        for (int j = 0; j < kd; j++) {
-          double vj;
-          if (j == c1)      vj = v11;
-          else if (j == c2) vj = v22;
-          else {
-            aj = u % P.col(j);
-            vj = bartlett1(aj.memptr(), Th, nwL);
+      if (nw_prewhite) {
+        // Prewhitening acts on the whole score vector g_t = x_t u_t, so the
+        // full sandwich (X'X)^{-1} G (X'X)^{-1} is formed.
+        arma::mat g = Xreg;
+        g.each_col() %= u;
+        const arma::mat V = S->inv * se_newey_west_cpp(g, nwL, true) * S->inv;
+        v11 = V(c1, c1);
+        v22 = V(c2, c2);
+        v12 = V(c1, c2);
+        if (store_full)
+          for (int j = 0; j < kd; j++)
+            Se_h(j, eq) = std::sqrt(std::max(0.0, V(j, j)));
+      } else {
+        a1 = u % P.col(j1);
+        a2 = u % P.col(j2);
+        se_newey_west_lrv2_cpp(a1.memptr(), a2.memptr(), Th, nwL, v11, v22, v12);
+
+        if (store_full) {
+          for (int j = 0; j < kd; j++) {
+            double vj;
+            if (j == c1)      vj = v11;
+            else if (j == c2) vj = v22;
+            else {
+              aj = u % P.col(j);
+              vj = se_newey_west_lrv_cpp(aj.memptr(), Th, nwL);
+            }
+            Se_h(j, eq) = std::sqrt(std::max(0.0, vj));
           }
-          Se_h(j, eq) = std::sqrt(std::max(0.0, vj));
         }
       }
 
@@ -491,7 +464,8 @@ Rcpp::List fNLLP_cpp(
     int                 n_threads    = 0,
     int                 nw_offset    = 1,
     bool                verbose      = false,
-    Rcpp::Nullable<arma::mat> Y_pre  = R_NilValue
+    Rcpp::Nullable<arma::mat> Y_pre  = R_NilValue,
+    bool                nw_prewhite  = false
 ) {
   if (Y.n_cols == 0) Rcpp::stop("fNLLP_cpp: Y must have at least one column.");
   if (X.n_cols == 0) Rcpp::stop("fNLLP_cpp: X must have at least one column.");
@@ -520,7 +494,7 @@ Rcpp::List fNLLP_cpp(
   NLLPResult res = fNLLP_internal(Y, X, H, shock_col, specification, state,
                                   common, nw_lags_base, store_full, cumulative,
                                   balanced, n_threads, nw_offset, verbose,
-                                  Y_pre_mat);
+                                  Y_pre_mat, nw_prewhite);
 
   if (res.rank_deficient) {
     Rcpp::stop(

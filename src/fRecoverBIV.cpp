@@ -154,7 +154,8 @@ IVColumnResult fIVColumn_cpp(const arma::mat& resid_sub,
 //'
 //' @seealso \code{\link{fSR_cpp}}, \code{\link{fVAR}}
 //'
-//' @export
+//' @keywords internal
+//' @noRd
 // [[Rcpp::export]]
 Rcpp::List fRecoverBIV_cpp(const arma::mat& resid_sub,
                            const arma::mat& Z_sub,

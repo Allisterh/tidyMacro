@@ -114,6 +114,9 @@ fBQIRF <- function(wold, K, scaling = NULL) {
 #' @param scaling Optional numeric vector of length 2. First element is the
 #'   variable index (1-based) for normalisation; second is the shock size.
 #'   Default NULL (no normalisation).
+#' @param exog Optional T x M matrix of exogenous variables. Must be provided
+#'   if the original VAR was estimated with exogenous variables; must be
+#'   omitted otherwise.
 #' @param n_threads Number of OpenMP threads. 0 = all cores minus one.
 #'   Default 0.
 #'
@@ -158,8 +161,8 @@ fBQIRF <- function(wold, K, scaling = NULL) {
 #' }
 #'
 #' @export
-fBootstrapBQ <- function(y, var_result, nboot, horizon, conf = 90.0, conf2 = 68.0, bootscheme = "residual", cumulate = as.integer( c()), scaling = NULL, n_threads = 0L) {
-    .Call(`_tidyMacro_fBootstrapBQ`, y, var_result, nboot, horizon, conf, conf2, bootscheme, cumulate, scaling, n_threads)
+fBootstrapBQ <- function(y, var_result, nboot, horizon, conf = 90.0, conf2 = 68.0, bootscheme = "residual", cumulate = as.integer( c()), scaling = NULL, exog = NULL, n_threads = 0L) {
+    .Call(`_tidyMacro_fBootstrapBQ`, y, var_result, nboot, horizon, conf, conf2, bootscheme, cumulate, scaling, exog, n_threads)
 }
 
 #' Bootstrap Cholesky Identified Impulse Response Functions
@@ -496,7 +499,8 @@ fBootstrapVAR <- function(y, fVAR_result, bootscheme = "residual") {
 #'
 #' @seealso \code{\link{fSR_cpp}}
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 fCheckNarrative_cpp <- function(B, resid, narr_sign_shock = NULL, narr_sign_period = NULL, narr_sign_sign = NULL, narr_dom_shock = NULL, narr_dom_period = NULL, narr_dom_var = NULL, n_mc = 0L, seed = 42L) {
     .Call(`_tidyMacro_fCheckNarrative_cpp`, B, resid, narr_sign_shock, narr_sign_period, narr_sign_sign, narr_dom_shock, narr_dom_period, narr_dom_var, n_mc, seed)
 }
@@ -841,20 +845,6 @@ fGenerateVARData <- function(y, p, c, beta, residuals) {
     .Call(`_tidyMacro_fGenerateVARData`, y, p, c, beta, residuals)
 }
 
-#' Compute Confidence Bands from Bootstrap IRF Cube
-#'
-#' Computes upper, lower, and median bands from a 3-D bootstrap IRF array
-#' along the third (bootstrap) dimension using linear interpolation of order
-#' statistics.
-#'
-#' @param bootirf N x (hor+1) x nboot cube of bootstrapped IRFs.
-#' @param conf Confidence level (e.g. 68 for 68\% band). Upper and lower
-#'   quantiles are \eqn{(50 + conf/2)}\% and \eqn{(50 - conf/2)}\%.
-#'   Default 68.
-#'
-#' @return List with three N x (hor+1) matrices: upper, lower, median.
-#'
-#' @export
 fGetBands <- function(bootirf, conf = 90.0) {
     .Call(`_tidyMacro_fGetBands`, bootirf, conf)
 }
@@ -967,7 +957,8 @@ fBootstrapHDIV <- function(y, var_result, Z, s, nboot, blocksize, adjustZ, adjus
 #'
 #' @seealso \code{\link{fSR_cpp}}, \code{\link{fHistDec}}
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 fHDShock_cpp <- function(y, beta, B, p, c, exog = NULL) {
     .Call(`_tidyMacro_fHDShock_cpp`, y, beta, B, p, c, exog)
 }
@@ -1015,7 +1006,7 @@ fHeteroIRF <- function(var_result, Z, adjustu, indsR1, hor, nvar, scale = 10.0) 
 #' @param scale      Shock size.
 #' @param conf        Primary confidence level (e.g. 90).
 #' @param conf2       Secondary confidence level (e.g. 68).
-#' @param n_threads  OpenMP threads (0 = all available - 1).
+#' @param n_threads  OpenMP threads (0 = all cores minus one).
 #'
 #' @return A list with \code{upper}, \code{lower}, \code{upper2},
 #'   \code{lower2}, \code{meanirf}, \code{medianirf} (each N x hor+1).
@@ -1102,7 +1093,7 @@ fHistDec <- function(y, fVAR, K, series) {
 #'   \eqn{y_{t+h} - y_{t-1}} on the RHS (cumulative response). Default
 #'   \code{FALSE}.
 #' @param n_threads Integer. OpenMP threads for the horizon loop. 0 = all
-#'   available cores. Default 0.
+#'   cores minus one. Default 0.
 #' @param nw_offset Integer. Shift applied to the NW bandwidth rule
 #'   (effective bandwidth = \code{nw_lags_base + h + nw_offset}, floored at
 #'   0). Default \code{1L}, the Miranda-Agrippino & Ricco convention
@@ -1120,6 +1111,9 @@ fHistDec <- function(y, fVAR, K, series) {
 #'   \code{LPmodel.m}. With \code{NULL} (default) row 1 of \code{Y} is
 #'   consumed as the base and one observation is lost — correct only when no
 #'   earlier outcome exists. Ignored when \code{cumulative = FALSE}.
+#' @param nw_prewhite Logical. Andrews-Monahan (1992) VAR(1) prewhitening
+#'   of the score vector before the Newey-West sum, with the VAR(1) matrix
+#'   shrunk when its spectral radius exceeds 0.97. Default \code{FALSE}.
 #'
 #' @return A named list with \code{irfs}, \code{irfs_upper}, \code{irfs_lower},
 #'   \code{irfs_se} (raw, unscaled SE of the shock coefficient — lets
@@ -1127,8 +1121,8 @@ fHistDec <- function(y, fVAR, K, series) {
 #'   engine), and optionally \code{betas} and \code{ses}.
 #'
 #' @keywords internal
-fLP_cpp <- function(Y, X, H, shock_col, conf_level, nw_lags_base, store_full = FALSE, cumulative = FALSE, n_threads = 0L, nw_offset = 1L, verbose = FALSE, Y_pre = NULL) {
-    .Call(`_tidyMacro_fLP_cpp`, Y, X, H, shock_col, conf_level, nw_lags_base, store_full, cumulative, n_threads, nw_offset, verbose, Y_pre)
+fLP_cpp <- function(Y, X, H, shock_col, conf_level, nw_lags_base, store_full = FALSE, cumulative = FALSE, n_threads = 0L, nw_offset = 1L, verbose = FALSE, Y_pre = NULL, nw_prewhite = FALSE) {
+    .Call(`_tidyMacro_fLP_cpp`, Y, X, H, shock_col, conf_level, nw_lags_base, store_full, cumulative, n_threads, nw_offset, verbose, Y_pre, nw_prewhite)
 }
 
 fLPDID_cpp <- function(y, treat, X, i_index, t_index, cl_index, pre_window, post_window, nonabsorbing, Lwin, ccc, pmd, reweight, n_threads, verbose = FALSE) {
@@ -1152,7 +1146,7 @@ fLPDID_cpp <- function(y, treat, X, i_index, t_index, cl_index, pre_window, post
 #'   \code{== 0}: horizon-varying bandwidth = h (just-identified LP rule).
 #' @param cumulative Logical. \code{TRUE} regresses \eqn{y_{t+h} - y_{t-1}};
 #'   \code{FALSE} regresses the level \eqn{y_{t+h}}.
-#' @param n_threads Integer. OpenMP threads. \code{0} = all available cores.
+#' @param n_threads Integer. OpenMP threads. \code{0} = all cores minus one.
 #' @param verbose Logical. Print the thread count. Default \code{FALSE}.
 #' @param Y_pre Numeric matrix (1 x n_y) or \code{NULL}. Cumulative LP only:
 #'   the outcome at the date immediately BEFORE row 1 of \code{Y}, used as the
@@ -1160,6 +1154,9 @@ fLPDID_cpp <- function(y, treat, X, i_index, t_index, cl_index, pre_window, post
 #'   every row of \code{Y} estimable and matches the \code{endo_lag1}
 #'   alignment of Cesa-Bianchi's \code{LPmodel.m}. With \code{NULL} (default)
 #'   row 1 of \code{Y} is consumed as the base and one observation is lost.
+#' @param nw_prewhite Logical. Andrews-Monahan (1992) VAR(1) prewhitening
+#'   of the score vector before the Newey-West sum, with the VAR(1) matrix
+#'   shrunk when its spectral radius exceeds 0.97. Default \code{FALSE}.
 #'
 #' @return A named list with \code{irfs}, \code{irfs_upper}, \code{irfs_lower},
 #'   \code{irfs_se}, \code{Fstat_fs} (first-stage F per horizon) and
@@ -1168,8 +1165,8 @@ fLPDID_cpp <- function(y, treat, X, i_index, t_index, cl_index, pre_window, post
 #'   construction from the value reported by \code{LPmodel.m}.
 #'
 #' @keywords internal
-fLPIV_cpp <- function(Y, D, Z, C, H, conf_level, nw_lags_iv, cumulative = FALSE, n_threads = 0L, verbose = FALSE, Y_pre = NULL) {
-    .Call(`_tidyMacro_fLPIV_cpp`, Y, D, Z, C, H, conf_level, nw_lags_iv, cumulative, n_threads, verbose, Y_pre)
+fLPIV_cpp <- function(Y, D, Z, C, H, conf_level, nw_lags_iv, cumulative = FALSE, n_threads = 0L, verbose = FALSE, Y_pre = NULL, nw_prewhite = FALSE) {
+    .Call(`_tidyMacro_fLPIV_cpp`, Y, D, Z, C, H, conf_level, nw_lags_iv, cumulative, n_threads, verbose, Y_pre, nw_prewhite)
 }
 
 #' Panel Local Projections — Internal C++ engine
@@ -1319,8 +1316,8 @@ fMaxIRF <- function(wold, S, var_idx) {
     .Call(`_tidyMacro_fMaxIRF`, wold, S, var_idx)
 }
 
-fNLLP_cpp <- function(Y, X, H, shock_col, specification, state, common_cols = as.integer( c()), nw_lags_base = 0L, store_full = FALSE, cumulative = FALSE, balanced = FALSE, n_threads = 0L, nw_offset = 1L, verbose = FALSE, Y_pre = NULL) {
-    .Call(`_tidyMacro_fNLLP_cpp`, Y, X, H, shock_col, specification, state, common_cols, nw_lags_base, store_full, cumulative, balanced, n_threads, nw_offset, verbose, Y_pre)
+fNLLP_cpp <- function(Y, X, H, shock_col, specification, state, common_cols = as.integer( c()), nw_lags_base = 0L, store_full = FALSE, cumulative = FALSE, balanced = FALSE, n_threads = 0L, nw_offset = 1L, verbose = FALSE, Y_pre = NULL, nw_prewhite = FALSE) {
+    .Call(`_tidyMacro_fNLLP_cpp`, Y, X, H, shock_col, specification, state, common_cols, nw_lags_base, store_full, cumulative, balanced, n_threads, nw_offset, verbose, Y_pre, nw_prewhite)
 }
 
 #' Ordinary Least Squares Regression
@@ -1416,7 +1413,8 @@ fPolyConvolve <- function(A, B, nlags) {
 #'
 #' @seealso \code{\link{fSR_cpp}}, \code{\link{fVAR}}
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 fRecoverBIV_cpp <- function(resid_sub, Z_sub, sigma, ntotcoeff) {
     .Call(`_tidyMacro_fRecoverBIV_cpp`, resid_sub, Z_sub, sigma, ntotcoeff)
 }
@@ -1464,50 +1462,10 @@ fRecoverBIV_cpp <- function(resid_sub, Z_sub, sigma, ntotcoeff) {
 #'
 #' @seealso \code{\link{fSR_cpp}}, \code{\link{fRecoverBIV_cpp}}
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 fRecoverBIVMulti_cpp <- function(resid_sub, Z_sub, ntotcoeff) {
     .Call(`_tidyMacro_fRecoverBIVMulti_cpp`, resid_sub, Z_sub, ntotcoeff)
-}
-
-#' Remove Small-Sample Bias from VAR Coefficient Estimates
-#'
-#' Computes the bootstrap mean of the VAR coefficients, subtracts the bias
-#' from the point estimates, and iteratively shrinks the correction towards
-#' zero if the bias-corrected system is explosive (all eigenvalues of the
-#' companion matrix must be strictly less than one).
-#'
-#' @param beta (Np+c+M) x N matrix of OLS VAR coefficient estimates
-#' @param c Integer intercept indicator (1 if intercept included, 0 otherwise)
-#' @param p Integer VAR lag order
-#' @param boot_beta (Np+c+M) x N x nboot cube of bootstrapped VAR coefficient
-#'   estimates collected from a first-pass bootstrap
-#'
-#' @return A list with elements:
-#'   Beta: N x (Np+c+M) bias-corrected coefficient matrix (transposed
-#'         relative to the input so it matches the convention used by
-#'         \code{fBootstrapCholCorrected})
-#'   corrections: integer count of iterative shrinkage steps applied
-#'                (1 means the first attempt was already stable)
-#'
-#' @details
-#' The bias is estimated as
-#'
-#'   bias = mean(boot_beta, dim=3) - beta'
-#'
-#' If the original estimates are already explosive the function returns the
-#' uncorrected estimates.  Otherwise the function applies the full bias
-#' correction and checks stability.  If the corrected system is still
-#' explosive (rare in practice) it reduces the correction factor by one
-#' percent per iteration until stability is achieved or 200 attempts are
-#' exhausted, at which point the uncorrected estimates are returned.
-#'
-#' This mirrors \code{remove_bias.m} from the MATLAB reference implementation.
-#'
-#' @seealso \code{\link{fBootstrapCholCorrected}}, \code{\link{fCompanionMatrix}}
-#'
-#' @export
-fRemoveBias <- function(beta, c, p, boot_beta) {
-    .Call(`_tidyMacro_fRemoveBias`, beta, c, p, boot_beta)
 }
 
 #' Bayesian Sign and Narrative Restrictions for SVARs
@@ -1564,7 +1522,7 @@ fRemoveBias <- function(beta, c, p, boot_beta) {
 #'   and bands, which avoids copying two
 #'   \code{(N * N * nsteps) x ndraws} matrices back into R.
 #' @param exog Optional T x M matrix of exogenous regressors (default NULL).
-#' @param n_threads Integer. \code{0} (default) uses all available OpenMP threads.
+#' @param n_threads Integer. \code{0} (default) uses all cores minus one.
 #' @param seed Integer base seed. Accepted draw \code{d} uses a stream derived
 #'   from \code{seed} and \code{d}, so results are independent of the thread
 #'   count.
@@ -1629,7 +1587,8 @@ fRemoveBias <- function(beta, c, p, boot_beta) {
 #' @seealso \code{\link{fSignRestrictions_cpp}}, \code{\link{fCheckNarrative_cpp}},
 #'   \code{\link{fRecoverBIV_cpp}}, \code{\link{fVARPosterior_cpp}}
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 fSR_cpp <- function(y, p, c, SIGN, nsteps = 40L, ndraws = 500L, sr_hor = 1L, sr_rot = 500L, max_post_draws = 1000L, conf = 90.0, inference = 1L, Bfix = NULL, narr_sign_shock = NULL, narr_sign_period = NULL, narr_sign_sign = NULL, narr_dom_shock = NULL, narr_dom_period = NULL, narr_dom_var = NULL, narr_weight_mc = 0L, resid_from_draw = FALSE, store_draws = TRUE, exog = NULL, n_threads = 0L, seed = 42L, verbose = FALSE, bands_conf = NULL, fitted_var = NULL) {
     .Call(`_tidyMacro_fSR_cpp`, y, p, c, SIGN, nsteps, ndraws, sr_hor, sr_rot, max_post_draws, conf, inference, Bfix, narr_sign_shock, narr_sign_period, narr_sign_sign, narr_dom_shock, narr_dom_period, narr_dom_var, narr_weight_mc, resid_from_draw, store_draws, exog, n_threads, seed, verbose, bands_conf, fitted_var)
 }
@@ -1711,7 +1670,8 @@ fSVARSteps <- function() {
 #'
 #' @seealso \code{\link{fSR_cpp}}, \code{\link{fGenerateQ}}
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 fSignRestrictions_cpp <- function(sigma, SIGN, sr_hor = 1L, sr_rot = 500L, Bfix = NULL, beta = NULL, p = 1L, c = 1L, seed = 42L) {
     .Call(`_tidyMacro_fSignRestrictions_cpp`, sigma, SIGN, sr_hor, sr_rot, Bfix, beta, p, c, seed)
 }
@@ -1732,7 +1692,8 @@ fSignRestrictions_cpp <- function(sigma, SIGN, sr_hor = 1L, sr_rot = 500L, Bfix 
 #'
 #' @seealso \code{\link{fSignRestrictions_cpp}}
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 fSignRestrictionsAll_cpp <- function(sigma, SIGN, sr_hor = 1L, sr_rot = 500L, Bfix = NULL, beta = NULL, p = 1L, c = 1L, seed = 42L) {
     .Call(`_tidyMacro_fSignRestrictionsAll_cpp`, sigma, SIGN, sr_hor, sr_rot, Bfix, beta, p, c, seed)
 }
@@ -1880,7 +1841,8 @@ fVAR <- function(y, p, c, exog = NULL) {
 #'
 #' @seealso \code{\link{fSR_cpp}}, \code{\link{fVAR}}
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 fVARPosterior_cpp <- function(y, p, c, ndraws, seed = 42L, exog = NULL) {
     .Call(`_tidyMacro_fVARPosterior_cpp`, y, p, c, ndraws, seed, exog)
 }

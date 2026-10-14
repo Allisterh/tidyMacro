@@ -35,7 +35,7 @@ website:
   repo-url: https://github.com/muhsinciftci/tidyMacro
   repo-subdir: _site
   repo-actions: [edit, issue]
-  favicon: logo.png
+  favicon: logo.jpeg
 
   open-graph:
     title: "tidyMacro"

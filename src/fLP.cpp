@@ -28,6 +28,8 @@
 
 #include "fLP.h"
 #include <RcppArmadillo.h>
+#include "omp_threads.h"
+#include "se_newey_west.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -54,7 +56,8 @@ LPResult fLP_internal(
     int              n_threads,
     int              nw_offset,
     bool             verbose,
-    const arma::mat& Y_pre
+    const arma::mat& Y_pre,
+    bool             nw_prewhite
 ) {
   // ---------- dimensions -----------------------------------------------
   const int T  = static_cast<int>(Y.n_rows);
@@ -114,12 +117,10 @@ LPResult fLP_internal(
   std::vector<char> rank_ok(H + 1, 1);
 
   // ---------- threading setup ------------------------------------------
-  // Unified rule across LP engines: n_threads <= 0 → use all available cores.
+  // Package rule: n_threads <= 0 → all cores minus one.
   int actual_threads = 1;
 #ifdef _OPENMP
-  actual_threads = (n_threads <= 0)
-                       ? std::max(1, omp_get_max_threads())
-                       : n_threads;
+  actual_threads = fResolveThreads_cpp(n_threads);
   if (verbose) {
     Rprintf("fLP: using %d thread(s) for parallel horizon loop...\n",
                 actual_threads);
@@ -210,8 +211,9 @@ LPResult fLP_internal(
     // does not depend on the equation, so it is built once per horizon and
     // the equation loop reduces to an elementwise product — no Th x kr score
     // matrices are ever materialised.
+    const bool full_meat = store_full || nw_prewhite;
     arma::vec proj_sc;   // Th x 1 — fast path only
-    if (!store_full) proj_sc = Xreg * invXpX_sc.t();
+    if (!full_meat) proj_sc = Xreg * invXpX_sc.t();
 
     // ---- loop over equations (each LHS variable) ----------------------
     for (int eq = 0; eq < ny; eq++) {
@@ -230,40 +232,23 @@ LPResult fLP_internal(
       //   V_h     = (X'X)^{-1} * G * (X'X)^{-1}
       // ------------------------------------------------------------------
       double var_sc;
-      if (store_full) {
-        // Need every diagonal element of V, so form the full sandwich.
-        arma::mat XU = Xreg;      // Th x kr
-        XU.each_col() %= u;       // row t scaled by u(t)
-        const arma::mat S = XU.t();  // kr x Th, S.col(t) = X_reg_t * u_t
-
-        arma::mat G(kr, kr, arma::fill::zeros);
-        for (int a = 0; a <= nwL; a++) {
-          const double w = static_cast<double>(nwL + 1 - a) /
-                           static_cast<double>(nwL + 1);        // Bartlett
-          const arma::mat Gamma_a = S.cols(a, Th - 1) * S.cols(0, Th - 1 - a).t();
-          if (a == 0) G += w * Gamma_a;
-          else        G += w * (Gamma_a + Gamma_a.t());
-        }
-        const arma::mat V = invXpX * G * invXpX;
+      if (full_meat) {
+        // Full sandwich: needed for every diagonal element of V, and for
+        // prewhitening, which acts on the whole score vector.
+        arma::mat XU = Xreg;      // Th x kr, row t = g_t' = X_reg_t' u_t
+        XU.each_col() %= u;
+        const arma::mat V = invXpX * se_newey_west_cpp(XU, nwL, nw_prewhite) * invXpX;
         var_sc = V(sc, sc);
-        for (int j = 0; j < kr; j++) {
-          Se_h(j, eq) = std::sqrt(std::max(0.0, V(j, j)));
-        }
+        if (store_full)
+          for (int j = 0; j < kr; j++)
+            Se_h(j, eq) = std::sqrt(std::max(0.0, V(j, j)));
       } else {
         // Fast path: we only need V(sc, sc) = invXpX(sc, :) * G * invXpX(:, sc).
         // Rewrite as sum_a w_a * (invXpX_sc * Gamma_a * invXpX_sc') using
         // a_t = u_t * (X_reg_t . invXpX_sc) so invXpX_sc * Gamma_a * invXpX_sc'
         // = sum_{t=a}^{Th-1} a(t) * a(t - a).
         const arma::vec a_vec = u % proj_sc;             // Th x 1
-        double G_sc = arma::dot(a_vec, a_vec);           // Gamma_0
-        for (int lag = 1; lag <= nwL; lag++) {
-          const double w = static_cast<double>(nwL + 1 - lag) /
-                           static_cast<double>(nwL + 1);
-          double gamma_lag = 0.0;
-          for (int t = lag; t < Th; t++) gamma_lag += a_vec(t) * a_vec(t - lag);
-          G_sc += 2.0 * w * gamma_lag;
-        }
-        var_sc = G_sc;
+        var_sc = se_newey_west_lrv_cpp(a_vec.memptr(), Th, nwL);
       }
 
       const double irf_h = Beta(sc, eq);
@@ -320,7 +305,7 @@ LPResult fLP_internal(
 //'   \eqn{y_{t+h} - y_{t-1}} on the RHS (cumulative response). Default
 //'   \code{FALSE}.
 //' @param n_threads Integer. OpenMP threads for the horizon loop. 0 = all
-//'   available cores. Default 0.
+//'   cores minus one. Default 0.
 //' @param nw_offset Integer. Shift applied to the NW bandwidth rule
 //'   (effective bandwidth = \code{nw_lags_base + h + nw_offset}, floored at
 //'   0). Default \code{1L}, the Miranda-Agrippino & Ricco convention
@@ -338,6 +323,9 @@ LPResult fLP_internal(
 //'   \code{LPmodel.m}. With \code{NULL} (default) row 1 of \code{Y} is
 //'   consumed as the base and one observation is lost — correct only when no
 //'   earlier outcome exists. Ignored when \code{cumulative = FALSE}.
+//' @param nw_prewhite Logical. Andrews-Monahan (1992) VAR(1) prewhitening
+//'   of the score vector before the Newey-West sum, with the VAR(1) matrix
+//'   shrunk when its spectral radius exceeds 0.97. Default \code{FALSE}.
 //'
 //' @return A named list with \code{irfs}, \code{irfs_upper}, \code{irfs_lower},
 //'   \code{irfs_se} (raw, unscaled SE of the shock coefficient — lets
@@ -358,7 +346,8 @@ Rcpp::List fLP_cpp(
     int       n_threads    = 0,
     int       nw_offset    = 1,
     bool      verbose      = false,
-    Rcpp::Nullable<arma::mat> Y_pre = R_NilValue
+    Rcpp::Nullable<arma::mat> Y_pre = R_NilValue,
+    bool      nw_prewhite  = false
 ) {
   if (Y.n_rows != X.n_rows) {
     Rcpp::stop("fLP_cpp: Y and X must have the same number of rows.");
@@ -392,7 +381,7 @@ Rcpp::List fLP_cpp(
 
   LPResult res = fLP_internal(Y, X, H, shock_col, conf_level, nw_lags_base,
                               store_full, cumulative, n_threads, nw_offset,
-                              verbose, Y_pre_mat);
+                              verbose, Y_pre_mat, nw_prewhite);
 
   if (res.rank_deficient) {
     Rcpp::stop(

@@ -49,6 +49,11 @@
 #'   \code{= 0}: horizon-varying bandwidth \code{= h} (just-identified rule).
 #'   Default \code{NULL} → use \code{ncol(Z) - 1}, i.e. the lag order implied
 #'   by the instrument formula, which reproduces the toolbox default.
+#' @param nw_prewhite Logical. If \code{TRUE}, apply Andrews-Monahan (1992)
+#'   VAR(1) prewhitening to the regression scores before the Newey-West sum
+#'   (same bandwidth), shrinking the VAR(1) matrix when its spectral radius
+#'   exceeds 0.97. Default \code{FALSE} (plain Newey-West, as in the VAR
+#'   Toolbox).
 #' @param cumulative Logical. \code{TRUE} regresses
 #'   \eqn{y_{t+h} - y_{t-1}} on the RHS. Default \code{TRUE} — the standard
 #'   long-difference LP-IV convention. When generated lags trim the leading
@@ -61,7 +66,7 @@
 #'   estimation sample. These correspond to \code{LPopt.impact = 1} and
 #'   \code{LPopt.impact = 0} in Cesa-Bianchi's \code{LPmodel.m}.
 #' @param n_threads Integer. OpenMP threads for the horizon loop. Default 0
-#'   (= all available cores).
+#'   (= all cores minus one).
 #'
 #' @return An object of class \code{c("fLPIV", "fLP")} so all existing
 #'   \code{fLP}-family methods (\code{print}, \code{tidy.fLP}, \code{fPlotLP})
@@ -95,6 +100,7 @@ fLPIV <- function(formula, instruments, data,
                   horizons   = 12L,
                   conf       = 90,
                   nw_lags_iv = NULL,
+                  nw_prewhite = FALSE,
                   cumulative = TRUE,
                   shock_size = c("unit", "sd"),
                   n_threads  = 0L) {
@@ -121,44 +127,21 @@ fLPIV <- function(formula, instruments, data,
   if (!is.data.frame(data)) data <- as.data.frame(data)
 
   # -------------------------------------------------------------------
-  # 1. Parse 'formula' RHS/LHS with the fLP text-based expander
+  # 1. Parse 'formula' with the fLP expander
   # -------------------------------------------------------------------
-  fmla_chr <- paste(deparse(formula), collapse = "")
-  fmla_chr <- .fLP_expand_macro_lag(fmla_chr, env)
-  fmla_chr <- .fLP_expand_macro(fmla_chr, env)
-  exp_main <- .fLP_expand_lag_terms(fmla_chr, data)
-  fmla_chr <- exp_main$formula_chr
-  data     <- exp_main$data
-
-  fmla_full <- tryCatch(as.formula(fmla_chr, env = env),
-    error = function(e) stop("fLPIV: cannot parse expanded formula:\n  ", fmla_chr,
-                             "\n  ", conditionMessage(e)))
-
-  lhs_vars <- all.vars(fmla_full[[2L]])
-  rhs_str  <- paste(deparse(fmla_full[[3L]]), collapse = " ")
-  rhs_tms  <- terms(as.formula(paste("~", rhs_str), env = env), keep.order = TRUE)
-  rhs_vars <- attr(rhs_tms, "term.labels")
-
-  if (length(lhs_vars) == 0L) stop("fLPIV: formula must have at least one LHS variable.")
-  if (length(rhs_vars) == 0L) stop("fLPIV: formula RHS must have at least the endogenous treatment.")
+  parsed    <- .fLP_parse(formula, data, env, "fLPIV")
+  lhs_vars  <- parsed$lhs_vars
+  rhs_vars  <- parsed$rhs_vars
+  data      <- parsed$data
+  fmla_full <- parsed$formula_expanded
 
   # -------------------------------------------------------------------
   # 2. Parse 'instruments' (one-sided) with the same expander
   # -------------------------------------------------------------------
-  iv_chr <- paste(deparse(instruments), collapse = "")
-  iv_chr <- .fLP_expand_macro_lag(iv_chr, env)
-  iv_chr <- .fLP_expand_macro(iv_chr, env)
-  exp_iv <- .fLP_expand_lag_terms(iv_chr, data)
-  iv_chr <- exp_iv$formula_chr
-  data   <- exp_iv$data
-
-  iv_full <- tryCatch(as.formula(iv_chr, env = env),
-    error = function(e) stop("fLPIV: cannot parse expanded instruments formula:\n  ", iv_chr,
-                             "\n  ", conditionMessage(e)))
-  iv_rhs  <- if (length(iv_full) == 2L) iv_full[[2L]] else iv_full[[3L]]
-  iv_str  <- paste(deparse(iv_rhs), collapse = " ")
-  iv_tms  <- terms(as.formula(paste("~", iv_str), env = env), keep.order = TRUE)
-  iv_vars <- attr(iv_tms, "term.labels")
+  exp_iv  <- .fLP_expand_formula(instruments, data, env, "fLPIV")
+  data    <- exp_iv$data
+  iv_full <- exp_iv$formula
+  iv_vars <- .fLP_term_labels(iv_full[[length(iv_full)]], env)
   if (length(iv_vars) == 0L)
     stop("fLPIV: 'instruments' must contribute at least one instrument.")
 
@@ -215,6 +198,8 @@ fLPIV <- function(formula, instruments, data,
   }
   if (!is.logical(cumulative) || length(cumulative) != 1L || is.na(cumulative))
     stop("fLPIV: 'cumulative' must be TRUE or FALSE.")
+  if (!is.logical(nw_prewhite) || length(nw_prewhite) != 1L || is.na(nw_prewhite))
+    stop("fLPIV: 'nw_prewhite' must be TRUE or FALSE.")
   n_threads <- .fLP_validate_scalar_int(n_threads, "n_threads")
 
   min_obs <- ncol(C) + ncol(Z) + 3L + H +
@@ -238,7 +223,8 @@ fLPIV <- function(formula, instruments, data,
     cumulative = isTRUE(cumulative),
     n_threads  = as.integer(n_threads),
     verbose    = FALSE,
-    Y_pre      = Y_pre
+    Y_pre      = Y_pre,
+    nw_prewhite = nw_prewhite
   )
 
   # Shock-size convention. LPmodel.m's impact = 0 does not touch the
@@ -255,49 +241,17 @@ fLPIV <- function(formula, instruments, data,
   }
 
   # -------------------------------------------------------------------
-  # 7. Rebuild multi-band bands (matching fLP behavior)
-  # -------------------------------------------------------------------
-  .build_band <- function(cl) {
-    z <- stats::qnorm(0.5 * (1.0 + cl / 100))
-    list(upper = res_cpp$irfs + z * res_cpp$irfs_se,
-         lower = res_cpp$irfs - z * res_cpp$irfs_se)
-  }
-  if (length(conf) == 1L) {
-    b <- .build_band(conf)
-    res_cpp$irfs_upper <- b$upper
-    res_cpp$irfs_lower <- b$lower
-  } else {
-    keys <- format(conf, trim = TRUE)
-    upper_list <- vector("list", length(conf)); names(upper_list) <- keys
-    lower_list <- vector("list", length(conf)); names(lower_list) <- keys
-    for (i in seq_along(conf)) {
-      b <- .build_band(conf[i])
-      upper_list[[i]] <- b$upper
-      lower_list[[i]] <- b$lower
-    }
-    res_cpp$irfs_upper <- upper_list
-    res_cpp$irfs_lower <- lower_list
-  }
-
-  # -------------------------------------------------------------------
-  # 8. Labeling
+  # 7. Labels and bands (as in fLP)
   # -------------------------------------------------------------------
   h_seq <- 0L:H
-  rownames(res_cpp$irfs)    <- as.character(h_seq); colnames(res_cpp$irfs)    <- lhs_vars
-  rownames(res_cpp$irfs_se) <- as.character(h_seq); colnames(res_cpp$irfs_se) <- lhs_vars
+  dimnames(res_cpp$irfs)    <- list(as.character(h_seq), lhs_vars)
+  dimnames(res_cpp$irfs_se) <- dimnames(res_cpp$irfs)
   names(res_cpp$Fstat_fs)   <- as.character(h_seq)
   names(res_cpp$rsqr_fs)    <- as.character(h_seq)
 
-  .label_band <- function(m) {
-    rownames(m) <- as.character(h_seq); colnames(m) <- lhs_vars; m
-  }
-  if (is.list(res_cpp$irfs_upper)) {
-    res_cpp$irfs_upper <- lapply(res_cpp$irfs_upper, .label_band)
-    res_cpp$irfs_lower <- lapply(res_cpp$irfs_lower, .label_band)
-  } else {
-    res_cpp$irfs_upper <- .label_band(res_cpp$irfs_upper)
-    res_cpp$irfs_lower <- .label_band(res_cpp$irfs_lower)
-  }
+  bands <- .fLP_bands(res_cpp$irfs, res_cpp$irfs_se, conf)
+  res_cpp$irfs_upper <- bands$upper
+  res_cpp$irfs_lower <- bands$lower
 
   res_cpp$lhs_vars        <- lhs_vars
   res_cpp$rhs_vars        <- rhs_vars
@@ -308,6 +262,7 @@ fLPIV <- function(formula, instruments, data,
   res_cpp$horizons        <- h_seq
   res_cpp$conf            <- conf
   res_cpp$nw_lags_iv      <- nw_lags_iv
+  res_cpp$nw_prewhite     <- nw_prewhite
   res_cpp$cumulative      <- isTRUE(cumulative)
   res_cpp$shock_size      <- shock_size
   res_cpp$n_threads       <- as.integer(n_threads)
@@ -346,6 +301,7 @@ print.fLPIV <- function(x, digits = 4L, ...) {
   } else {
     cat("horizon-varying = h (just-identified rule)\n")
   }
+  if (isTRUE(x$nw_prewhite)) cat("Prewhitening     :  VAR(1) (Andrews-Monahan)\n")
   cat("Observations     : ", x$nobs, "\n")
   cat("\nIRF (endog = '", x$endog, "'):\n", sep = "")
   print(round(x$irfs, digits))

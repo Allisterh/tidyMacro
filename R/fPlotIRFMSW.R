@@ -38,41 +38,27 @@ fPlotIRFMSW <- function(msw_result, varnames, shockname,
                          facet_scales    = "free",
                          facet_ncol      = 2) {
 
-    irf     <- msw_result$IRF       * scale
-    dm_lo   <- msw_result$Dmlbound  * scale
-    dm_hi   <- msw_result$Dmubound  * scale
-    ar_lo   <- msw_result$MSWlbound * scale
-    ar_hi   <- msw_result$MSWubound * scale
+    dm <- .fScaleBand(msw_result$Dmubound,  msw_result$Dmlbound,  scale)
+    ar <- .fScaleBand(msw_result$MSWubound, msw_result$MSWlbound, scale)
 
-    N       <- nrow(irf)
-    horizon <- ncol(irf)
-
-    irf_list <- vector("list", N)
-    for (i in seq_len(N)) {
-        irf_list[[i]] <- tibble::tibble(
-            variable = varnames[i],
-            horizon  = 0L:(horizon - 1L),
-            point    = as.numeric(irf[i, ]),
-            dm_lo    = as.numeric(dm_lo[i, ]),
-            dm_hi    = as.numeric(dm_hi[i, ]),
-            ar_lo    = as.numeric(ar_lo[i, ]),
-            ar_hi    = as.numeric(ar_hi[i, ]),
-            shock    = shockname
-        )
-    }
-
-    irf_data <- do.call(rbind, irf_list)
-    irf_data$variable <- factor(irf_data$variable, levels = varnames)
+    irf_data <- .fIRFLong(varnames, list(
+        point = msw_result$IRF * scale,
+        dm_lo = dm$lower,
+        dm_hi = dm$upper,
+        ar_lo = ar$lower,
+        ar_hi = ar$upper,
+        shock = shockname
+    ))
 
     if (return_data)
-        return(tibble::as_tibble(irf_data))
+        return(irf_data)
 
-    ggplot2::ggplot(irf_data, ggplot2::aes(x = horizon)) +
+    ggplot2::ggplot(irf_data, ggplot2::aes(x = .data$horizon)) +
         ggplot2::geom_ribbon(
-            ggplot2::aes(ymin = ar_lo, ymax = ar_hi, fill = "Anderson-Rubin"),
+            ggplot2::aes(ymin = .data$ar_lo, ymax = .data$ar_hi, fill = "Anderson-Rubin"),
             alpha = ribbon_alpha_ar) +
         ggplot2::geom_ribbon(
-            ggplot2::aes(ymin = dm_lo, ymax = dm_hi, fill = "Delta Method"),
+            ggplot2::aes(ymin = .data$dm_lo, ymax = .data$dm_hi, fill = "Delta Method"),
             alpha = ribbon_alpha_dm) +
         ggplot2::geom_line(ggplot2::aes(y = .data$point, color = "Point estimate"),
                            linewidth = 0.8) +

@@ -72,7 +72,7 @@ yet implemented in C++).}
 
 \item{conf}{Confidence level for the reported bands, in percent (default 90).}
 
-\item{n_threads}{OpenMP threads (\code{-1} = all available).}
+\item{n_threads}{OpenMP threads (\code{<= 0} = all cores minus one).}
 }
 \value{
 A tibble of class \code{"fLPDID"} with columns

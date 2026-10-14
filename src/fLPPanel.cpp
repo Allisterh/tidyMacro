@@ -11,11 +11,12 @@
 #include "fLPPanel.h"
 #include "panel_shift.h"
 #include <RcppArmadillo.h>
+#include "omp_threads.h"
+#include "se_cluster.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 #include <algorithm>
-#include <cstdint>
 #include <unordered_map>
 #include <vector>
 #include <cmath>
@@ -129,58 +130,6 @@ static void regress_HDFE(
 }
 
 
-// Sum observation-level scores within a single cluster dimension.
-static arma::mat aggregate_scores(
-    const arma::mat& scores,
-    const arma::ivec& cluster
-) {
-  const arma::ivec labels = arma::sort(arma::unique(cluster));
-  std::unordered_map<int, arma::uword> row_of;
-  row_of.reserve(labels.n_elem * 2);
-  for (arma::uword g = 0; g < labels.n_elem; ++g) {
-    row_of.emplace(labels(g), g);
-  }
-
-  arma::mat sums(labels.n_elem, scores.n_cols, arma::fill::zeros);
-  for (arma::uword r = 0; r < scores.n_rows; ++r) {
-    sums.row(row_of[cluster(r)]) += scores.row(r);
-  }
-  return sums;
-}
-
-
-// Sum scores within intersections of two cluster dimensions. The R wrapper
-// rejects duplicate panel cells, but handling them here keeps the exported
-// C++ boundary correct when called directly.
-static arma::mat aggregate_pair_scores(
-    const arma::mat& scores,
-    const arma::ivec& cluster_a,
-    const arma::ivec& cluster_b
-) {
-  std::unordered_map<std::uint64_t, arma::uword> row_of;
-  row_of.reserve(scores.n_rows * 2);
-  arma::mat sums(scores.n_rows, scores.n_cols, arma::fill::zeros);
-  arma::uword n_groups = 0;
-
-  for (arma::uword r = 0; r < scores.n_rows; ++r) {
-    const std::uint64_t a = static_cast<std::uint32_t>(cluster_a(r));
-    const std::uint64_t b = static_cast<std::uint32_t>(cluster_b(r));
-    const std::uint64_t key = (a << 32) | b;
-    auto it = row_of.find(key);
-    if (it == row_of.end()) {
-      row_of.emplace(key, n_groups);
-      sums.row(n_groups) = scores.row(r);
-      ++n_groups;
-    } else {
-      sums.row(it->second) += scores.row(r);
-    }
-  }
-
-  sums.resize(n_groups, scores.n_cols);
-  return sums;
-}
-
-
 // =======================================================================
 // Main engine
 // =======================================================================
@@ -282,13 +231,11 @@ LPPanelResult fLPPanel_internal(
   out.converged.set_size(H + 1);      out.converged.ones();
 
   // Threading — unified rule across all LP engines:
-  //   n_threads <= 0 -> use all available cores
+  //   n_threads <= 0 -> all cores minus one
   //   n_threads  > 0 -> use exactly that many
   int actual_threads = 1;
 #ifdef _OPENMP
-  actual_threads = (n_threads <= 0)
-                       ? std::max(1, omp_get_max_threads())
-                       : n_threads;
+  actual_threads = fResolveThreads_cpp(n_threads);
   if (verbose) {
     Rprintf("fLPPanel: using %d thread(s) for parallel horizon loop...\n",
                 actual_threads);
@@ -349,9 +296,6 @@ LPPanelResult fLPPanel_internal(
     const arma::ivec  i_LP = i_index.elem(keep_idx);
     const arma::ivec  t_LP = t_index.elem(keep_idx);
 
-    arma::ivec t_sorted = arma::sort(arma::unique(t_LP));
-    const arma::uword T = t_sorted.n_elem;
-
     // HDFE + OLS
     arma::mat y_LP = y_LP0;
     arma::mat X_LP = X_LP0;
@@ -371,19 +315,18 @@ LPPanelResult fLPPanel_internal(
     arma::vec u = y_LP.col(0) - X_LP * b_LP;
     arma::mat Xv_it = X_LP.each_col() % u;
 
-    std::unordered_map<int, arma::uword> t_row;
-    t_row.reserve(T * 2);
-    for (arma::uword tt = 0; tt < T; ++tt) t_row.emplace(t_sorted(tt), tt);
-
-    arma::mat Xv_t(T, n_X, arma::fill::zeros);
-    for (arma::uword r = 0; r < Xv_it.n_rows; ++r) {
-      Xv_t.row(t_row[t_LP(r)]) += Xv_it.row(r);
-    }
-
     const arma::mat XX      = X_LP.t() * X_LP;
     const arma::mat XX_pinv = arma::pinv(XX);
 
     if (small_sample) {
+
+      // Time-cluster score sums; row tt follows the ascending times t_sorted.
+      const arma::mat Xv_t = se_cluster_sums_cpp(Xv_it, t_LP);
+      const arma::ivec t_sorted = arma::sort(arma::unique(t_LP));
+      const arma::uword T = t_sorted.n_elem;
+      std::unordered_map<int, arma::uword> t_row;
+      t_row.reserve(T * 2);
+      for (arma::uword tt = 0; tt < T; ++tt) t_row.emplace(t_sorted(tt), tt);
 
       const arma::mat s_sub = s.rows(keep_idx);
       for (arma::uword is = 0; is < n_s; ++is) {
@@ -438,23 +381,11 @@ LPPanelResult fLPPanel_internal(
 
     } else {
 
-      arma::mat Xv_var;
-      if (cluster_mode == 0) {
-        // One-way clustering by time.
-        Xv_var = Xv_t.t() * Xv_t;
-      } else {
-        const arma::mat Xv_i = aggregate_scores(Xv_it, i_LP);
-        const arma::mat meat_i = Xv_i.t() * Xv_i;
-        if (cluster_mode == 1) {
-          // One-way clustering by unit.
-          Xv_var = meat_i;
-        } else {
-          // Cameron-Gelbach-Miller two-way clustering:
-          // M_unit + M_time - M_(unit,time).
-          const arma::mat Xv_cell = aggregate_pair_scores(Xv_it, i_LP, t_LP);
-          Xv_var = meat_i + Xv_t.t() * Xv_t - Xv_cell.t() * Xv_cell;
-        }
-      }
+      // Time, unit, or Cameron-Gelbach-Miller two-way (unit + time).
+      const arma::mat Xv_var =
+          cluster_mode == 0 ? se_cluster_cpp(Xv_it, t_LP) :
+          cluster_mode == 1 ? se_cluster_cpp(Xv_it, i_LP) :
+                              se_cluster_twoway_cpp(Xv_it, i_LP, t_LP);
       const arma::mat b_var  = XX_pinv * Xv_var * XX_pinv;
       for (arma::uword is = 0; is < n_s; ++is) {
         out.SE(h, is) = std::sqrt(std::max(0.0, b_var(is, is)));

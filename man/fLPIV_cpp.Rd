@@ -15,7 +15,8 @@ fLPIV_cpp(
   cumulative = FALSE,
   n_threads = 0L,
   verbose = FALSE,
-  Y_pre = NULL
+  Y_pre = NULL,
+  nw_prewhite = FALSE
 )
 }
 \arguments{
@@ -40,7 +41,7 @@ engine adds one internally). May be empty (0 columns).}
 \item{cumulative}{Logical. \code{TRUE} regresses \eqn{y_{t+h} - y_{t-1}};
 \code{FALSE} regresses the level \eqn{y_{t+h}}.}
 
-\item{n_threads}{Integer. OpenMP threads. \code{0} = all available cores.}
+\item{n_threads}{Integer. OpenMP threads. \code{0} = all cores minus one.}
 
 \item{verbose}{Logical. Print the thread count. Default \code{FALSE}.}
 
@@ -50,6 +51,10 @@ long-difference base for the first estimable date. Supplying it keeps
 every row of \code{Y} estimable and matches the \code{endo_lag1}
 alignment of Cesa-Bianchi's \code{LPmodel.m}. With \code{NULL} (default)
 row 1 of \code{Y} is consumed as the base and one observation is lost.}
+
+\item{nw_prewhite}{Logical. Andrews-Monahan (1992) VAR(1) prewhitening
+of the score vector before the Newey-West sum, with the VAR(1) matrix
+shrunk when its spectral radius exceeds 0.97. Default \code{FALSE}.}
 }
 \value{
 A named list with \code{irfs}, \code{irfs_upper}, \code{irfs_lower},

@@ -75,7 +75,8 @@ arma::mat chol_lower_safe(const arma::mat& A) {
 //'
 //' @seealso \code{\link{fSR_cpp}}, \code{\link{fRecoverBIV_cpp}}
 //'
-//' @export
+//' @keywords internal
+//' @noRd
 // [[Rcpp::export]]
 Rcpp::List fRecoverBIVMulti_cpp(const arma::mat& resid_sub,
                                 const arma::mat& Z_sub,

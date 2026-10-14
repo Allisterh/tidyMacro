@@ -11,6 +11,8 @@
 #include "fLPDID.h"
 #include "panel_shift.h"
 #include <RcppArmadillo.h>
+#include "omp_threads.h"
+#include "se_cluster.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -404,8 +406,7 @@ Rcpp::List fLPDID_cpp(
     const vec u  = yv - Zk * coef;     // unweighted residuals
     const vec us = u % sw;             // score uses w * z * u = (sw z)(sw u)
 
-    mat S(nG, Pk, fill::zeros);
-    for (uword s = 0; s < m; ++s) S.row(gid[s]) += us(s) * Zsk.row(s);
+    const mat S  = se_cluster_sums_cpp(Zsk.each_col() % us, gid, nG);
     const vec Sq = S * q;              // meat sandwich needs only S q
 
     const double Kfull = double(Pk + nY);          // reghdfe fixef.K = "full"
@@ -434,9 +435,8 @@ Rcpp::List fLPDID_cpp(
 
   std::vector<TaskRes> res(nT);
 
-  int nt = n_threads;
+  const int nt = fResolveThreads_cpp(n_threads);
 #ifdef _OPENMP
-  if (nt <= 0) nt = omp_get_max_threads();
 #pragma omp parallel for schedule(dynamic) num_threads(nt)
 #endif
   for (int ti = 0; ti < nT; ++ti)

@@ -16,7 +16,8 @@ fLP_cpp(
   n_threads = 0L,
   nw_offset = 1L,
   verbose = FALSE,
-  Y_pre = NULL
+  Y_pre = NULL,
+  nw_prewhite = FALSE
 )
 }
 \arguments{
@@ -43,7 +44,7 @@ standard-error matrices for every horizon.}
 \code{FALSE}.}
 
 \item{n_threads}{Integer. OpenMP threads for the horizon loop. 0 = all
-available cores. Default 0.}
+cores minus one. Default 0.}
 
 \item{nw_offset}{Integer. Shift applied to the NW bandwidth rule
 (effective bandwidth = \code{nw_lags_base + h + nw_offset}, floored at
@@ -63,6 +64,10 @@ matches the \code{endo_lag1} alignment of Cesa-Bianchi's
 \code{LPmodel.m}. With \code{NULL} (default) row 1 of \code{Y} is
 consumed as the base and one observation is lost — correct only when no
 earlier outcome exists. Ignored when \code{cumulative = FALSE}.}
+
+\item{nw_prewhite}{Logical. Andrews-Monahan (1992) VAR(1) prewhitening
+of the score vector before the Newey-West sum, with the VAR(1) matrix
+shrunk when its spectral radius exceeds 0.97. Default \code{FALSE}.}
 }
 \value{
 A named list with \code{irfs}, \code{irfs_upper}, \code{irfs_lower},

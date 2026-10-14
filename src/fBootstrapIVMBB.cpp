@@ -1,228 +1,101 @@
 // [[Rcpp::depends(RcppArmadillo)]]
 // [[Rcpp::plugins(openmp)]]
 
-// CRITICAL: Define this BEFORE including RcppArmadillo to prevent conflicts
 #define ARMA_DONT_USE_OPENMP
 
-#include "fBootstrapIVMBB.h"
-#include "fOLS.h"
-#include "fVAR.h"
-#include "fGenerateVARData.h"
-#include "fMBBVAR.h"
-#include "fWoldIRF.h"
 #include <RcppArmadillo.h>
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-#include <algorithm>
-#include <vector>
+#include "fBootstrapIVMBB.h"
+#include "fBootstrapVAR.h"
+#include "fGetBands.h"
+#include "fMBBVAR.h"
+#include "fOLS.h"
 
-// Internal C++ function (called from other C++ code)
-// Calls _cpp versions of internal functions - no list overhead!
+arma::vec fProxyImpact_cpp(const arma::mat& u, const arma::mat& Z, int pv) {
+  const int N = static_cast<int>(u.n_cols);
+
+  // First stage: policy residual on the instrument
+  arma::vec u_p = u.col(pv);
+  arma::mat u_q = u;
+  u_q.shed_col(pv);
+  OLSResult ols1 = fOLS_cpp(u_p, Z, 0, 0, 0, 0);
+  const arma::mat& uhat = ols1.fitted_partial;
+
+  // Second stage: non-policy residuals on the fitted policy residual
+  arma::mat sq_sp = arma::solve(uhat.t() * uhat, uhat.t() * u_q);
+
+  arma::vec s(N, arma::fill::none);
+  int counter = 0;
+  for (int i = 0; i < N; ++i)
+    s(i) = (i == pv) ? 1.0 : sq_sp(counter++);
+  return s;
+}
+
+arma::mat fMBBPadResiduals_cpp(const arma::mat& residuals, const arma::mat& eps_boot,
+                               int u_start) {
+  arma::mat res_boot = residuals;
+  res_boot.rows(u_start, u_start + eps_boot.n_rows - 1) = eps_boot;
+  return res_boot;
+}
+
 BootstrapIVMBBResult
 fBootstrapIVMBB_cpp(const arma::mat &y, const VARResult &var_result,
                      const arma::mat &Z, int nboot, int blocksize,
                      const arma::ivec &adjustZ, const arma::ivec &adjustu,
                      int policyvar, int horizon, double conf, double conf2,
-                     Rcpp::Nullable<arma::mat> exog, int n_threads) {
+                     const arma::mat* exog_ptr, int n_threads) {
 
-  // Extract VAR components from struct (much faster than from Rcpp::List)
-  const arma::mat &beta = var_result.beta;
   const arma::mat &residuals = var_result.residuals;
-  const int p = var_result.p;
-  const int c = var_result.c;
-  const int n_exog = var_result.n_exog;
+  const int p  = var_result.p;
+  const int c  = var_result.c;
+  const int N  = y.n_cols;
+  const int H  = horizon + 1;
+  const int pv = policyvar - 1;
 
-  // If original VAR had exogenous variables, they must be provided
-  if (n_exog > 0 && exog.isNull()) {
-    Rcpp::stop("Original VAR estimation used exogenous variables. You must "
-               "provide the 'exog' parameter.");
-  }
-
-  // If original VAR had no exogenous variables, they should not be provided
-  if (n_exog == 0 && exog.isNotNull()) {
-    Rcpp::stop("Original VAR estimation did not use exogenous variables. Do "
-               "not provide the 'exog' parameter.");
-  }
-
-  const int N = y.n_cols; // Implicit conversion from arma::uword to int
-  const int H = horizon + 1;
-
-  // Convert 1-based policyvar to 0-based
-  const int policyvar_idx = policyvar - 1;
-
-  // Pre-allocate storage for bootstrapped IRFs
-  arma::cube ivirf_boot(N, H, nboot, arma::fill::none);
-
-  // Balance IV and residuals to overlap (convert 1-based to 0-based indices)
+  // Balance IV and residuals to overlap (1-based R indices to 0-based)
   const int Z_start = adjustZ(0) - 1;
-  const int Z_end = adjustZ(1) - 1;
+  const int Z_end   = adjustZ(1) - 1;
   const int u_start = adjustu(0) - 1;
-  const int u_end = adjustu(1) - 1;
-
-  const arma::mat Zstar = Z.rows(Z_start, Z_end);
+  const int u_end   = adjustu(1) - 1;
+  const arma::mat Zstar   = Z.rows(Z_start, Z_end);
   const arma::mat Epsstar = residuals.rows(u_start, u_end);
 
-  // Hoist exog conversion out of the parallel region.
-  const bool has_exog = exog.isNotNull();
-  arma::mat exog_mat;
-  if (has_exog) exog_mat = Rcpp::as<arma::mat>(exog);
+  // Blocks and centering are fixed; block indices are drawn on the main thread
+  const MBBSamplerState mbb = fmbb_precompute_cpp(Epsstar, p, blocksize, &Zstar);
+  const arma::imat index    = fmbb_draw_cpp(mbb, nboot);
 
-  // Precompute MBB sampler state once — Blocks, centering, etc. are constant.
-  MBBSamplerState mbb_state = fmbb_precompute_cpp(Epsstar, p, blocksize, Zstar);
+  const int n_thr = fResolveThreads_cpp(n_threads);
+  Rprintf("Using %d thread(s) for parallel bootstrap computation...\n", n_thr);
 
-// Determine and set number of threads for OpenMP
-int actual_threads = 1;  // Default to 1 if no OpenMP
+  // Draw b's N x H responses are column b of the flat (N*H) x nboot matrix
+  arma::mat flat(N * H, nboot, arma::fill::none);
 
 #ifdef _OPENMP
-// If n_threads is 0, use all available cores minus 1
-if (n_threads == 0) {
-int max_threads = omp_get_max_threads();
-actual_threads = std::max(1, max_threads - 1);  // Leave one core free
-} else {
-actual_threads = n_threads;
-}
-omp_set_num_threads(actual_threads);
-Rprintf("Using %d thread(s) for parallel bootstrap computation...\n", actual_threads);
-#else
-Rprintf("OpenMP not available. Running in single-threaded mode.\n");
-actual_threads = 1;
-#endif
-
-// Bootstrap loop - parallelized with OpenMP
-// Each iteration is independent, making this perfectly parallelizable
-#ifdef _OPENMP
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(static) num_threads(n_thr)
 #endif
   for (int b = 0; b < nboot; ++b) {
-    // Each thread needs its own workspace
-    arma::mat res_boot(residuals.n_rows, residuals.n_cols, arma::fill::none);
+    MBBVARResult draw = fmbb_sample_cpp(mbb, index.col(b));
 
-    // Sample one bootstrap draw from the precomputed state (blocks + centering
-    // are shared read-only; only the random index draw changes per iteration).
-    MBBVARResult mbb_result = fmbb_sample_cpp(mbb_state);
-    const arma::mat &eps_boot = mbb_result.eps_boot; // Use reference - no copy!
-    const arma::mat &Znew = mbb_result.M_boot;       // Use reference - no copy!
+    // Resampled residuals inside the proxy window, original ones outside
+    arma::mat res_boot = fMBBPadResiduals_cpp(residuals, draw.eps_boot, u_start);
+    arma::mat yb = fSimulateVAR_cpp(y, var_result, res_boot, exog_ptr);
+    VARResult var_b = fVAR_cpp(yb, p, c, exog_ptr);
 
-    // Pad the data with the original residuals
-    if (u_start > 0) {
-      res_boot.rows(0, u_start - 1) = residuals.rows(0, u_start - 1);
-    }
-    res_boot.rows(u_start, u_end) = eps_boot;
-
-    if (u_end < static_cast<int>(residuals.n_rows) - 1) {
-      res_boot.rows(u_end + 1, residuals.n_rows - 1) =
-          residuals.rows(u_end + 1, residuals.n_rows - 1);
-    }
-
-    // Bootstrap the VAR
-    arma::mat varboot = fGenerateVARData(y, p, c, beta, res_boot);
-
-    // Estimate VAR on bootstrap sample using _cpp version
-    VARResult var_loop = has_exog
-                            ? fVAR_cpp(varboot, p, c, exog_mat)
-                            : fVAR_cpp(varboot, p, c, R_NilValue);
-
-    const arma::mat &residuals_loop =
-        var_loop.residuals; // Use reference - no copy!
-
-    // Extract policy variable residuals
-    arma::vec u_p_loop_final =
-        residuals_loop.col(policyvar_idx).rows(u_start, u_end);
-
-    // Extract non-policy residuals
-    arma::mat u_q_final = residuals_loop.rows(u_start, u_end);
-    u_q_final.shed_col(policyvar_idx);
-
-    // Compute Wold IRFs using _cpp version - no list overhead!
-    WoldIRFResult wold_result = fWoldIRF_cpp(var_loop, horizon);
-    const arma::cube &wold_loop =
-        wold_result.irfwold; // Use reference - no copy!
-
-    // First-stage regression: regress policy residual on instrument using _cpp
-    // version
-    OLSResult ols1_result = fOLS_cpp(u_p_loop_final, Znew, 0, 0, 0, 0);
-    const arma::mat &uhat =
-        ols1_result.fitted_partial; // Use reference - no copy!
-
-    // Second-stage: compute impact on non-policy variables
-    arma::mat sq_sp = arma::solve(uhat.t() * uhat, uhat.t() * u_q_final);
-
-    // Build structural impact vector (normalized sp = 1)
-    arma::vec s(N, arma::fill::zeros);
-    int counter = 0;
-    for (int i = 0; i < N; ++i) {
-      if (i == policyvar_idx) {
-        s(i) = 1.0;
-      } else {
-        s(i) = sq_sp(counter);
-        counter++;
-      }
-    }
-
-    // Compute structural IRFs: IRF_h = Wold_h * s
-    for (int h = 0; h < H; ++h) {
-      ivirf_boot.slice(b).col(h) = wold_loop.slice(h) * s;
-    }
+    arma::vec s = fProxyImpact_cpp(var_b.residuals.rows(u_start, u_end),
+                                   draw.M_boot, pv);
+    WoldIRFResult wold_b = fWoldIRF_cpp(var_b, horizon);
+    for (int h = 0; h < H; ++h)
+      flat.col(b).rows(h * N, h * N + N - 1) = wold_b.irfwold.slice(h) * s;
   }
 
-  // Compute percentiles
-  const double up_pct  = 50.0 + conf  * 0.5;
-  const double low_pct = 50.0 - conf  * 0.5;
-  const double up_pct2  = 50.0 + conf2 * 0.5;
-  const double low_pct2 = 50.0 - conf2 * 0.5;
+  arma::mat q = fRowPercentiles_cpp(flat, fBandLevels_cpp(conf, conf2), n_threads);
 
-  // Pre-allocate output matrices
-  arma::mat upper(N, H, arma::fill::none);
-  arma::mat lower(N, H, arma::fill::none);
-  arma::mat upper2(N, H, arma::fill::none);
-  arma::mat lower2(N, H, arma::fill::none);
-  arma::mat medianirf(N, H, arma::fill::none);
-  arma::mat meanirf(N, H, arma::fill::none);
-
-// Compute percentiles for each IRF element - also parallelized
-// Each (i,h) combination is independent
-#ifdef _OPENMP
-#pragma omp parallel for collapse(2) schedule(static)
-#endif
-  for (int i = 0; i < N; ++i) {
-    for (int h = 0; h < H; ++h) {
-      // Each thread needs its own boot_vals vector
-      std::vector<double> sv(nboot);
-      double sum_vals = 0.0;
-      for (int b = 0; b < nboot; ++b) {
-        sv[b] = ivirf_boot(i, h, b);
-        sum_vals += sv[b];
-      }
-      meanirf(i, h) = sum_vals / nboot;
-
-      auto nth_pct = [&](double pct) -> double {
-        const double raw = (pct / 100.0) * (nboot - 1);
-        const int lo = static_cast<int>(raw);
-        const double frac = raw - lo;
-        std::nth_element(sv.begin(), sv.begin() + lo, sv.end());
-        const double lo_val = sv[lo];
-        if (frac < 1e-12 || lo + 1 >= nboot) return lo_val;
-        return lo_val * (1.0 - frac) +
-               *std::min_element(sv.begin() + lo + 1, sv.end()) * frac;
-      };
-
-      upper(i, h)     = nth_pct(up_pct);
-      lower(i, h)     = nth_pct(low_pct);
-      upper2(i, h)    = nth_pct(up_pct2);
-      lower2(i, h)    = nth_pct(low_pct2);
-      medianirf(i, h) = nth_pct(50.0);
-    }
-  }
-
-  // Return results as struct
   BootstrapIVMBBResult result;
-  result.upper     = upper;
-  result.lower     = lower;
-  result.upper2    = upper2;
-  result.lower2    = lower2;
-  result.meanirf   = meanirf;
-  result.medianirf = medianirf;
+  result.upper     = arma::reshape(q.col(0), N, H);
+  result.lower     = arma::reshape(q.col(1), N, H);
+  result.upper2    = arma::reshape(q.col(2), N, H);
+  result.lower2    = arma::reshape(q.col(3), N, H);
+  result.medianirf = arma::reshape(q.col(4), N, H);
+  result.meanirf   = arma::reshape(arma::mean(flat, 1), N, H);
   return result;
 }
 
@@ -297,27 +170,16 @@ Rcpp::List fBootstrapIVMBB(const arma::mat &y, const Rcpp::List &var_result,
                             int horizon, double conf = 90.0, double conf2 = 68.0,
                             Rcpp::Nullable<arma::mat> exog = R_NilValue,
                             int n_threads = 0) {
+  VARResult vr = fVARResultFromList_cpp(var_result);
+  fCheckExogArg_cpp(vr.n_exog, exog.isNotNull());
+  arma::mat exog_mat;
+  if (exog.isNotNull()) exog_mat = Rcpp::as<arma::mat>(exog);
 
-  // Extract elements from R list and construct VARResult struct
-  VARResult var_result_struct;
-  var_result_struct.beta = Rcpp::as<arma::mat>(var_result["beta"]);
-  var_result_struct.residuals = Rcpp::as<arma::mat>(var_result["residuals"]);
-  var_result_struct.p = Rcpp::as<int>(var_result["p"]);
-  var_result_struct.c = Rcpp::as<int>(var_result["c"]);
-
-  // Check if n_exog exists in the list
-  if (var_result.containsElementNamed("n_exog")) {
-    var_result_struct.n_exog = Rcpp::as<int>(var_result["n_exog"]);
-  } else {
-    var_result_struct.n_exog = 0;
-  }
-
-  // Call the C++ function with the struct
   BootstrapIVMBBResult result =
-      fBootstrapIVMBB_cpp(y, var_result_struct, Z, nboot, blocksize, adjustZ,
-                           adjustu, policyvar, horizon, conf, conf2, exog, n_threads);
+      fBootstrapIVMBB_cpp(y, vr, Z, nboot, blocksize, adjustZ, adjustu,
+                          policyvar, horizon, conf, conf2,
+                          exog.isNotNull() ? &exog_mat : nullptr, n_threads);
 
-  // Return results as a list for R
   return Rcpp::List::create(Rcpp::Named("upper")     = result.upper,
                             Rcpp::Named("lower")     = result.lower,
                             Rcpp::Named("upper2")    = result.upper2,

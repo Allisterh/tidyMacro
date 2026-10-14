@@ -5,12 +5,12 @@
 
 #include "fHeteroIRF.h"
 #include "fVAR.h"
-#include "fGenerateVARData.h"
+#include "fBootstrapVAR.h"
+#include "fBootstrapIVMBB.h"
+#include "fGetBands.h"
 #include "fMBBVAR.h"
+#include "fWoldIRF.h"
 #include <RcppArmadillo.h>
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 // =========================================================================
 // Internal helper: proxy-IV structural impact vector
@@ -19,76 +19,61 @@
 //   yiIV = U(indsR1) - mean(U(indsR1))                  [centred residuals]
 //   b1   = (XrIV' XrIV)^{-1} XrIV' yiIV                [OLS, no intercept]
 //   then normalise so b1[nvar-1] = scale
+// Returns an error message (nullptr on success) instead of throwing, so the
+// bootstrap can call it on OpenMP workers.
 // =========================================================================
-static arma::vec hetero_iv_b1(const arma::mat& eta,    // T1 x N
-                               const arma::mat& Z,      // T1 x 1
-                               const arma::ivec& indsR1,
-                               int nvar, double scale) {
-    int T1 = (int)eta.n_rows;
+static const char* hetero_iv_b1(const arma::mat& eta,    // T1 x N
+                                const arma::mat& Z,      // T1 x 1
+                                const arma::ivec& indsR1,
+                                int nvar, double scale, arma::vec& b1) {
+    arma::uvec idx = arma::find(indsR1 == 1);   // OPEC months
+    if (idx.is_empty())
+        return "fHeteroIRF: indsR1 contains no treatment observations.";
 
-    // Collect OPEC-month indices
-    std::vector<arma::uword> idx_vec;
-    for (int t = 0; t < T1; ++t)
-        if (indsR1(t) == 1) idx_vec.push_back((arma::uword)t);
-
-    if (idx_vec.empty())
-        Rcpp::stop("fHeteroIRF: indsR1 contains no treatment observations.");
-
-    arma::uvec idx(idx_vec);
-
-    arma::mat U_opec = eta.rows(idx);          // T_opec x N
-    arma::vec z_full = Z.col(0);
-    arma::vec z_opec = z_full.elem(idx);       // T_opec x 1
+    arma::mat U_opec = eta.rows(idx);           // T_opec x N
+    const arma::vec z_full = Z.col(0);
+    arma::vec z_opec = z_full.elem(idx);        // T_opec x 1
 
     // Centre (MATLAB: proxy - mean(proxy), U - mean(U))
-    z_opec   -= arma::mean(z_opec);
+    z_opec -= arma::mean(z_opec);
     U_opec.each_row() -= arma::mean(U_opec, 0);
 
-    // b1 = (z'z)^{-1} z'U  →  N-vector
-    double zz = arma::dot(z_opec, z_opec);
+    // b1 = (z'z)^{-1} z'U  ->  N-vector
+    const double zz = arma::dot(z_opec, z_opec);
     if (zz < 1e-14)
-        Rcpp::stop("fHeteroIRF: proxy has zero variance in treatment months.");
-
-    arma::vec b1 = (U_opec.t() * z_opec) / zz;
+        return "fHeteroIRF: proxy has zero variance in treatment months.";
+    b1 = (U_opec.t() * z_opec) / zz;
 
     // Normalise: b1[nvar-1] = scale
-    double nf = b1(nvar - 1);
+    const double nf = b1(nvar - 1);
     if (std::abs(nf) < 1e-14)
-        Rcpp::stop("fHeteroIRF: normalization element is numerically zero.");
+        return "fHeteroIRF: normalization element is numerically zero.";
     b1 *= (scale / nf);
+    return nullptr;
+}
 
-    return b1;
+// IRF.col(h) = Wold_h * b1
+static arma::mat hetero_irf(const arma::mat& beta, int c, int p, int hor,
+                            const arma::vec& b1) {
+    arma::cube wold;
+    fWoldIRF_into_cpp(beta, c, p, hor, wold);
+    arma::mat IRF(b1.n_elem, hor + 1, arma::fill::none);
+    for (int h = 0; h <= hor; ++h) IRF.col(h) = wold.slice(h) * b1;
+    return IRF;
 }
 
 // =========================================================================
 // fHeteroIRF_cpp: point estimate
 // =========================================================================
-HeteroIRFResult fHeteroIRF_cpp(const arma::mat& AL,
+HeteroIRFResult fHeteroIRF_cpp(const arma::mat& beta, int c,
                                 const arma::mat& eta,
                                 const arma::mat& Z,
                                 const arma::ivec& indsR1,
                                 int p, int hor, int nvar, double scale) {
-    int N = (int)AL.n_rows;
-    int H = hor + 1;
-
-    arma::vec b1 = hetero_iv_b1(eta, Z, indsR1, nvar, scale);
-
-    // MA representation: C_0 = I, C_h = sum_{j=1}^{min(h,p)} A_j C_{h-j}
-    std::vector<arma::mat> C(H);
-    C[0] = arma::eye(N, N);
-    for (int h = 1; h < H; ++h) {
-        C[h].zeros(N, N);
-        for (int j = 1; j <= std::min(h, p); ++j)
-            C[h] += AL.cols((j - 1) * N, j * N - 1) * C[h - j];
-    }
-
-    arma::mat IRF(N, H);
-    for (int h = 0; h < H; ++h)
-        IRF.col(h) = C[h] * b1;
-
     HeteroIRFResult res;
-    res.IRF = IRF;
-    res.b1  = b1;
+    const char* err = hetero_iv_b1(eta, Z, indsR1, nvar, scale, res.b1);
+    if (err != nullptr) Rcpp::stop(err);
+    res.IRF = hetero_irf(beta, c, p, hor, res.b1);
     return res;
 }
 
@@ -106,7 +91,6 @@ BootHeteroResult fBootstrapHetero_cpp(const arma::mat& y,
                                       int hor, int nvar, double scale,
                                       double conf, double conf2,
                                       int n_threads) {
-    const arma::mat& beta      = var_result.beta;
     const arma::mat& residuals = var_result.residuals;
     const int p = var_result.p;
     const int c = var_result.c;
@@ -116,140 +100,67 @@ BootHeteroResult fBootstrapHetero_cpp(const arma::mat& y,
     const int u_start = adjustu(0) - 1;
     const int u_end   = adjustu(1) - 1;
 
-    // AL from original VAR (used for point-estimate recentering at end)
-    arma::mat AL = beta.rows(c, c + N * p - 1).t();
+    // Proxy-window residuals and proxy (Z is already aligned to the window)
+    const arma::mat Epsstar = residuals.rows(u_start, u_end);   // T1 x N
 
-    // Proxy-window residuals and proxy (for MBB)
-    arma::mat Epsstar = residuals.rows(u_start, u_end);  // T1 x N
-    // Z is already proxy-window aligned (length = u_end - u_start + 1)
+    // Point estimate (centre of the Hall bands)
+    const arma::mat irf_pt = fHeteroIRF_cpp(var_result.beta, c, Epsstar, Z,
+                                            indsR1, p, hor, nvar, scale).IRF;
 
-    int actual_threads = 1;
-#ifdef _OPENMP
-    actual_threads = (n_threads == 0) ?
-        std::max(1, omp_get_max_threads() - 1) : n_threads;
-    omp_set_num_threads(actual_threads);
-    Rprintf("Using %d thread(s) for heteroskedasticity bootstrap...\n",
-            actual_threads);
-#else
-    Rprintf("OpenMP not available. Running in single-threaded mode.\n");
-#endif
+    // Blocks and centering are fixed; block indices are drawn on the main thread
+    const MBBSamplerState mbb = fmbb_precompute_cpp(Epsstar, p, blocksize, &Z);
+    const arma::imat index    = fmbb_draw_cpp(mbb, nboot);
 
-    arma::cube irf_boot(N, H, nboot, arma::fill::zeros);
-    // Track valid bootstrap iterations (quality check: >= 15 treatment obs)
-    std::vector<int> valid(nboot, 1);
+    const int n_thr = fResolveThreads_cpp(n_threads);
+    Rprintf("Using %d thread(s) for heteroskedasticity bootstrap...\n", n_thr);
+
+    // Draw b's N x H responses are column b of the flat (N*H) x nboot matrix
+    arma::mat flat(N * H, nboot, arma::fill::zeros);
+    // A draw is kept if it has >= 15 treatment months and identifies
+    std::vector<int> valid(nboot, 0);
 
 #ifdef _OPENMP
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(static) num_threads(n_thr)
 #endif
     for (int b = 0; b < nboot; ++b) {
+        MBBVARResult draw = fmbb_sample_cpp(mbb, index.col(b));
+        const arma::mat& Z_boot = draw.M_boot;
 
-        // Resample (eps, Z) jointly in proxy window
-        MBBVARResult mbb = fMBBVAR_cpp(Epsstar, p, blocksize, Z);
-
-        // Pad bootstrap residuals to full sample length
-        arma::mat res_boot(residuals.n_rows, N, arma::fill::none);
-        if (u_start > 0)
-            res_boot.rows(0, u_start - 1) = residuals.rows(0, u_start - 1);
-        res_boot.rows(u_start, u_end) = mbb.eps_boot;
-        if (u_end < (int)residuals.n_rows - 1)
-            res_boot.rows(u_end + 1, residuals.n_rows - 1) =
-                residuals.rows(u_end + 1, residuals.n_rows - 1);
-
-        // Bootstrap proxy (proxy window only)
-        const arma::mat& Z_boot = mbb.M_boot;
-
-        // Derive treatment indicator from bootstrapped proxy (non-zero = OPEC month)
-        int T1b = (int)Z_boot.n_rows;
-        arma::ivec indsR1_b(T1b);
-        int ntreat = 0;
-        for (int t = 0; t < T1b; ++t) {
-            indsR1_b(t) = (std::abs(Z_boot(t, 0)) > 1e-14) ? 1 : 0;
-            ntreat += indsR1_b(t);
-        }
-
-        // Quality check: skip if too few treatment observations
-        if (ntreat < 15) {
-            valid[b] = 0;
-            continue;
-        }
+        // Treatment months of the bootstrapped proxy (non-zero = OPEC month)
+        arma::ivec indsR1_b = arma::conv_to<arma::ivec>::from(arma::abs(Z_boot.col(0)) > 1e-14);
+        if (arma::accu(indsR1_b) < 15) continue;
 
         // Regenerate VAR data and re-estimate
-        arma::mat yboot = fGenerateVARData(y, p, c, beta, res_boot);
-        VARResult vb    = fVAR_cpp(yboot, p, c, R_NilValue);
-
-        arma::mat eta_b = vb.residuals.rows(u_start, u_end);
-        arma::mat AL_b  = vb.beta.rows(c, c + N * p - 1).t();
+        arma::mat res_boot = fMBBPadResiduals_cpp(residuals, draw.eps_boot, u_start);
+        arma::mat yb = fSimulateVAR_cpp(y, var_result, res_boot, nullptr);
+        VARResult var_b = fVAR_cpp(yb, p, c);
 
         // Identify using proxy IV in bootstrap OPEC months
-        HeteroIRFResult hr =
-            fHeteroIRF_cpp(AL_b, eta_b, Z_boot, indsR1_b, p, hor, nvar, scale);
-        irf_boot.slice(b) = hr.IRF;
+        arma::vec b1;
+        if (hetero_iv_b1(var_b.residuals.rows(u_start, u_end), Z_boot, indsR1_b,
+                         nvar, scale, b1) != nullptr) continue;
+        flat.col(b) = arma::vectorise(hetero_irf(var_b.beta, c, p, hor, b1));
+        valid[b] = 1;
     }
 
-    // Point estimate (for recentering)
-    arma::mat eta_pt = residuals.rows(u_start, u_end);
-    HeteroIRFResult pt =
-        fHeteroIRF_cpp(AL, eta_pt, Z, indsR1, p, hor, nvar, scale);
-    const arma::mat& irf_pt = pt.IRF;
-
-    // Percentile bounds
-    const double up_pct   = 50.0 + conf  * 0.5;
-    const double low_pct  = 50.0 - conf  * 0.5;
-    const double up_pct2  = 50.0 + conf2 * 0.5;
-    const double low_pct2 = 50.0 - conf2 * 0.5;
-
-    arma::mat upper(N, H),   lower(N, H);
-    arma::mat upper2(N, H),  lower2(N, H);
-    arma::mat meanirf(N, H), medianirf(N, H);
-
-    // Collect valid bootstrap indices
-    std::vector<int> valid_idx;
-    valid_idx.reserve(nboot);
-    for (int b = 0; b < nboot; ++b)
-        if (valid[b]) valid_idx.push_back(b);
-    int nv = (int)valid_idx.size();
-
-    if (nv < 10)
+    arma::uvec keep = arma::find(arma::conv_to<arma::ivec>::from(valid) == 1);
+    if (keep.n_elem < 10)
         Rcpp::stop("fBootstrapHetero: fewer than 10 valid bootstrap iterations. "
                    "Check proxy and adjustu settings.");
+    const arma::mat kept = flat.cols(keep);
 
-#ifdef _OPENMP
-#pragma omp parallel for collapse(2) schedule(static)
-#endif
-    for (int i = 0; i < N; ++i) {
-        for (int h = 0; h < H; ++h) {
-            arma::vec bv(nv);
-            for (int k = 0; k < nv; ++k)
-                bv(k) = irf_boot(i, h, valid_idx[k]);
+    arma::mat q = fRowPercentiles_cpp(kept, fBandLevels_cpp(conf, conf2), n_threads);
+    const arma::mat bmed  = arma::reshape(q.col(4), N, H);
+    const arma::mat shift = irf_pt - bmed;
 
-            arma::vec sv = arma::sort(bv);
-            double bmed  = sv((int)(nv * 0.5));
-
-            auto interp = [&](double pct) -> double {
-                double id = (pct / 100.0) * (nv - 1);
-                int    fl = (int)id;
-                double fr = id - fl;
-                return (fl < nv - 1) ?
-                    sv(fl) * (1 - fr) + sv(fl + 1) * fr : sv(nv - 1);
-            };
-
-            // Hall (1992) recentered percentile bands
-            upper(i, h)     = interp(up_pct)   - bmed + irf_pt(i, h);
-            lower(i, h)     = interp(low_pct)  - bmed + irf_pt(i, h);
-            upper2(i, h)    = interp(up_pct2)  - bmed + irf_pt(i, h);
-            lower2(i, h)    = interp(low_pct2) - bmed + irf_pt(i, h);
-            medianirf(i, h) = bmed;
-            meanirf(i, h)   = arma::mean(bv);
-        }
-    }
-
+    // Hall (1992) recentered percentile bands
     BootHeteroResult res;
-    res.upper     = upper;
-    res.lower     = lower;
-    res.upper2    = upper2;
-    res.lower2    = lower2;
-    res.meanirf   = meanirf;
-    res.medianirf = medianirf;
+    res.upper     = arma::reshape(q.col(0), N, H) + shift;
+    res.lower     = arma::reshape(q.col(1), N, H) + shift;
+    res.upper2    = arma::reshape(q.col(2), N, H) + shift;
+    res.lower2    = arma::reshape(q.col(3), N, H) + shift;
+    res.medianirf = bmed;
+    res.meanirf   = arma::reshape(arma::mean(kept, 1), N, H);
     res.point     = irf_pt;
     return res;
 }
@@ -288,16 +199,11 @@ Rcpp::List fHeteroIRF(const Rcpp::List& var_result,
                       int nvar,
                       double scale = 10.0) {
 
-    arma::mat beta      = Rcpp::as<arma::mat>(var_result["beta"]);
-    arma::mat residuals = Rcpp::as<arma::mat>(var_result["residuals"]);
-    int p = Rcpp::as<int>(var_result["p"]);
-    int c = Rcpp::as<int>(var_result["c"]);
-    int N = (int)beta.n_cols;
+    VARResult vr  = fVARResultFromList_cpp(var_result);
+    arma::mat eta = vr.residuals.rows(adjustu(0) - 1, adjustu(1) - 1);
 
-    arma::mat AL  = beta.rows(c, c + N * p - 1).t();
-    arma::mat eta = residuals.rows(adjustu(0) - 1, adjustu(1) - 1);
-
-    HeteroIRFResult res = fHeteroIRF_cpp(AL, eta, Z, indsR1, p, hor, nvar, scale);
+    HeteroIRFResult res = fHeteroIRF_cpp(vr.beta, vr.c, eta, Z, indsR1, vr.p,
+                                         hor, nvar, scale);
 
     return Rcpp::List::create(
         Rcpp::Named("IRF") = res.IRF,
@@ -323,7 +229,7 @@ Rcpp::List fHeteroIRF(const Rcpp::List& var_result,
 //' @param scale      Shock size.
 //' @param conf        Primary confidence level (e.g. 90).
 //' @param conf2       Secondary confidence level (e.g. 68).
-//' @param n_threads  OpenMP threads (0 = all available - 1).
+//' @param n_threads  OpenMP threads (0 = all cores minus one).
 //'
 //' @return A list with \code{upper}, \code{lower}, \code{upper2},
 //'   \code{lower2}, \code{meanirf}, \code{medianirf} (each N x hor+1).
@@ -343,13 +249,8 @@ Rcpp::List fBootstrapHetero(const arma::mat& y,
                              double conf2    = 68.0,
                              int n_threads  = 0) {
 
-    VARResult vr;
-    vr.beta      = Rcpp::as<arma::mat>(var_result["beta"]);
-    vr.residuals = Rcpp::as<arma::mat>(var_result["residuals"]);
-    vr.sigma     = Rcpp::as<arma::mat>(var_result["sigma"]);
-    vr.p         = Rcpp::as<int>(var_result["p"]);
-    vr.c         = Rcpp::as<int>(var_result["c"]);
-    vr.n_exog    = 0;
+    VARResult vr = fVARResultFromList_cpp(var_result);
+    fRequireNoExog_cpp(vr.n_exog, "fBootstrapHetero");
 
     BootHeteroResult res = fBootstrapHetero_cpp(y, vr, Z, indsR1, adjustu,
                                                  nboot, blocksize, hor,

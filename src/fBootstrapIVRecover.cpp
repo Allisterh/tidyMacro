@@ -6,12 +6,11 @@
 #include "fLagMakerMatrix.h"
 #include "fWoldIRF.h"
 #include "fPolyConvolve.h"
+#include "omp_threads.h"
 #include <RcppArmadillo.h>
 #include <cmath>
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 // [[Rcpp::depends(RcppArmadillo)]]
+// [[Rcpp::plugins(openmp)]]
 
 static arma::vec clean_instr_rec(const arma::vec& instr_raw, int p,
                                   const arma::mat& y) {
@@ -53,8 +52,9 @@ arma::cube fBootstrapIVRecover_cpp(
         all_idx.col(b) = arma::randi<arma::ivec>(
             t_shock, arma::distr_param(0, t_shock - 1));
 
+    const int n_thr = fResolveThreads_cpp(0);
 #ifdef _OPENMP
-#pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(static) num_threads(n_thr)
 #endif
     for (int b = 0; b < nboot; ++b) {
 
@@ -88,7 +88,7 @@ arma::cube fBootstrapIVRecover_cpp(
         const int m_b = static_cast<int>(z_b.n_elem);
 
         // 5. Estimate VAR and Wold IRF
-        VARResult     vr_b = fVAR_cpp(y_new, p, c, R_NilValue);
+        VARResult     vr_b = fVAR_cpp(y_new, p, c);
         WoldIRFResult wr_b = fWoldIRF_cpp(vr_b, hor);
         const arma::mat& eps_b    = vr_b.residuals;
         const arma::mat  Sigma_inv = arma::inv_sympd(vr_b.sigma);
@@ -173,14 +173,8 @@ Rcpp::List fBootstrapIVRecover(
     const arma::ivec& cumu,
     double conf = 90.0, double conf2 = 68.0)
 {
-    VARResult vr;
-    vr.beta      = Rcpp::as<arma::mat>(var_result["beta"]);
-    vr.residuals = Rcpp::as<arma::mat>(var_result["residuals"]);
-    vr.sigma     = Rcpp::as<arma::mat>(var_result["sigma"]);
-    vr.p         = Rcpp::as<int>(var_result["p"]);
-    vr.c         = Rcpp::as<int>(var_result["c"]);
-    vr.n_exog    = var_result.containsElementNamed("n_exog") ?
-                   Rcpp::as<int>(var_result["n_exog"]) : 0;
+    VARResult vr = fVARResultFromList_cpp(var_result);
+    fRequireNoExog_cpp(vr.n_exog, "fBootstrapIVRecover");
 
     arma::cube bootirf = fBootstrapIVRecover_cpp(
         y, instr, vr, noise, delta, nboot, p, c, r, hor, cumu);

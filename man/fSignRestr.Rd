@@ -83,9 +83,8 @@ rather than as row numbers.}
 \item{instrument}{Optional list with component \code{Z}, a T x k instrument
 matrix aligned with the rows of \code{y}, missing values allowed. Selects
 the \code{sign+iv} scheme. With \code{k = 1} the single shock is identified
-by \code{\link{fRecoverBIV_cpp}} (Gertler-Karadi/Mertens-Ravn); with
-\code{k > 1} the k shocks are jointly identified by
-\code{\link{fRecoverBIVMulti_cpp}}, following the block generalisation in
+as in Gertler-Karadi/Mertens-Ravn; with \code{k > 1} the k shocks are
+jointly identified, following the block generalisation in
 \code{VARiriv_B.m} (Cesa-Bianchi & Sokol 2022). Either way the first stage
 is estimated once at OLS and not re-estimated across draws, as in the VAR
 Toolbox, so the bands do not carry the instrument's own sampling
@@ -116,7 +115,7 @@ the residuals implied by each parameter draw.}
 
 \item{varnames}{Optional character vector of length N.}
 
-\item{n_threads}{Integer; 0 (default) uses all available OpenMP threads.}
+\item{n_threads}{Integer; 0 (default) uses all cores minus one.}
 
 \item{seed}{Integer base seed (default 42).}
 
@@ -127,14 +126,26 @@ the residuals implied by each parameter draw.}
 \item{...}{Ignored.}
 }
 \value{
-An object of class \code{"fSignRestr"}: the list returned by
-  \code{\link{fSR_cpp}} (\code{IRall} and \code{VDall} are
-  \code{N x N x nsteps x ndraws} arrays), with \code{var}, \code{varnames},
-  \code{ident}, \code{p}, \code{c}, \code{nsteps} and \code{iv} attached.
+An object of class \code{"fSignRestr"}: a list with medians and
+  credible bands for the IRFs (\code{IRmed}, \code{IRinf}, \code{IRsup}) and
+  the FEVD (\code{VDmed}, \code{VDinf}, \code{VDsup}), each an
+  N x N x nsteps array indexed \code{[variable, shock, horizon]}; the
+  accepted impact matrices \code{Ball} and coefficient draws
+  \code{beta_all}; the median impact matrix \code{Bmed} and the Fry-Pagan
+  draw \code{Bfp} with its \code{IRfp}, \code{VDfp} and index
+  \code{fp_index}; the importance \code{weights}; \code{accept_rate},
+  \code{ndraws_tried}, \code{n_tried}, \code{n_param_draws},
+  \code{n_ruled_out} and \code{n_failed}; \code{n_errors} and
+  \code{first_error} for numerical failures; \code{bands}, one list of
+  \code{IRinf}, \code{IRsup}, \code{VDinf} and \code{VDsup} per level in
+  \code{conf}; when \code{store_draws = TRUE}, the draw distributions
+  \code{IRall} and \code{VDall}, each an \code{N x N x nsteps x ndraws}
+  array; the OLS fit \code{var}; and \code{varnames}, \code{ident},
+  \code{p}, \code{c}, \code{nsteps}, \code{conf}, \code{iv} and
+  \code{narrative_active}.
 }
 \description{
-Front-end for \code{\link{fSR_cpp}}. Estimates a VAR, then identifies it by
-sign restrictions, optionally combined with Antolin-Diaz and Rubio-Ramirez
+Estimates a VAR, then identifies it by sign restrictions, optionally combined with Antolin-Diaz and Rubio-Ramirez
 narrative restrictions and with an external instrument that pins down the
 first structural impact column. Inference is Bayesian throughout: reduced-form
 parameters are drawn from their flat-prior Normal-inverse-Wishart posterior and
@@ -143,6 +154,15 @@ each draw is paired with a Haar-uniform rotation.
 \details{
 Impulse responses are indexed \code{[variable, shock, horizon]} and FEVD
 shares are on the \code{[0, 1]} scale.
+
+A slot that exhausts \code{max_post_draws} parameter draws without an
+accepted rotation is counted in \code{n_failed} rather than silently
+dropped. When at most three columns are free, a linear-infeasibility
+certificate can prove that no rotation satisfies the impact signs of a
+shock; such a parameter draw is skipped without spending \code{sr_rot}
+rotations and counted in \code{n_ruled_out}. With \code{inference = 0}
+every draw shares the OLS covariance, so a certified specification stops
+with an error before any draw is made.
 
 With a k-column instrument, the first column of \code{sign} corresponds to
 structural shock k + 1: shocks 1:k are the instrumented ones and are not
@@ -160,7 +180,5 @@ Antolin-Diaz, J., & Rubio-Ramirez, J. F. (2018). \emph{American Economic
 Review}, 108(10), 2802--2829.
 }
 \seealso{
-\code{\link{fSR_cpp}}, \code{\link{fPlotIRFSign}},
-  \code{\link{fRecoverBIV_cpp}}, \code{\link{fRecoverBIVMulti_cpp}},
-  \code{\link{fHDShock_cpp}}
+\code{\link{fPlotIRFSign}}, \code{\link{fHDShock}}
 }

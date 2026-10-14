@@ -72,14 +72,18 @@ fPlotIRFSign <- function(sr, shock = 1, compare = NULL,
         sc <- rep_len(sc, N)
         do.call(rbind, lapply(conf, function(level) {
             b <- band_of(obj, level)
-            do.call(rbind, lapply(seq_len(N), function(i) tibble::tibble(
-                model    = lab,
-                level    = level,
-                variable = vn[i],
-                horizon  = 0L:(H - 1L),
-                median   = as.numeric(obj$IRmed[i, shock, ]) * sc[i],
-                lower    = as.numeric(b$IRinf[i, shock, ]) * sc[i],
-                upper    = as.numeric(b$IRsup[i, shock, ]) * sc[i])))
+            do.call(rbind, lapply(seq_len(N), function(i) {
+                band <- .fScaleBand(as.numeric(b$IRsup[i, shock, ]),
+                                    as.numeric(b$IRinf[i, shock, ]), sc[i])
+                tibble::tibble(
+                    model    = lab,
+                    level    = level,
+                    variable = vn[i],
+                    horizon  = 0L:(H - 1L),
+                    median   = as.numeric(obj$IRmed[i, shock, ]) * sc[i],
+                    lower    = band$lower,
+                    upper    = band$upper)
+            }))
         }))
     }
 

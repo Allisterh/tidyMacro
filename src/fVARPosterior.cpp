@@ -133,7 +133,8 @@ void fNIWPosteriorDraw_cpp(const NIWPosterior& post,
 //'
 //' @seealso \code{\link{fSR_cpp}}, \code{\link{fVAR}}
 //'
-//' @export
+//' @keywords internal
+//' @noRd
 // [[Rcpp::export]]
 Rcpp::List fVARPosterior_cpp(const arma::mat& y, int p, int c, int ndraws,
                              int seed = 42,

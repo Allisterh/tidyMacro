@@ -605,3 +605,44 @@
 #'                   ndraws = 100, sr_hor = 6,
 #'                   instrument = list(Z = as.matrix(ACR2019$RR)), seed = 42)
 "ACR2019"
+
+
+#' Tenreyro and Thwaites (2016) Data
+#'
+#' Quarterly US data from the replication workbook of Tenreyro and Thwaites
+#' (2016), used to estimate state-dependent and nonlinear responses to
+#' monetary policy shocks with \code{\link{fNLLP}}. Series are in their
+#' original units.
+#'
+#' @format A tibble with 254 rows and 6 columns:
+#' \describe{
+#'   \item{Date}{Quarter start, 1947-01-01 through 2010-04-01}
+#'   \item{logGDP}{Log real GDP}
+#'   \item{Inflation}{PCE inflation at an annual rate, as a fraction (from
+#'     1947Q2)}
+#'   \item{FFR}{Federal funds rate, in percent (from 1954Q3)}
+#'   \item{RRShock}{Romer-Romer monetary policy shock, the residual of the
+#'     linear reaction function summed within each quarter (1969Q1-2002Q4)}
+#'   \item{RRShockNL}{The same shock from the state-dependent reaction
+#'     function of Tenreyro and Thwaites (1969Q1-2002Q4)}
+#' }
+#'
+#' @details Missing observations are stored as \code{NA}. The paper's text
+#'   and the workbook use the PCE deflator, although its figure notes say
+#'   "GDP deflator".
+#'
+#' @references
+#' Tenreyro, S., & Thwaites, G. (2016). Pushing on a String: US Monetary
+#' Policy Is Less Powerful in Recessions. \emph{American Economic Journal:
+#' Macroeconomics}, 8(4), 43-74. \doi{10.1257/mac.20150016}
+#'
+#' Romer, C. D., & Romer, D. H. (2004). A New Measure of Monetary Shocks:
+#' Derivation and Implications. \emph{American Economic Review}, 94(4),
+#' 1055-1084. \doi{10.1257/0002828042002651}
+#'
+#' @seealso \code{\link{fNLLP}}
+#'
+#' @examples
+#' data("TenreyroThwaites2016")
+#' head(TenreyroThwaites2016[!is.na(TenreyroThwaites2016$RRShock), ])
+"TenreyroThwaites2016"

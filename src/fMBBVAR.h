@@ -3,13 +3,13 @@
 
 #include <RcppArmadillo.h>
 
-// Struct to hold MBB VAR results
+// One moving-block bootstrap draw
 struct MBBVARResult {
-  arma::mat eps_boot;  // (T-p) x N matrix of bootstrapped residuals (centered)
-  arma::mat M_boot;    // (T-p) x K matrix of bootstrapped instruments (centered)
+  arma::mat eps_boot;  // (T-p) x N bootstrapped residuals (centered)
+  arma::mat M_boot;    // (T-p) x K bootstrapped instruments (centered); empty without M
 };
 
-// Precomputed state: build once before the bootstrap loop, reuse across reps.
+// Blocks and centering terms, built once before the bootstrap loop.
 struct MBBSamplerState {
   arma::cube Blocks;           // (blockSize x N x nBlocks_avail)
   arma::cube MBlocks;          // (blockSize x K x nBlocks_avail), empty if !has_M
@@ -24,25 +24,17 @@ struct MBBSamplerState {
   bool has_M;
 };
 
-// Build the sampler state once from fixed data (eps, lags, BlockSize, M).
+// Build the sampler state from the residuals and optional instruments
+// (M = nullptr for none). BlockSize <= 0 uses round(5.03 * T^(1/4)).
 MBBSamplerState fmbb_precompute_cpp(const arma::mat& eps, int lags, int BlockSize,
-                                    const arma::mat& M);
-MBBSamplerState fmbb_precompute_cpp(const arma::mat& eps, int lags, int BlockSize);
+                                    const arma::mat* M);
 
-// Draw one bootstrap sample from the precomputed state (call inside the loop).
-MBBVARResult fmbb_sample_cpp(const MBBSamplerState& state);
+// Block indices for nboot draws (nBlock x nboot). Uses R's RNG: call on the
+// main thread, before any OpenMP loop.
+arma::imat fmbb_draw_cpp(const MBBSamplerState& state, int nboot);
 
-// Internal C++ function - Nullable version (for use when M might be null)
-MBBVARResult fMBBVAR_cpp(const arma::mat& eps,
-                          int lags,
-                          int BlockSize,
-                          Rcpp::Nullable<arma::mat> M);
-
-// Internal C++ function - Direct matrix version (for use in loops, thread-safe)
-MBBVARResult fMBBVAR_cpp(const arma::mat& eps,
-                          int lags,
-                          int BlockSize,
-                          const arma::mat& M);
+// One draw from pre-drawn block indices (thread-safe).
+MBBVARResult fmbb_sample_cpp(const MBBSamplerState& state, const arma::ivec& index);
 
 // R wrapper function (for calling from R)
 Rcpp::List fMBBVAR(const arma::mat& eps,

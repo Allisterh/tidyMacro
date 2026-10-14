@@ -1,6 +1,9 @@
 // [[Rcpp::depends(RcppArmadillo)]]
 
 #include "fMSW.h"
+#include "fVAR.h"
+#include "fWoldIRF.h"
+#include "se_newey_west.h"
 #include "fLagMakerMatrix.h"
 #include <RcppArmadillo.h>
 #include <cmath>
@@ -10,43 +13,6 @@
 // =========================================================================
 // Internal helpers
 // =========================================================================
-
-// Newey-West HAC covariance estimator (STATA convention, same as NW_hac_STATA.m)
-// vars : T1 x d matrix (each row is an observation)
-// lags : number of Newey-West lags (0 = heteroskedasticity-only correction)
-// returns d x d long-run variance matrix
-static arma::mat nw_hac_cpp(const arma::mat& vars, int lags) {
-    int T = (int)vars.n_rows;
-    arma::mat S = (vars.t() * vars) / T;
-    for (int l = 1; l <= lags; ++l) {
-        arma::mat Gl = (vars.head_rows(T - l).t() * vars.tail_rows(T - l)) / T;
-        double w = 1.0 - (double)l / (lags + 1);
-        S += w * (Gl + Gl.t());
-    }
-    return S;
-}
-
-// MA representation (identical recursion to MARep.m)
-// AL   : n x n*p matrix [A1 | A2 | ... | Ap]
-// p    : lag order
-// hori : maximum horizon
-// returns n x n*hori where block h (1-indexed, h=1..hori) = C_h
-static arma::mat ma_rep_cpp(const arma::mat& AL, int p, int hori) {
-    int n = (int)AL.n_rows;
-    std::vector<arma::mat> C(hori + 1);
-    C[0] = arma::eye(n, n);
-    for (int h = 1; h <= hori; ++h) {
-        C[h].zeros(n, n);
-        for (int j = 1; j <= std::min(h, p); ++j) {
-            C[h] += AL.cols((j - 1) * n, j * n - 1) * C[h - j];
-        }
-    }
-    arma::mat result(n, n * hori);
-    for (int h = 1; h <= hori; ++h) {
-        result.cols((h - 1) * n, h * n - 1) = C[h];
-    }
-    return result;
-}
 
 // G matrices: derivative of vec(C_h) wrt vec(AL) (free VAR parameters)
 // G_h = sum_{k=0}^{h-1} kron( (Alut^k * J')' , C_{h-1-k} )
@@ -160,7 +126,7 @@ static void cov_ahat_sigma_gamma(
     AuxHAC2.each_row() -= mean_row;
 
     // NW HAC
-    arma::mat WhatAss1 = nw_hac_cpp(AuxHAC2, NWlags);  // (n*T2aux) x (n*T2aux)
+    arma::mat WhatAss1 = se_newey_west_cpp(AuxHAC2, NWlags, false) / AuxHAC2.n_rows;  // (n*T2aux) x (n*T2aux)
 
     // Vech selector V  (n*(n+1)/2 x n^2)
     arma::mat V = vech_selector(n);
@@ -295,13 +261,12 @@ MSWResult fMSW_cpp(const arma::mat& AL,
     // Use Sigma_sub diagonal element as basic variance estimate
     double Fstat = Waldstat;  // report Waldstat as F (HAC robust)
 
-    // MA representation: C_vec[h] = C_h for h=0..hor
-    arma::mat MA_mat = ma_rep_cpp(AL, p, hor);  // n x n*hor
+    // MA representation: C_vec[h] = C_h for h=0..hor (Wold multipliers;
+    // AL' is the lag block of beta without intercept)
+    arma::cube wold;
+    fWoldIRF_into_cpp(AL.t(), 0, p, hor, wold);
     std::vector<arma::mat> C_vec(hor + 1);
-    C_vec[0] = arma::eye(n, n);
-    for (int h = 1; h <= hor; ++h) {
-        C_vec[h] = MA_mat.cols((h - 1) * n, h * n - 1);
-    }
+    for (int h = 0; h <= hor; ++h) C_vec[h] = wold.slice(h);
 
     // G and Gcum cubes: n^2 x n^2*p x (hor+1)
     arma::cube G, Gcum;
@@ -459,10 +424,12 @@ Rcpp::List fMSW(const Rcpp::List& var_result,
         Rcpp::stop("NWlags must be >= 0. Use 0 for White HC-only, or a positive integer for Newey-West with that many lags.");
 
     // Extract VAR components
-    arma::mat beta      = Rcpp::as<arma::mat>(var_result["beta"]);
-    arma::mat residuals = Rcpp::as<arma::mat>(var_result["residuals"]);
-    int p               = Rcpp::as<int>(var_result["p"]);
-    int c               = Rcpp::as<int>(var_result["c"]);
+    VARResult vr = fVARResultFromList_cpp(var_result);
+    fRequireNoExog_cpp(vr.n_exog, "fMSW");
+    const arma::mat& beta      = vr.beta;
+    const arma::mat& residuals = vr.residuals;
+    const int p = vr.p;
+    const int c = vr.c;
 
     int T = (int)finaldata.n_rows;
 

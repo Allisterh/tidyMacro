@@ -86,7 +86,8 @@ NLLPResult fNLLP_internal(
     int               n_threads,
     int               nw_offset,
     bool              verbose,
-    const arma::mat&  Y_pre
+    const arma::mat&  Y_pre,
+    bool              nw_prewhite
 );
 
 // R-callable wrapper
@@ -105,7 +106,8 @@ Rcpp::List fNLLP_cpp(
     int                 n_threads,
     int                 nw_offset,
     bool                verbose,
-    Rcpp::Nullable<arma::mat> Y_pre
+    Rcpp::Nullable<arma::mat> Y_pre,
+    bool                nw_prewhite
 );
 
 #endif // FNLLP_H

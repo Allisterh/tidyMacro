@@ -129,7 +129,7 @@
 #'   this is an approximation — the regression-adjustment version is not
 #'   yet implemented in C++).
 #' @param conf Confidence level for the reported bands, in percent (default 90).
-#' @param n_threads OpenMP threads (\code{-1} = all available).
+#' @param n_threads OpenMP threads (\code{<= 0} = all cores minus one).
 #'
 #' @return A tibble of class \code{"fLPDID"} with columns
 #'   \code{event_time}, \code{estimate}, \code{se}, \code{conf_low},
@@ -213,7 +213,7 @@ fLPDID <- function(formula, data,
     stop("fLPDID: 'L' must be a non-negative integer or NULL.", call. = FALSE)
   if (!is.numeric(n_threads) || length(n_threads) != 1L || is.na(n_threads) ||
       n_threads != floor(n_threads))
-    stop("fLPDID: 'n_threads' must be an integer (<=0 = all cores).",
+    stop("fLPDID: 'n_threads' must be an integer (<=0 = all cores minus one).",
          call. = FALSE)
   if (nonabsorbing && ccc > 0 && is.null(L))
     stop("fLPDID: `nonabsorbing = TRUE` requires the stabilization window `L`.",

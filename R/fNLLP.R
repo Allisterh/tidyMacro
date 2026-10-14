@@ -27,43 +27,6 @@
 # Internal helpers
 # =======================================================================
 
-# Formula -> expanded LHS / RHS names, with l()/f() columns added to data.
-# Same steps as fLP(): macro-lag, macro, lag/lead, then term labels.
-.fNLLP_parse <- function(formula, data, env) {
-  formula_chr <- paste(deparse(formula), collapse = "")
-  formula_chr <- .fLP_expand_macro_lag(formula_chr, env)
-  formula_chr <- .fLP_expand_macro(formula_chr, env)
-
-  expanded    <- .fLP_expand_lag_terms(formula_chr, data)
-  formula_chr <- expanded$formula_chr
-  data        <- expanded$data
-
-  formula_expanded <- tryCatch(
-    as.formula(formula_chr, env = env),
-    error = function(e) stop(
-      "fNLLP: could not parse the expanded formula:\n  ", formula_chr,
-      "\n  ", conditionMessage(e)
-    )
-  )
-
-  .fLP_check_formula(formula_expanded, "fNLLP")
-
-  lhs_vars  <- all.vars(formula_expanded[[2]])
-  rhs_str   <- paste(deparse(formula_expanded[[3]]), collapse = " ")
-  rhs_terms <- terms(as.formula(paste("~", rhs_str), env = env),
-                     keep.order = TRUE)
-  rhs_vars  <- attr(rhs_terms, "term.labels")
-
-  if (length(lhs_vars) == 0)
-    stop("fNLLP: formula must have at least one LHS variable.")
-  if (length(rhs_vars) == 0)
-    stop("fNLLP: formula must have at least one RHS variable.")
-
-  list(lhs_vars = lhs_vars, rhs_vars = rhs_vars, data = data,
-       formula_expanded = formula_expanded)
-}
-
-
 # Fixed regressor sample (balanced = TRUE). The regressors decide the
 # estimation dates t; the outcome is read at t + h from later rows of data,
 # so `data` must run H rows past the last regressor date. Mirrors the
@@ -155,6 +118,107 @@
 # Main function
 # =======================================================================
 
+#' Nonlinear and State-Dependent Local Projections
+#'
+#' Estimates local projections in which the shock has two coefficients per
+#' horizon: one per regime (smooth state dependence), one per sign
+#' (asymmetry), or a linear and a cubic term (size nonlinearity). The
+#' formula syntax is that of \code{\link{fLP}}: the RHS is estimated as
+#' written, a constant is added internally, and \code{l()}, \code{f()} and
+#' \code{..macro} expand the same way. Both coefficients come from one
+#' regression, together with their Newey-West covariance, so their
+#' difference has a valid standard error.
+#'
+#' @inheritParams fLP
+#' @param shock Character. \strong{Required.} Name of the shock variable; it
+#'   must appear on the RHS.
+#' @param type How the shock enters the regression:
+#'   \describe{
+#'     \item{\code{"state"}}{(default) every RHS term \eqn{x} and the
+#'       intercept enter as \eqn{F x} and \eqn{(1 - F) x}, with \eqn{F} the
+#'       column named by \code{state}. Components are named by
+#'       \code{regimes}.}
+#'     \item{\code{"sign"}}{the shock enters as \eqn{\max(s, 0)} and
+#'       \eqn{\min(s, 0)}. Components \code{"positive"} and
+#'       \code{"negative"}, each per unit of the shock.}
+#'     \item{\code{"cubic"}}{the shock enters as \eqn{s} and \eqn{s^3}.
+#'       Components \code{"linear"} and \code{"cubic"}; use
+#'       \code{predict()} for the response to a shock of a given size.}
+#'   }
+#' @param state Character. For \code{type = "state"}: name of the column of
+#'   \code{data} holding the regime weight \eqn{F}, in \eqn{[0, 1]}. It must
+#'   not also appear on the RHS.
+#' @param common Character vector of RHS terms that keep a single coefficient
+#'   across regimes (e.g. a trend). Only for \code{type = "state"}; the shock
+#'   cannot be common.
+#' @param regimes Two distinct labels for the components of
+#'   \code{type = "state"}: the first for weight \eqn{F}, the second for
+#'   \eqn{1 - F}. Default \code{c("high", "low")}.
+#' @param balanced Logical. If \code{TRUE}, the regressor dates are the same
+#'   at every horizon and the outcome is read \eqn{h} rows later, as in the
+#'   Tenreyro-Thwaites (2016) code; \code{data} must then run \code{horizons}
+#'   rows past the last regressor date, and the regressors must have no
+#'   interior gaps. Default \code{FALSE}: the sample shrinks with the horizon,
+#'   as in \code{fLP()}.
+#' @param store_full Logical. If \code{TRUE}, also return the full
+#'   coefficient and standard-error matrices of every horizon (\code{betas},
+#'   \code{ses}). Default \code{FALSE}.
+#'
+#' @return An object of class \code{"fNLLP"}, a list with
+#'   \describe{
+#'     \item{\code{irfs}, \code{irfs_se}}{Arrays \code{(H+1) x n_y x 2}
+#'       [horizon, outcome, component] of the two shock coefficients and
+#'       their Newey-West standard errors.}
+#'     \item{\code{irfs_upper}, \code{irfs_lower}}{Normal bands of the same
+#'       shape; named lists of arrays (one per level) when \code{conf} has
+#'       several levels.}
+#'     \item{\code{irfs_cov}}{\code{(H+1) x n_y} covariance of the two
+#'       coefficients.}
+#'     \item{\code{diff}, \code{diff_se}}{\code{(H+1) x n_y} first minus
+#'       second component and its standard error; \code{NaN} for
+#'       \code{type = "cubic"}.}
+#'     \item{\code{nobs}}{Observations per horizon.}
+#'     \item{\code{betas}, \code{ses}}{With \code{store_full = TRUE}: one
+#'       matrix per horizon, rows named by \code{design_vars}.}
+#'   }
+#'   plus the settings (\code{type}, \code{components}, \code{design_vars},
+#'   \code{shock}, \code{state}, \code{common}, \code{horizons}, \code{conf},
+#'   \code{nw_lags}, \code{nw_offset}, \code{nw_prewhite}, \code{balanced},
+#'   \code{cumulative}, \code{formula}, ...). \code{print}, \code{coef},
+#'   \code{predict} and \code{\link{tidy.fNLLP}} methods are available.
+#'
+#' @references
+#' Tenreyro, S., & Thwaites, G. (2016). Pushing on a string: US monetary
+#' policy is less powerful in recessions. \emph{American Economic Journal:
+#' Macroeconomics}, 8(4), 43--74.
+#'
+#' @seealso \code{\link{fLP}}, \code{\link{fPlotNLLP}},
+#'   \code{\link{tidy.fNLLP}}, \code{\link{predict.fNLLP}},
+#'   \code{\link{TenreyroThwaites2016}}
+#'
+#' @examples
+#' data("TenreyroThwaites2016")
+#' tt <- TenreyroThwaites2016
+#' tt$GDP   <- 100 * tt$logGDP
+#' tt$trend <- seq_len(nrow(tt))
+#' # Expansion weight: logistic transform of standardised trailing
+#' # four-quarter GDP growth
+#' z <- as.numeric(stats::filter(c(NA, diff(tt$GDP)), rep(1 / 4, 4), sides = 1))
+#' tt$Expansion <- plogis(3 * (z - mean(z, na.rm = TRUE)) / sd(z, na.rm = TRUE))
+#' tt <- tt[tt$Date >= as.Date("1968-10-01"), ]
+#'
+#' fit <- fNLLP(GDP ~ RRShock + l(GDP, 1) + l(FFR, 1) + trend,
+#'              data = tt, horizons = 12, shock = "RRShock",
+#'              type = "state", state = "Expansion", common = "trend",
+#'              regimes = c("Expansion", "Recession"), balanced = TRUE)
+#' fit
+#'
+#' # Asymmetry between contractionary and expansionary shocks
+#' fit_sign <- fNLLP(GDP ~ RRShock + l(GDP, 1) + l(FFR, 1) + trend,
+#'                   data = tt, horizons = 12, shock = "RRShock",
+#'                   type = "sign", balanced = TRUE)
+#' fit_sign
+#'
 #' @export
 fNLLP <- function(formula, data, horizons = 12,
                   shock,
@@ -165,6 +229,7 @@ fNLLP <- function(formula, data, horizons = 12,
                   conf       = 90,
                   nw_lags    = NULL,
                   nw_offset  = 1,
+                  nw_prewhite = FALSE,
                   balanced   = FALSE,
                   cumulative = FALSE,
                   store_full = FALSE,
@@ -187,7 +252,7 @@ fNLLP <- function(formula, data, horizons = 12,
   conf <- .fLP_validate_conf_vector(conf)
   if (!is.data.frame(data)) data <- as.data.frame(data)
 
-  for (nm in c("balanced", "cumulative", "store_full")) {
+  for (nm in c("balanced", "cumulative", "store_full", "nw_prewhite")) {
     v <- get(nm)
     if (!is.logical(v) || length(v) != 1 || is.na(v))
       stop(sprintf("fNLLP: '%s' must be TRUE or FALSE.", nm))
@@ -216,7 +281,7 @@ fNLLP <- function(formula, data, horizons = 12,
   # =====================================================================
   # 1. Formula -> LHS / RHS
   # =====================================================================
-  parsed           <- .fNLLP_parse(formula, data, env)
+  parsed           <- .fLP_parse(formula, data, env, "fNLLP")
   lhs_vars         <- parsed$lhs_vars
   rhs_vars         <- parsed$rhs_vars
   data             <- parsed$data
@@ -335,7 +400,8 @@ fNLLP <- function(formula, data, horizons = 12,
     n_threads     = as.integer(n_threads),
     nw_offset     = as.integer(nw_offset),
     verbose       = FALSE,
-    Y_pre         = Y_pre
+    Y_pre         = Y_pre,
+    nw_prewhite   = nw_prewhite
   )
 
   # =====================================================================
@@ -352,17 +418,9 @@ fNLLP <- function(formula, data, horizons = 12,
   for (nm in c("irfs_cov", "diff", "diff_se"))
     dimnames(res[[nm]]) <- list(as.character(h_seq), lhs_vars)
 
-  .band <- function(cl, sign) {
-    res$irfs + sign * stats::qnorm(0.5 * (1.0 + cl / 100)) * res$irfs_se
-  }
-  if (length(conf) == 1) {
-    res$irfs_upper <- .band(conf, 1)
-    res$irfs_lower <- .band(conf, -1)
-  } else {
-    keys <- format(conf, trim = TRUE)
-    res$irfs_upper <- stats::setNames(lapply(conf, .band, sign = 1), keys)
-    res$irfs_lower <- stats::setNames(lapply(conf, .band, sign = -1), keys)
-  }
+  bands <- .fLP_bands(res$irfs, res$irfs_se, conf)
+  res$irfs_upper <- bands$upper
+  res$irfs_lower <- bands$lower
 
   res$nobs <- stats::setNames(as.integer(res$nobs), as.character(h_seq))
 
@@ -390,6 +448,7 @@ fNLLP <- function(formula, data, horizons = 12,
   res$conf         <- conf
   res$nw_lags      <- nw_lags
   res$nw_offset    <- nw_offset
+  res$nw_prewhite  <- nw_prewhite
   res$balanced     <- isTRUE(balanced)
   res$cumulative   <- isTRUE(cumulative)
   res$store_full   <- isTRUE(store_full)
@@ -436,6 +495,7 @@ print.fNLLP <- function(x, digits = 4, ...) {
   cat("NW lags          : base =", x$nw_lags,
       sprintf(", offset = %d -> effective at horizon h: max(base + h + %d, 0)\n",
               x$nw_offset, x$nw_offset))
+  if (isTRUE(x$nw_prewhite)) cat("Prewhitening     :  VAR(1) (Andrews-Monahan)\n")
   cat("Observations     : ", paste(unique(range(x$nobs)), collapse = " to "), "\n")
 
   for (v in x$lhs_vars) {
@@ -460,6 +520,25 @@ coef.fNLLP <- function(object, ...) {
 }
 
 
+#' Tidy Nonlinear Local Projection Estimates
+#'
+#' @param x An object returned by \code{\link{fNLLP}}.
+#' @param difference Logical. Add rows for the difference between the two
+#'   components (\code{component = "difference"}). Ignored for
+#'   \code{type = "cubic"}. Default \code{TRUE}.
+#' @param ... Reserved for additional arguments.
+#' @return A data frame with \code{horizon}, \code{lhs}, \code{shock},
+#'   \code{component} (a factor), \code{estimate}, \code{se}, and normal
+#'   confidence bounds \code{lower}, \code{upper}. Multiple confidence levels
+#'   use columns named \code{lower_<level>} and \code{upper_<level>}.
+#' @seealso \code{\link{fNLLP}}, \code{\link{fPlotNLLP}}
+#' @examples
+#' data("TenreyroThwaites2016")
+#' tt <- TenreyroThwaites2016
+#' tt <- tt[tt$Date >= as.Date("1968-10-01"), ]
+#' fit <- fNLLP(FFR ~ RRShock + l(FFR, 1), data = tt, horizons = 8,
+#'              shock = "RRShock", type = "sign", balanced = TRUE)
+#' head(tidy.fNLLP(fit))
 #' @export
 tidy.fNLLP <- function(x, difference = TRUE, ...) {
   h_seq <- x$horizons
@@ -518,6 +597,35 @@ tidy.fNLLP <- function(x, difference = TRUE, ...) {
 #   cubic : b1 d + b3 d^3
 #   state : d (m bH + (1 - m) bL), for state value m
 # Variance a^2 V11 + b^2 V22 + 2ab V12 from the HAC block of (c1, c2).
+#' Responses to Shocks of Given Sizes from a Nonlinear Local Projection
+#'
+#' Combines the two shock coefficients of an \code{\link{fNLLP}} fit into
+#' the response to a shock of size \eqn{d}: \eqn{\beta^+ \max(d, 0) +
+#' \beta^- \min(d, 0)} for \code{type = "sign"}, \eqn{\beta_1 d + \beta_3
+#' d^3} for \code{type = "cubic"}, and \eqn{d (F \beta_1 + (1 - F)
+#' \beta_2)} at state value \eqn{F} for \code{type = "state"}. Standard
+#' errors use the covariance of the two coefficients.
+#'
+#' @param object An object returned by \code{\link{fNLLP}}.
+#' @param size Numeric vector of shock sizes. Default 1.
+#' @param state Numeric vector of regime weights in \eqn{[0, 1]}. Required
+#'   for \code{type = "state"}, not allowed otherwise; every combination
+#'   with \code{size} is evaluated.
+#' @param conf Confidence levels in percent; defaults to those of the fit.
+#' @param ... Not used.
+#' @return A data frame with \code{horizon}, \code{lhs}, \code{shock},
+#'   \code{size}, \code{state} (for \code{type = "state"}), \code{estimate},
+#'   \code{se}, and \code{lower}/\code{upper} (or
+#'   \code{lower_<level>}/\code{upper_<level>} for several levels).
+#' @seealso \code{\link{fNLLP}}
+#' @examples
+#' data("TenreyroThwaites2016")
+#' tt <- TenreyroThwaites2016
+#' tt <- tt[tt$Date >= as.Date("1968-10-01"), ]
+#' fit <- fNLLP(FFR ~ RRShock + l(FFR, 1), data = tt, horizons = 8,
+#'              shock = "RRShock", type = "cubic", balanced = TRUE)
+#' # A small and a large shock
+#' head(predict(fit, size = c(0.25, 2)))
 #' @export
 predict.fNLLP <- function(object, size = 1, state = NULL, conf = NULL, ...) {
   if (!is.numeric(size) || length(size) == 0 || anyNA(size) ||

@@ -107,3 +107,23 @@ test_that("fPlotIRFSign maps one or two fitted models", {
   expect_s3_class(fPlotIRFSign(a, shock = 1L), "ggplot")
   expect_error(fPlotIRFSign(list()), "must be an 'fSignRestr'")
 })
+
+test_that("a negative scale keeps lower <= upper in every IRF plotter", {
+  m <- matrix(1, 1, 3)
+  band <- list(meanirf = m, point = m, upper = m * 3, lower = m,
+               upper2 = m * 2, lower2 = m * 1.5)
+  ok <- function(d, lo, hi) expect_true(all(d[[lo]] <= d[[hi]]))
+
+  d <- fPlotIRFIV(band, "x", "s", scale = -1, return_data = TRUE)
+  ok(d, "lower", "upper"); ok(d, "lower2", "upper2")
+  d <- fPlotIRFHetero(band, "x", "s", scale = -1, return_data = TRUE)
+  ok(d, "lower", "upper"); ok(d, "lower2", "upper2")
+
+  msw <- list(IRF = m, Dmlbound = m, Dmubound = m * 2,
+              MSWlbound = m * 0.5, MSWubound = m * 3)
+  d <- fPlotIRFMSW(msw, "x", "s", scale = -1, return_data = TRUE)
+  ok(d, "dm_lo", "dm_hi"); ok(d, "ar_lo", "ar_hi")
+
+  d <- fPlotIRFSign(mock_sign_fit(), shock = 1, scale = -1, return_data = TRUE)
+  ok(d, "lower", "upper")
+})

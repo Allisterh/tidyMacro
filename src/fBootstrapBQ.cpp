@@ -1,174 +1,46 @@
 // [[Rcpp::depends(RcppArmadillo)]]
 // [[Rcpp::plugins(openmp)]]
 
-// CRITICAL: Define this BEFORE including RcppArmadillo to prevent conflicts
 #define ARMA_DONT_USE_OPENMP
 
+#include <RcppArmadillo.h>
 #include "fBootstrapBQ.h"
-#include "fVAR.h"
 #include "fBootstrapVAR.h"
 #include "fBQIRF.h"
-#include "fWoldIRF.h"
-#include <RcppArmadillo.h>
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-#include <R_ext/Print.h>
-#include <algorithm>
-#include <vector>
 
-// Internal C++ function (called from other C++ code)
-// Calls _cpp versions of internal functions - no list overhead!
-BootstrapBQResult
-fBootstrapBQ_cpp(const arma::mat &y, const VARResult &var_result, int nboot,
-                 int horizon, double conf, double conf2, const std::string &bootscheme,
-                 const arma::uvec &cumulate,
-                 Rcpp::Nullable<arma::vec> scaling, int n_threads = 0) {
+SVARBootResult fBootstrapBQ_cpp(const arma::mat& y, const VARResult& var_result,
+                                int nboot, int horizon, double conf, double conf2,
+                                const std::string& bootscheme,
+                                const arma::uvec& cumulate,
+                                bool has_scaling, int scale_idx, double scale_size,
+                                const arma::mat* exog_ptr, int n_threads) {
+  fCheckBootArgs_cpp(y, var_result, nboot, horizon, conf, conf2);
+  const int N = static_cast<int>(y.n_cols);
+  const int H = horizon + 1;
 
-  const int p      = var_result.p;
-  const int c      = var_result.c;
-  const int T      = y.n_rows;
-  const int N      = y.n_cols;
-  const int H      = horizon + 1;
-  const int n_coef = var_result.beta.n_rows;
-  const int slice_sz = N * N * H;
+  SVARBootResult r = fBootstrapSVAR_cpp(
+      y, var_result, nboot, horizon, bootscheme, exog_ptr, n_threads,
+      N * N * H, "Blanchard-Quah",
+      [&](const VARResult& var_b, const arma::cube& wold_b, arma::vec& out) {
+        // BQ identification: C1 = sum of Wold slices, D1 = lower chol of the
+        // long-run covariance, K = C1 \ D1
+        arma::mat C1(N, N, arma::fill::zeros);
+        for (int h = 0; h < H; ++h) C1 += wold_b.slice(h);
+        arma::mat D1 = fLowerChol_cpp(C1 * var_b.sigma * C1.t());
+        arma::mat K  = arma::solve(C1, D1);
 
-  const double df = static_cast<double>(T - 1 - p - N * p);
-  if (df <= 0.0)
-    Rcpp::stop("Degrees of freedom T-1-p-N*p = %.0f <= 0.", df);
+        arma::cube irf = fBQIRF_cpp(wold_b, K, has_scaling, scale_idx, scale_size);
 
-  arma::mat bootbq_flat(slice_sz, nboot, arma::fill::zeros);
-  arma::cube boot_beta(N, n_coef, nboot, arma::fill::zeros);
-
-  // Hoist the Rcpp::Nullable<arma::vec> scaling parse out of the parallel loop.
-  bool   has_scaling = scaling.isNotNull();
-  int    scale_idx   = 0;
-  double scale_size  = 0.0;
-  if (has_scaling) {
-    arma::vec s = Rcpp::as<arma::vec>(scaling);
-    scale_idx   = static_cast<int>(s(0)) - 1;
-    scale_size  = s(1);
-  }
-
-  int actual_threads = 1;
-
-#ifdef _OPENMP
-  if (n_threads == 0) {
-    int max_threads = omp_get_max_threads();
-    actual_threads = std::max(1, max_threads - 1);
-  } else {
-    actual_threads = n_threads;
-  }
-  omp_set_num_threads(actual_threads);
-  Rprintf("Using %d thread(s) for parallel bootstrap computation...\n",
-              actual_threads);
-#else
-  Rprintf("OpenMP not available. Running in single-threaded mode.\n");
-  actual_threads = 1;
-#endif
-
-#ifdef _OPENMP
-#pragma omp parallel for schedule(dynamic)
-#endif
-  for (int b = 0; b < nboot; ++b) {
-
-    // Bootstrap a new dataset
-    BootstrapVARResult boot_data = fBootstrapVAR_cpp(y, var_result, bootscheme);
-    const arma::mat &varboot = boot_data.ynext;
-
-    // Estimate VAR on bootstrapped data
-    VARResult var_loop = fVAR_cpp(varboot, p, c, R_NilValue);
-    boot_beta.slice(b) = var_loop.beta.t();
-
-    // Compute Wold IRFs
-    WoldIRFResult wold_result = fWoldIRF_cpp(var_loop, horizon);
-    const arma::cube &wold_loop = wold_result.irfwold;
-
-    // BQ identification: C1 = sum of Wold slices, D1 = lower chol, K = C1\D1
-    // sigma from fVAR_cpp uses DF-corrected denominator: (T-p) - c - N*p - n_exog
-    arma::mat C1(N, N, arma::fill::zeros);
-    for (int h = 0; h < H; ++h) {
-      C1 += wold_loop.slice(h);
-    }
-
-    arma::mat D1;
-    arma::mat LR_cov = C1 * var_loop.sigma * C1.t();
-    if (!arma::chol(D1, LR_cov, "lower")) {
-      // Regularise if not positive definite
-      LR_cov = 0.5 * (LR_cov + LR_cov.t());
-      LR_cov.diag() += 1e-8 * arma::trace(LR_cov) / N;
-      arma::chol(D1, LR_cov, "lower");
-    }
-
-    arma::mat K_loop = arma::solve(C1, D1);
-
-    // Compute BQ IRFs with optional scaling (pre-parsed — no Rcpp::as here)
-    arma::cube bqirf_loop =
-        fBQIRF_cpp(wold_loop, K_loop, has_scaling, scale_idx, scale_size);
-
-    // Cumulate selected variables along horizon (0-based indices in cumulate)
-    // Extract to temporary vec first — arma::cumsum does not accept subviews
-    for (arma::uword ci = 0; ci < cumulate.n_elem; ++ci) {
-      arma::uword row_idx = cumulate(ci);
-      for (int i = 0; i < N; ++i) {
-        arma::vec tmp = bqirf_loop.tube(row_idx, i);
-        bqirf_loop.tube(row_idx, i) = arma::cumsum(tmp);
-      }
-    }
-
-    bootbq_flat.col(b) = arma::vectorise(bqirf_loop);
-  }
-
-  // Compute percentile bands
-  const double up_pct   = 50.0 + conf  * 0.5;
-  const double low_pct  = 50.0 - conf  * 0.5;
-  const double up_pct2  = 50.0 + conf2 * 0.5;
-  const double low_pct2 = 50.0 - conf2 * 0.5;
-
-  arma::vec upper_vec(slice_sz);
-  arma::vec lower_vec(slice_sz);
-  arma::vec upper2_vec(slice_sz);
-  arma::vec lower2_vec(slice_sz);
-
-  auto nth_pct = [](std::vector<double>& v, double pct) -> double {
-    const int n = static_cast<int>(v.size());
-    const double raw = (pct / 100.0) * (n - 1);
-    const int lo = static_cast<int>(raw);
-    const double frac = raw - lo;
-    std::nth_element(v.begin(), v.begin() + lo, v.end());
-    const double lo_val = v[lo];
-    if (frac < 1e-12 || lo + 1 >= n) return lo_val;
-    return lo_val * (1.0 - frac) +
-           *std::min_element(v.begin() + lo + 1, v.end()) * frac;
-  };
-
-#ifdef _OPENMP
-#pragma omp parallel for schedule(static)
-#endif
-  for (int i = 0; i < slice_sz; ++i) {
-    arma::rowvec row_rv = bootbq_flat.row(i);
-    std::vector<double> sv(row_rv.begin(), row_rv.end());
-    upper_vec(i)  = nth_pct(sv, up_pct);
-    lower_vec(i)  = nth_pct(sv, low_pct);
-    upper2_vec(i) = nth_pct(sv, up_pct2);
-    lower2_vec(i) = nth_pct(sv, low_pct2);
-  }
-
-  arma::cube upper (upper_vec.memptr(),  N, N, H, false, true);
-  arma::cube lower (lower_vec.memptr(),  N, N, H, false, true);
-  arma::cube upper2(upper2_vec.memptr(), N, N, H, false, true);
-  arma::cube lower2(lower2_vec.memptr(), N, N, H, false, true);
-
-  BootstrapBQResult result;
-  result.bootbq_flat = bootbq_flat;
-  result.upper       = upper;
-  result.lower       = lower;
-  result.upper2      = upper2;
-  result.lower2      = lower2;
-  result.boot_beta   = boot_beta;
-  result.N           = N;
-  result.H           = H;
-  return result;
+        // Cumulate selected variables along the horizon
+        for (arma::uword ci = 0; ci < cumulate.n_elem; ++ci)
+          for (int j = 0; j < N; ++j) {
+            arma::vec tmp = irf.tube(cumulate(ci), j);
+            irf.tube(cumulate(ci), j) = arma::cumsum(tmp);
+          }
+        out = arma::vectorise(irf);
+      });
+  fSVARBootBands_cpp(r, conf, conf2, n_threads);
+  return r;
 }
 
 //' Bootstrap Blanchard-Quah Long-Run Identified Impulse Response Functions
@@ -186,6 +58,9 @@ fBootstrapBQ_cpp(const arma::mat &y, const VARResult &var_result, int nboot,
 //' @param scaling Optional numeric vector of length 2. First element is the
 //'   variable index (1-based) for normalisation; second is the shock size.
 //'   Default NULL (no normalisation).
+//' @param exog Optional T x M matrix of exogenous variables. Must be provided
+//'   if the original VAR was estimated with exogenous variables; must be
+//'   omitted otherwise.
 //' @param n_threads Number of OpenMP threads. 0 = all cores minus one.
 //'   Default 0.
 //'
@@ -236,37 +111,34 @@ Rcpp::List fBootstrapBQ(const arma::mat &y, const Rcpp::List &var_result,
                         const std::string &bootscheme = "residual",
                         Rcpp::IntegerVector cumulate = Rcpp::IntegerVector::create(),
                         Rcpp::Nullable<arma::vec> scaling = R_NilValue,
+                        Rcpp::Nullable<arma::mat> exog = R_NilValue,
                         int n_threads = 0) {
+  VARResult vr = fVARResultFromList_cpp(var_result);
+  fCheckExogArg_cpp(vr.n_exog, exog.isNotNull());
+  arma::mat exog_mat;
+  if (exog.isNotNull()) exog_mat = Rcpp::as<arma::mat>(exog);
 
-  // Unpack R list into VARResult struct
-  VARResult var_result_struct;
-  var_result_struct.beta       = Rcpp::as<arma::mat>(var_result["beta"]);
-  var_result_struct.residuals  = Rcpp::as<arma::mat>(var_result["residuals"]);
-  var_result_struct.sigma = Rcpp::as<arma::mat>(var_result["sigma"]);
-  var_result_struct.p          = Rcpp::as<int>(var_result["p"]);
-  var_result_struct.c          = Rcpp::as<int>(var_result["c"]);
-  var_result_struct.n_exog     = var_result.containsElementNamed("n_exog")
-                                   ? Rcpp::as<int>(var_result["n_exog"])
-                                   : 0;
-
-  // Convert cumulate from 1-based (R) to 0-based (C++)
+  const int N = static_cast<int>(y.n_cols);
   arma::uvec cumulate_cpp = (cumulate.size() == 0)
       ? arma::uvec()
       : Rcpp::as<arma::uvec>(cumulate) - 1;
+  if (!cumulate_cpp.is_empty() && cumulate_cpp.max() >= static_cast<arma::uword>(N))
+    Rcpp::stop("'cumulate' contains an out-of-range variable index.");
 
-  BootstrapBQResult result = fBootstrapBQ_cpp(y, var_result_struct, nboot,
-                                              horizon, conf, conf2, bootscheme,
-                                              cumulate_cpp, scaling, n_threads);
+  // Parse scaling once on the main thread (no Rcpp::as inside OpenMP)
+  const bool has_scaling = scaling.isNotNull();
+  int    scale_idx  = 0;
+  double scale_size = 0.0;
+  if (has_scaling) {
+    arma::vec s = Rcpp::as<arma::vec>(scaling);
+    scale_idx  = static_cast<int>(s(0)) - 1;
+    scale_size = s(1);
+  }
 
-  Rcpp::NumericVector bootbq_out(result.bootbq_flat.begin(),
-                                 result.bootbq_flat.end());
-  bootbq_out.attr("dim") = Rcpp::IntegerVector::create(result.N, result.N,
-                                                        result.H, nboot);
-
-  return Rcpp::List::create(Rcpp::Named("bootbq")    = bootbq_out,
-                            Rcpp::Named("upper")     = result.upper,
-                            Rcpp::Named("lower")     = result.lower,
-                            Rcpp::Named("upper2")    = result.upper2,
-                            Rcpp::Named("lower2")    = result.lower2,
-                            Rcpp::Named("boot_beta") = result.boot_beta);
+  SVARBootResult r = fBootstrapBQ_cpp(y, vr, nboot, horizon, conf, conf2,
+                                      bootscheme, cumulate_cpp, has_scaling,
+                                      scale_idx, scale_size,
+                                      exog.isNotNull() ? &exog_mat : nullptr,
+                                      n_threads);
+  return fSVARBootList_cpp(r, "bootbq", {N, N, horizon + 1});
 }

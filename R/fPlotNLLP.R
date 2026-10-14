@@ -10,6 +10,45 @@
 # Author: Dr. Muhsin Ciftci
 # -----------------------------------------------------------------------
 
+#' Plot Nonlinear Local Projection Responses
+#'
+#' Plots the two shock coefficients of one or more \code{\link{fNLLP}} fits,
+#' one colour per component, or their difference, with one panel per
+#' outcome. Fits with several confidence levels get one ribbon per level.
+#'
+#' @param ... One or more objects returned by \code{\link{fNLLP}}, with the
+#'   same \code{type}, components and \code{conf}, and distinct outcomes.
+#' @param variables Optional character vector of outcomes to plot. Defaults
+#'   to all outcomes of all fits.
+#' @param what \code{"components"} (default) plots both coefficients;
+#'   \code{"difference"} plots the first minus the second with its band.
+#'   Not available for \code{type = "cubic"}.
+#' @param scale Numeric scalar applied to responses and bands before
+#'   plotting. Default 1.
+#' @param return_data Logical. If \code{TRUE}, return the plotting data
+#'   instead of a ggplot object.
+#' @param colors Colours of the components, in order.
+#' @param ribbon_alpha Transparency of each confidence band.
+#' @param zero_line_color Color for the horizontal zero line.
+#' @param facet_scales Facet scales option: \code{"free_y"}, \code{"free"},
+#'   \code{"free_x"}, or \code{"fixed"}.
+#' @param facet_ncol Number of facet columns. Defaults to an automatic layout.
+#'
+#' @return A ggplot object, or with \code{return_data = TRUE} a tibble with
+#'   \code{variable}, \code{component}, \code{horizon}, \code{point},
+#'   \code{lower}, \code{upper} (and \code{conf} for several levels).
+#'
+#' @seealso \code{\link{fNLLP}}, \code{\link{tidy.fNLLP}}
+#'
+#' @examples
+#' data("TenreyroThwaites2016")
+#' tt <- TenreyroThwaites2016
+#' tt <- tt[tt$Date >= as.Date("1968-10-01"), ]
+#' fit <- fNLLP(FFR ~ RRShock + l(FFR, 1), data = tt, horizons = 8,
+#'              shock = "RRShock", type = "sign", balanced = TRUE)
+#' fPlotNLLP(fit)
+#' fPlotNLLP(fit, what = "difference")
+#'
 #' @export
 fPlotNLLP <- function(...,
                       variables       = NULL,

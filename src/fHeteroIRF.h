@@ -22,13 +22,13 @@ struct BootHeteroResult {
 };
 
 // Internal C++ point estimate
-// AL     : N x N*p VAR coefficients (no constant)
+// beta   : fVAR coefficient matrix, c its intercept indicator
 // eta    : T1 x N residuals in proxy window
 // Z      : T1 x 1 proxy in proxy window
 // indsR1 : T1 integer 0/1 (1 = OPEC announcement month)
 // nvar   : 1-based normalization variable
 // scale  : shock size
-HeteroIRFResult fHeteroIRF_cpp(const arma::mat& AL,
+HeteroIRFResult fHeteroIRF_cpp(const arma::mat& beta, int c,
                                 const arma::mat& eta,
                                 const arma::mat& Z,
                                 const arma::ivec& indsR1,

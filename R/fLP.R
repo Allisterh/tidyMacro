@@ -253,6 +253,52 @@
 }
 
 
+# Expand a formula: l(..macro, k) first, then plain ..macro tokens, then
+# l()/f() terms (lag/lead columns are added to `data`). Returns the parsed
+# expanded formula and the augmented data.
+.fLP_expand_formula <- function(formula, data, env, fn = "fLP") {
+  formula_chr <- paste(deparse(formula), collapse = "")
+  formula_chr <- .fLP_expand_macro_lag(formula_chr, env)
+  formula_chr <- .fLP_expand_macro(formula_chr, env)
+  expanded    <- .fLP_expand_lag_terms(formula_chr, data)
+
+  formula_expanded <- tryCatch(
+    as.formula(expanded$formula_chr, env = env),
+    error = function(e) stop(
+      fn, ": could not parse the expanded formula:\n  ", expanded$formula_chr,
+      "\n  ", conditionMessage(e)
+    )
+  )
+  list(formula = formula_expanded, data = expanded$data)
+}
+
+# Term labels of one side of a formula, in order. deparse() can split long
+# expressions, so the pieces are collapsed before as.formula().
+.fLP_term_labels <- function(side, env) {
+  side_str <- paste(deparse(side), collapse = " ")
+  attr(terms(as.formula(paste("~", side_str), env = env), keep.order = TRUE),
+       "term.labels")
+}
+
+# Two-sided LP formula (fLP, fNLLP, fLPIV) -> expanded LHS / RHS names, with
+# l()/f() columns added to data. The LHS may be y or c(y1, y2); the RHS
+# excludes the intercept, which the engines always add.
+.fLP_parse <- function(formula, data, env, fn = "fLP") {
+  ex <- .fLP_expand_formula(formula, data, env, fn)
+  .fLP_check_formula(ex$formula, fn)
+
+  lhs_vars <- all.vars(ex$formula[[2L]])
+  rhs_vars <- .fLP_term_labels(ex$formula[[3L]], env)
+  if (length(lhs_vars) == 0L)
+    stop(fn, ": formula must have at least one LHS variable.")
+  if (length(rhs_vars) == 0L)
+    stop(fn, ": formula must have at least one RHS variable.")
+
+  list(lhs_vars = lhs_vars, rhs_vars = rhs_vars, data = ex$data,
+       formula_expanded = ex$formula)
+}
+
+
 .fLP_estimation_sample <- function(data, all_needed, lhs_vars, cumulative,
                                    fn = "fLP") {
   raw  <- data[, all_needed, drop = FALSE]
@@ -300,59 +346,21 @@
 }
 
 
-.fLP_expand_lag_terms <- function(formula_chr, data) {
+# Expand l(x, k) / f(x, k) terms into x_lk / x_fk columns. `shift(x, k, op)`
+# returns x shifted by k > 0 rows (default: plain time-series shift; the
+# panel version looks up (id, t -/+ k)). `paren` wraps multi-column
+# replacements so ":" interactions distribute: l(x, 1:2):z -> (x_l1 + x_l2):z.
+.fLP_expand_lag_terms <- function(formula_chr, data, shift = NULL,
+                                  fn = "fLP", paren = FALSE) {
 
   # Match l(...) or f(...) anywhere in the string.
   # We iterate to handle multiple occurrences.
   pattern <- "(l|f)\\(([A-Za-z_.][A-Za-z0-9_.]*),([^)]+)\\)"
+  T_dat   <- nrow(data)
 
-  repeat {
-    m <- regexpr(pattern, formula_chr, perl = TRUE)
-    if (m == -1L) break
-
-    full_match <- regmatches(formula_chr, m)
-    parsed     <- regmatches(full_match,
-                             regexec("(l|f)\\(([A-Za-z_.][A-Za-z0-9_.]*),([^)]+)\\)",
-                                     full_match, perl = TRUE))[[1]]
-    op       <- parsed[2L]            # "l" or "f"
-    var      <- trimws(parsed[3L])   # variable name
-    lags_str <- trimws(parsed[4L])   # lag spec, e.g. "1:3"
-
-    # Evaluate lag indices safely
-    lag_idx <- tryCatch(
-      eval(parse(text = lags_str)),
-      error = function(e) stop(sprintf(
-        "fLP: cannot parse lag/lead spec '%s' in term '%s': %s",
-        lags_str, full_match, conditionMessage(e)
-      ))
-    )
-    if (!is.numeric(lag_idx) || anyNA(lag_idx) || any(!is.finite(lag_idx)) ||
-        any(lag_idx < 0L) || any(lag_idx != floor(lag_idx))) {
-      stop(sprintf(
-        "fLP: lag/lead indices must be non-negative integers; got '%s'.", lags_str
-      ))
-    }
-    lag_idx <- as.integer(lag_idx)
-
-    if (!var %in% names(data)) {
-      stop(sprintf(
-        "fLP: variable '%s' used in lag/lead term '%s' not found in data.",
-        var, full_match
-      ))
-    }
-
-    x_raw <- data[[var]]
-    T_dat <- length(x_raw)
-
-    new_cols <- character(length(lag_idx))
-    for (i in seq_along(lag_idx)) {
-      k        <- lag_idx[i]
-      col_name <- if (op == "l") sprintf("%s_l%d", var, k) else
-                                 sprintf("%s_f%d", var, k)
-
-      shifted <- if (k == 0L) {
-        x_raw
-      } else if (k >= T_dat) {
+  if (is.null(shift)) {
+    shift <- function(x_raw, k, op) {
+      if (k >= T_dat) {
         rep(NA_real_, T_dat)
       } else if (op == "l") {
         # lag: shift forward k rows, fill head with NA
@@ -361,6 +369,52 @@
         # lead: shift backward k rows, fill tail with NA
         c(x_raw[seq.int(k + 1L, T_dat)], rep(NA_real_, k))
       }
+    }
+  }
+
+  repeat {
+    m <- regexpr(pattern, formula_chr, perl = TRUE)
+    if (m == -1L) break
+
+    full_match <- regmatches(formula_chr, m)
+    parsed     <- regmatches(full_match,
+                             regexec(pattern, full_match, perl = TRUE))[[1]]
+    op       <- parsed[2L]            # "l" or "f"
+    var      <- trimws(parsed[3L])   # variable name
+    lags_str <- trimws(parsed[4L])   # lag spec, e.g. "1:3"
+
+    # Evaluate lag indices safely
+    lag_idx <- tryCatch(
+      eval(parse(text = lags_str)),
+      error = function(e) stop(sprintf(
+        "%s: cannot parse lag/lead spec '%s' in term '%s': %s",
+        fn, lags_str, full_match, conditionMessage(e)
+      ))
+    )
+    if (!is.numeric(lag_idx) || anyNA(lag_idx) || any(!is.finite(lag_idx)) ||
+        any(lag_idx < 0L) || any(lag_idx != floor(lag_idx))) {
+      stop(sprintf(
+        "%s: lag/lead indices must be non-negative integers; got '%s'.",
+        fn, lags_str
+      ))
+    }
+    lag_idx <- as.integer(lag_idx)
+
+    if (!var %in% names(data)) {
+      stop(sprintf(
+        "%s: variable '%s' used in lag/lead term '%s' not found in data.",
+        fn, var, full_match
+      ))
+    }
+
+    x_raw <- data[[var]]
+
+    new_cols <- character(length(lag_idx))
+    for (i in seq_along(lag_idx)) {
+      k        <- lag_idx[i]
+      col_name <- if (op == "l") sprintf("%s_l%d", var, k) else
+                                 sprintf("%s_f%d", var, k)
+      shifted  <- if (k == 0L) x_raw else shift(x_raw, k, op)
 
       # A column with the generated name may already exist (e.g. the same
       # l() term twice). Reuse it only if it IS this lag/lead; an unrelated
@@ -372,9 +426,10 @@
           isTRUE(all(old[!is.na(old)] == shifted[!is.na(shifted)]))
         if (!same)
           stop(sprintf(paste0(
-            "fLP: `data` already has a column '%s' that is not %s of '%s'.\n",
+            "%s: `data` already has a column '%s' that is not %s of '%s'.\n",
             "  Rename that column, or drop it, before using %s."),
-            col_name, if (op == "l") sprintf("lag %d", k) else sprintf("lead %d", k),
+            fn, col_name,
+            if (op == "l") sprintf("lag %d", k) else sprintf("lead %d", k),
             var, full_match), call. = FALSE)
       } else {
         data[[col_name]] <- shifted
@@ -384,6 +439,8 @@
 
     # Replace the lag/lead term with expanded column names
     replacement <- paste(new_cols, collapse = " + ")
+    if (paren && length(new_cols) > 1L)
+      replacement <- paste0("(", replacement, ")")
     formula_chr <- sub(pattern, replacement, formula_chr, perl = TRUE)
   }
 
@@ -440,6 +497,11 @@
 #'   Toolbox (\code{LPmodel.m}: \code{OLSmodel(Y,X,0,hh-1)} with 1-indexed
 #'   \code{hh}, so \code{hh-1 == h}) — needed to match that toolbox's SEs
 #'   exactly, e.g. in the Jordà-Taylor (2025) replication.
+#' @param nw_prewhite Logical. If \code{TRUE}, apply Andrews-Monahan (1992)
+#'   VAR(1) prewhitening to the regression scores before the Newey-West sum
+#'   (same bandwidth), shrinking the VAR(1) matrix when its spectral radius
+#'   exceeds 0.97. Default \code{FALSE} (plain Newey-West, as in the VAR
+#'   Toolbox).
 #' @param store_full Logical. If \code{TRUE}, return full coefficient and
 #'   standard-error matrices for every horizon. Defaults to \code{FALSE} to
 #'   keep the result small and fast.
@@ -457,7 +519,7 @@
 #'   Cesa-Bianchi's \code{LPmodel.m}; note the standard deviation is taken
 #'   over the lag-trimmed estimation sample, not the raw input column.
 #' @param n_threads Integer. Number of OpenMP threads for the horizon loop.
-#'   \code{0} = all available cores. Default \code{0}.
+#'   \code{0} = all cores minus one. Default \code{0}.
 #'
 #' @return An object of class \code{"fLP"}.
 #'
@@ -496,6 +558,7 @@ fLP <- function(formula, data, horizons = 12L,
                 conf         = 90,
                 nw_lags      = NULL,
                 nw_offset    = 1L,
+                nw_prewhite  = FALSE,
                 store_full   = FALSE,
                 cumulative   = FALSE,
                 shock_size   = c("unit", "sd"),
@@ -526,59 +589,13 @@ fLP <- function(formula, data, horizons = 12L,
   }
 
   # =====================================================================
-  # 1. Stringify the formula for text-based processing
+  # 1-4. Expand macros and l()/f() terms; parse LHS / RHS variable names
   # =====================================================================
-  formula_chr <- paste(deparse(formula), collapse = "")
-
-  # =====================================================================
-  # 2a. Expand l(..macro, lags) / f(..macro, lags)
-  #     Must happen BEFORE general ..macro expansion.
-  # =====================================================================
-  formula_chr <- .fLP_expand_macro_lag(formula_chr, env)
-
-  # =====================================================================
-  # 2b. Expand plain ..macro tokens
-  # =====================================================================
-  formula_chr <- .fLP_expand_macro(formula_chr, env)
-
-  # =====================================================================
-  # 3. Expand l(var, lags) / f(var, leads) — creates columns in data
-  # =====================================================================
-  expanded      <- .fLP_expand_lag_terms(formula_chr, data)
-  formula_chr   <- expanded$formula_chr
-  data          <- expanded$data   # may have new lag/lead columns
-
-  # =====================================================================
-  # 4. Rebuild formula and parse LHS / RHS variable names
-  # =====================================================================
-  formula_expanded <- tryCatch(
-    as.formula(formula_chr, env = env),
-    error = function(e) stop(
-      "fLP: could not parse the expanded formula:\n  ", formula_chr,
-      "\n  ", conditionMessage(e)
-    )
-  )
-
-  .fLP_check_formula(formula_expanded, "fLP")
-
-  lhs_expr <- formula_expanded[[2L]]
-  rhs_expr <- formula_expanded[[3L]]
-
-  # LHS: handles plain 'y' and 'c(y1, y2)'
-  lhs_vars <- all.vars(lhs_expr)
-
-  # RHS: one element per term (no intercept; we add it internally).
-  # deparse() can split long expressions across multiple strings; collapse
-  # to a single string so as.formula() doesn't emit its length>1 warning.
-  rhs_str   <- paste(deparse(rhs_expr), collapse = " ")
-  rhs_terms <- terms(as.formula(paste("~", rhs_str), env = env),
-                     keep.order = TRUE)
-  rhs_vars  <- attr(rhs_terms, "term.labels")
-
-  if (length(lhs_vars) == 0L)
-    stop("fLP: formula must have at least one LHS variable.")
-  if (length(rhs_vars) == 0L)
-    stop("fLP: formula must have at least one RHS variable.")
+  parsed           <- .fLP_parse(formula, data, env, "fLP")
+  lhs_vars         <- parsed$lhs_vars
+  rhs_vars         <- parsed$rhs_vars
+  data             <- parsed$data   # may have new lag/lead columns
+  formula_expanded <- parsed$formula_expanded
 
   # =====================================================================
   # 5. Validate shock variable
@@ -668,6 +685,8 @@ fLP <- function(formula, data, horizons = 12L,
     stop("fLP: 'store_full' must be TRUE or FALSE.")
   if (!is.logical(cumulative) || length(cumulative) != 1L || is.na(cumulative))
     stop("fLP: 'cumulative' must be TRUE or FALSE.")
+  if (!is.logical(nw_prewhite) || length(nw_prewhite) != 1L || is.na(nw_prewhite))
+    stop("fLP: 'nw_prewhite' must be TRUE or FALSE.")
   n_threads <- .fLP_validate_scalar_int(n_threads, "n_threads")
   min_obs <- ncol(X) + 2L + H +
              as.integer(isTRUE(cumulative) && is.null(Y_pre))
@@ -693,62 +712,21 @@ fLP <- function(formula, data, horizons = 12L,
     n_threads    = as.integer(n_threads),
     nw_offset    = as.integer(nw_offset),
     verbose      = FALSE,
-    Y_pre        = Y_pre
+    Y_pre        = Y_pre,
+    nw_prewhite  = nw_prewhite
   )
-
-  # ---------------------------------------------------------------------
-  # Rebuild bands from irfs_se so multiple confidence levels come from a
-  # single fit. Single conf: irfs_upper/lower stay matrices (unchanged
-  # from the C++ output shape). Multi conf: they become named lists of
-  # matrices keyed by the level printed as a string ("68", "95", ...).
-  # ---------------------------------------------------------------------
-  .build_band <- function(cl) {
-    z <- stats::qnorm(0.5 * (1.0 + cl / 100))
-    list(upper = res_cpp$irfs + z * res_cpp$irfs_se,
-         lower = res_cpp$irfs - z * res_cpp$irfs_se)
-  }
-
-  if (length(conf) == 1L) {
-    b <- .build_band(conf)
-    res_cpp$irfs_upper <- b$upper
-    res_cpp$irfs_lower <- b$lower
-  } else {
-    keys <- format(conf, trim = TRUE)
-    upper_list <- vector("list", length(conf))
-    lower_list <- vector("list", length(conf))
-    names(upper_list) <- keys
-    names(lower_list) <- keys
-    for (i in seq_along(conf)) {
-      b <- .build_band(conf[i])
-      upper_list[[i]] <- b$upper
-      lower_list[[i]] <- b$lower
-    }
-    res_cpp$irfs_upper <- upper_list
-    res_cpp$irfs_lower <- lower_list
-  }
 
   # =====================================================================
   # 11. Annotate and return
   # =====================================================================
   h_seq <- 0L:H
+  dimnames(res_cpp$irfs)    <- list(as.character(h_seq), lhs_vars)
+  dimnames(res_cpp$irfs_se) <- dimnames(res_cpp$irfs)
 
-  rownames(res_cpp$irfs)    <- as.character(h_seq)
-  colnames(res_cpp$irfs)    <- lhs_vars
-  rownames(res_cpp$irfs_se) <- as.character(h_seq)
-  colnames(res_cpp$irfs_se) <- lhs_vars
-
-  .label_band <- function(m) {
-    rownames(m) <- as.character(h_seq)
-    colnames(m) <- lhs_vars
-    m
-  }
-  if (is.list(res_cpp$irfs_upper)) {
-    res_cpp$irfs_upper <- lapply(res_cpp$irfs_upper, .label_band)
-    res_cpp$irfs_lower <- lapply(res_cpp$irfs_lower, .label_band)
-  } else {
-    res_cpp$irfs_upper <- .label_band(res_cpp$irfs_upper)
-    res_cpp$irfs_lower <- .label_band(res_cpp$irfs_lower)
-  }
+  # Bands rebuilt from irfs_se so several confidence levels come from one fit
+  bands <- .fLP_bands(res_cpp$irfs, res_cpp$irfs_se, conf)
+  res_cpp$irfs_upper <- bands$upper
+  res_cpp$irfs_lower <- bands$lower
 
   if (isTRUE(store_full)) {
     rhs_with_const <- c("(Intercept)", rhs_vars)
@@ -769,6 +747,7 @@ fLP <- function(formula, data, horizons = 12L,
   res_cpp$conf            <- conf
   res_cpp$nw_lags         <- nw_lags
   res_cpp$nw_offset       <- nw_offset
+  res_cpp$nw_prewhite     <- nw_prewhite
   res_cpp$store_full      <- isTRUE(store_full)
   res_cpp$cumulative      <- isTRUE(cumulative)
   res_cpp$shock_size      <- shock_size
@@ -787,6 +766,37 @@ fLP <- function(formula, data, horizons = 12L,
 # S3 methods
 # =======================================================================
 
+# Bands irfs +/- crit(level) * se at each confidence level (percent). One
+# level gives matrices (arrays); several give lists keyed by format(conf).
+# crit() may return a scalar or an array shaped like irfs (e.g. t quantiles).
+# Dimnames are taken from irfs.
+.fLP_bands <- function(irfs, se, conf,
+                       crit = function(cl) stats::qnorm(0.5 * (1 + cl / 100))) {
+  one <- function(cl) {
+    q <- crit(cl)
+    list(upper = irfs + q * se, lower = irfs - q * se)
+  }
+  if (length(conf) == 1L) return(one(conf))
+  b <- stats::setNames(lapply(conf, one), format(conf, trim = TRUE))
+  list(upper = lapply(b, `[[`, "upper"), lower = lapply(b, `[[`, "lower"))
+}
+
+# Append the band columns of an fLP-type fit to a tidy data frame: lower and
+# upper for one level, lower_<level> / upper_<level> for several.
+.fLP_tidy_bands <- function(base, x) {
+  if (!is.list(x$irfs_upper)) {
+    base$lower <- as.vector(x$irfs_lower)
+    base$upper <- as.vector(x$irfs_upper)
+    return(base)
+  }
+  for (k in names(x$irfs_upper)) {
+    base[[paste0("lower_", k)]] <- as.vector(x$irfs_lower[[k]])
+    base[[paste0("upper_", k)]] <- as.vector(x$irfs_upper[[k]])
+  }
+  base
+}
+
+
 #' @export
 print.fLP <- function(x, digits = 4L, ...) {
   cat("\nLocal Projections (fLP)\n")
@@ -803,7 +813,8 @@ print.fLP <- function(x, digits = 4L, ...) {
   cat("NW lags          : base =", x$nw_lags,
       sprintf(", offset = %d -> effective at horizon h: max(base + h + %d, 0)\n",
               nw_off, nw_off))
-  cat("HAC variance     :  full Newey-West sandwich (X'X)^-1 X'\u03a9X (X'X)^-1\n")
+  cat("HAC variance     :  full Newey-West sandwich (X'X)^-1 X'\u03a9X (X'X)^-1",
+      if (isTRUE(x$nw_prewhite)) ", VAR(1)-prewhitened" else "", "\n", sep = "")
   cat("Observations     : ", x$nobs, "\n")
   cat("\nIRF (shock = '", x$shock, "'):\n", sep = "")
   print(round(x$irfs, digits))
@@ -826,31 +837,14 @@ coef.fLP <- function(object, ...) {
 #'   columns named \code{lower_<level>} and \code{upper_<level>}.
 #' @export
 tidy.fLP <- function(x, ...) {
-  H  <- max(x$horizons)
-  ny <- length(x$lhs_vars)
-
-  multi <- is.list(x$irfs_upper)
-  h_seq <- 0L:H
-
+  h_seq <- 0L:max(x$horizons)
   base <- data.frame(
-    horizon  = rep(h_seq, times = ny),
+    horizon  = rep(h_seq, times = length(x$lhs_vars)),
     lhs      = rep(x$lhs_vars, each = length(h_seq)),
     shock    = x$shock,
     estimate = as.vector(x$irfs),
     se       = as.vector(x$irfs_se),
     stringsAsFactors = FALSE
   )
-
-  if (!multi) {
-    base$lower <- as.vector(x$irfs_lower)
-    base$upper <- as.vector(x$irfs_upper)
-    return(base)
-  }
-
-  keys <- names(x$irfs_upper)
-  for (k in keys) {
-    base[[paste0("lower_", k)]] <- as.vector(x$irfs_lower[[k]])
-    base[[paste0("upper_", k)]] <- as.vector(x$irfs_upper[[k]])
-  }
-  base
+  .fLP_tidy_bands(base, x)
 }

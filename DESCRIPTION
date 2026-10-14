@@ -20,6 +20,7 @@ Imports:
     tidyselect
 Suggests:
     readxl,
+    sandwich,
     testthat (>= 3.0.0),
     parallel
 Config/testthat/edition: 3

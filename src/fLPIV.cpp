@@ -13,6 +13,8 @@
 
 #include "fLPIV.h"
 #include <RcppArmadillo.h>
+#include "omp_threads.h"
+#include "se_newey_west.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -45,7 +47,8 @@ LPIVResult fLPIV_internal(
     bool             cumulative,
     int              n_threads,
     bool             verbose,
-    const arma::mat& Y_pre
+    const arma::mat& Y_pre,
+    bool             nw_prewhite
 ) {
   const int T   = static_cast<int>(Y.n_rows);
   const int ny  = static_cast<int>(Y.n_cols);
@@ -104,9 +107,7 @@ LPIVResult fLPIV_internal(
 
   int actual_threads = 1;
 #ifdef _OPENMP
-  actual_threads = (n_threads <= 0)
-                       ? std::max(1, omp_get_max_threads())
-                       : n_threads;
+  actual_threads = fResolveThreads_cpp(n_threads);
   if (verbose) {
     Rprintf("fLPIV: using %d thread(s) for parallel horizon loop...\n",
                 actual_threads);
@@ -248,6 +249,24 @@ LPIVResult fLPIV_internal(
     bw = std::min(bw, Th - 1);
     if (bw < 0) bw = 0;
 
+    // ---- prewhitened HAC: full 2SLS score vector ----------------------
+    // Prewhitening acts on the whole score vector g_t = Xhat_t e_t with
+    // Xhat = [1, C_h, D_hat] (D_hat = fitted D on [1, C_h, Z_h] = Dh - eps_fs),
+    // so the treatment SE is q' G q with q = (Xhat'Xhat)^{-1} e_D. Without
+    // prewhitening this equals the scalar FWL form used below.
+    arma::mat Xhat;
+    arma::vec q;
+    if (nw_prewhite && denom_ok) {
+      Xhat.set_size(Th, kc + 1);
+      Xhat.col(0).ones();
+      if (nc > 0) Xhat.cols(1, nc) = C.rows(t0, t_last);
+      Xhat.col(kc) = Dh - eps_fs;
+      arma::mat XtX_inv;
+      if (!arma::inv_sympd(XtX_inv, Xhat.t() * Xhat))
+        XtX_inv = arma::pinv(Xhat.t() * Xhat);
+      q = XtX_inv.col(kc);
+    }
+
     // ---- loop over outcome columns ------------------------------------
     for (int eq = 0; eq < ny; eq++) {
 
@@ -256,25 +275,19 @@ LPIVResult fLPIV_internal(
       const double b_h      = denom_ok ? num_h / denom_h : arma::datum::nan;
       const arma::vec eps   = Yr_eq - b_h * Dr;
 
-      // Score and its demeaned version
-      arma::vec g = Dhat % eps;
-      g -= arma::mean(g);
-
-      // Bartlett HAC long-run variance of g
-      double LRV = arma::dot(g, g);   // Gamma_0
-      for (int j = 1; j <= bw; j++) {
-        const double w = 1.0 - static_cast<double>(j) /
-                               static_cast<double>(bw + 1);
-        double gamma_j = 0.0;
-        for (int t = j; t < Th; t++) {
-          gamma_j += g(t) * g(t - j);
-        }
-        LRV += 2.0 * w * gamma_j;
+      double se_h = arma::datum::nan;
+      if (denom_ok && nw_prewhite) {
+        arma::mat G = Xhat;
+        G.each_col() %= eps;
+        se_h = std::sqrt(std::max(0.0, arma::as_scalar(
+                   q.t() * se_newey_west_cpp(G, bw, true) * q)));
+      } else if (denom_ok) {
+        // Score and its demeaned version; Bartlett HAC long-run variance
+        arma::vec g = Dhat % eps;
+        g -= arma::mean(g);
+        const double LRV = se_newey_west_lrv_cpp(g.memptr(), Th, bw);
+        se_h = std::sqrt(std::max(0.0, LRV)) / std::fabs(denom_h);
       }
-
-      const double se_h = denom_ok
-          ? std::sqrt(std::max(0.0, LRV)) / std::fabs(denom_h)
-          : arma::datum::nan;
 
       out.irfs(h, eq)       = b_h;
       out.irfs_se(h, eq)    = se_h;
@@ -319,7 +332,7 @@ LPIVResult fLPIV_internal(
 //'   \code{== 0}: horizon-varying bandwidth = h (just-identified LP rule).
 //' @param cumulative Logical. \code{TRUE} regresses \eqn{y_{t+h} - y_{t-1}};
 //'   \code{FALSE} regresses the level \eqn{y_{t+h}}.
-//' @param n_threads Integer. OpenMP threads. \code{0} = all available cores.
+//' @param n_threads Integer. OpenMP threads. \code{0} = all cores minus one.
 //' @param verbose Logical. Print the thread count. Default \code{FALSE}.
 //' @param Y_pre Numeric matrix (1 x n_y) or \code{NULL}. Cumulative LP only:
 //'   the outcome at the date immediately BEFORE row 1 of \code{Y}, used as the
@@ -327,6 +340,9 @@ LPIVResult fLPIV_internal(
 //'   every row of \code{Y} estimable and matches the \code{endo_lag1}
 //'   alignment of Cesa-Bianchi's \code{LPmodel.m}. With \code{NULL} (default)
 //'   row 1 of \code{Y} is consumed as the base and one observation is lost.
+//' @param nw_prewhite Logical. Andrews-Monahan (1992) VAR(1) prewhitening
+//'   of the score vector before the Newey-West sum, with the VAR(1) matrix
+//'   shrunk when its spectral radius exceeds 0.97. Default \code{FALSE}.
 //'
 //' @return A named list with \code{irfs}, \code{irfs_upper}, \code{irfs_lower},
 //'   \code{irfs_se}, \code{Fstat_fs} (first-stage F per horizon) and
@@ -347,7 +363,8 @@ Rcpp::List fLPIV_cpp(
     bool      cumulative = false,
     int       n_threads  = 0,
     bool      verbose    = false,
-    Rcpp::Nullable<arma::mat> Y_pre = R_NilValue
+    Rcpp::Nullable<arma::mat> Y_pre = R_NilValue,
+    bool      nw_prewhite = false
 ) {
   if (Y.n_rows == 0) Rcpp::stop("fLPIV_cpp: Y is empty.");
   if (H < 0) Rcpp::stop("fLPIV_cpp: H must be non-negative.");
@@ -369,7 +386,8 @@ Rcpp::List fLPIV_cpp(
   }
 
   LPIVResult res = fLPIV_internal(Y, D, Z, C, H, conf_level, nw_lags_iv,
-                                  cumulative, n_threads, verbose, Y_pre_mat);
+                                  cumulative, n_threads, verbose, Y_pre_mat,
+                                  nw_prewhite);
 
   if (res.rank_deficient) {
     Rcpp::stop(

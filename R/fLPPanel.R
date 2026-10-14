@@ -143,8 +143,6 @@
 # rather than adjacent rows in sort order.
 .fLPPanel_expand_lag_terms <- function(formula_chr, data, id_vec, t_norm) {
 
-  pattern <- "(l|f)\\(([A-Za-z_.][A-Za-z0-9_.]*),([^)]+)\\)"
-
   T_dat <- nrow(data)
   if (length(id_vec) != T_dat || length(t_norm) != T_dat) {
     stop("fLPPanel: internal error - id/time vectors misaligned with data.",
@@ -165,67 +163,8 @@
     out
   }
 
-  repeat {
-    m <- regexpr(pattern, formula_chr, perl = TRUE)
-    if (m == -1L) break
-
-    full_match <- regmatches(formula_chr, m)
-    parsed     <- regmatches(full_match,
-                             regexec("(l|f)\\(([A-Za-z_.][A-Za-z0-9_.]*),([^)]+)\\)",
-                                     full_match, perl = TRUE))[[1]]
-    op       <- parsed[2L]
-    var      <- trimws(parsed[3L])
-    lags_str <- trimws(parsed[4L])
-
-    lag_idx <- tryCatch(
-      eval(parse(text = lags_str)),
-      error = function(e) stop(sprintf(
-        "fLPPanel: cannot parse lag/lead spec '%s' in term '%s': %s",
-        lags_str, full_match, conditionMessage(e)
-      ))
-    )
-    if (!is.numeric(lag_idx) || anyNA(lag_idx) || any(!is.finite(lag_idx)) ||
-        any(lag_idx < 0L) || any(lag_idx != floor(lag_idx))) {
-      stop(sprintf(
-        "fLPPanel: lag/lead indices must be non-negative integers; got '%s'.",
-        lags_str
-      ))
-    }
-    lag_idx <- as.integer(lag_idx)
-
-    if (!var %in% names(data)) {
-      stop(sprintf(
-        "fLPPanel: variable '%s' used in lag/lead term '%s' not found in data.",
-        var, full_match
-      ))
-    }
-    x_raw <- data[[var]]
-
-    new_cols <- character(length(lag_idx))
-    for (i in seq_along(lag_idx)) {
-      k <- lag_idx[i]
-      col_name <- if (op == "l") sprintf("%s_l%d", var, k) else
-                                 sprintf("%s_f%d", var, k)
-      if (!col_name %in% names(data)) {
-        if (k == 0L) {
-          data[[col_name]] <- x_raw
-        } else {
-          data[[col_name]] <- panel_lag(x_raw, k, op)
-        }
-      }
-      new_cols[i] <- col_name
-    }
-
-    # Wrap in parens so downstream ":"-interactions distribute correctly:
-    # l(x, 1:2):z  →  (x_l1 + x_l2):z  →  x_l1:z + x_l2:z.
-    replacement <- if (length(new_cols) > 1L)
-      paste0("(", paste(new_cols, collapse = " + "), ")")
-    else
-      new_cols[1L]
-    formula_chr <- sub(pattern, replacement, formula_chr, perl = TRUE)
-  }
-
-  list(formula_chr = formula_chr, data = data)
+  .fLP_expand_lag_terms(formula_chr, data, shift = panel_lag,
+                        fn = "fLPPanel", paren = TRUE)
 }
 
 
@@ -564,62 +503,32 @@ fLPPanel <- function(formula, data,
   # One IRF column per shock term (label = term label from the formula).
   irf_names <- shock
 
-  colnames(res$estimate) <- irf_names
-  colnames(res$SE)       <- irf_names
-  colnames(res$df)       <- irf_names
-  rownames(res$estimate) <- as.character(h_seq)
-  rownames(res$SE)       <- as.character(h_seq)
-  rownames(res$df)       <- as.character(h_seq)
+  dimnames(res$estimate) <- list(as.character(h_seq), irf_names)
+  dimnames(res$SE)       <- dimnames(res$estimate)
+  dimnames(res$df)       <- dimnames(res$estimate)
 
-  # Build bands at each requested conf level using per-cell t quantiles.
-  # C++ engine no longer computes CI90/95/99 or p-values (they were the
-  # only R-API calls inside the OpenMP loop); we rebuild them here.
-  build_band <- function(cl) {
-    q <- matrix(0, H + 1L, length(irf_names))
-    for (i in seq_len(H + 1L))
-      for (j in seq_along(irf_names))
-        q[i, j] <- stats::qt(0.5 * (1 + cl / 100), df = res$df[i, j])
-    list(upper = res$estimate + q * res$SE,
-         lower = res$estimate - q * res$SE)
-  }
-  build_fixed_ci <- function(cl) {
-    b <- build_band(cl)
+  # Bands at each requested conf level using per-cell t quantiles. The C++
+  # engine no longer computes CI90/95/99 or p-values (they were the only
+  # R-API calls inside the OpenMP loop); they are rebuilt here.
+  t_crit <- function(cl)
+    array(stats::qt(0.5 * (1 + cl / 100), df = res$df), dim(res$df))
+  fixed_ci <- function(cl) {
+    b <- .fLP_bands(res$estimate, res$SE, cl, t_crit)
     a <- array(NA_real_, c(H + 1L, length(irf_names), 2L))
     a[, , 1L] <- b$lower
     a[, , 2L] <- b$upper
     a
   }
-  CI90 <- build_fixed_ci(90)
-  CI95 <- build_fixed_ci(95)
-  CI99 <- build_fixed_ci(99)
+  CI90 <- fixed_ci(90)
+  CI95 <- fixed_ci(95)
+  CI99 <- fixed_ci(99)
   # Two-sided p-values from |t| under t(df).
-  t_stat <- abs(res$estimate / res$SE)
-  pval   <- matrix(NA_real_, H + 1L, length(irf_names))
-  for (i in seq_len(H + 1L))
-    for (j in seq_along(irf_names))
-      pval[i, j] <- 2 * stats::pt(t_stat[i, j], df = res$df[i, j],
-                                  lower.tail = FALSE)
+  pval <- array(2 * stats::pt(abs(res$estimate / res$SE), df = res$df,
+                              lower.tail = FALSE), dim(res$df))
 
-  if (length(conf) == 1L) {
-    b <- build_band(conf)
-    irfs_upper <- b$upper
-    irfs_lower <- b$lower
-    rownames(irfs_upper) <- rownames(irfs_lower) <- as.character(h_seq)
-    colnames(irfs_upper) <- colnames(irfs_lower) <- irf_names
-  } else {
-    keys <- format(conf, trim = TRUE)
-    irfs_upper <- vector("list", length(conf))
-    irfs_lower <- vector("list", length(conf))
-    names(irfs_upper) <- keys
-    names(irfs_lower) <- keys
-    for (i in seq_along(conf)) {
-      b <- build_band(conf[i])
-      rownames(b$upper) <- rownames(b$lower) <- as.character(h_seq)
-      colnames(b$upper) <- colnames(b$lower) <- irf_names
-      irfs_upper[[i]] <- b$upper
-      irfs_lower[[i]] <- b$lower
-    }
-  }
+  bands      <- .fLP_bands(res$estimate, res$SE, conf, t_crit)
+  irfs_upper <- bands$upper
+  irfs_lower <- bands$lower
 
   out <- list(
     irfs         = res$estimate,
@@ -712,30 +621,15 @@ coef.fLPPanel <- function(object, ...) object$irfs
 #'   levels use columns named \code{lower_<level>} and \code{upper_<level>}.
 #' @export
 tidy.fLPPanel <- function(x, ...) {
-  H  <- max(x$horizons)
-  ny <- ncol(x$irfs)
-  irf_names <- colnames(x$irfs)
-  multi <- is.list(x$irfs_upper)
-  h_seq <- 0L:H
-
+  h_seq <- 0L:max(x$horizons)
   base <- data.frame(
-    horizon  = rep(h_seq, times = ny),
-    shock    = rep(irf_names, each = length(h_seq)),
+    horizon  = rep(h_seq, times = ncol(x$irfs)),
+    shock    = rep(colnames(x$irfs), each = length(h_seq)),
     estimate = as.vector(x$irfs),
     se       = as.vector(x$irfs_se),
     df       = as.vector(x$df),
     pval     = as.vector(x$pval),
     stringsAsFactors = FALSE
   )
-
-  if (!multi) {
-    base$lower <- as.vector(x$irfs_lower)
-    base$upper <- as.vector(x$irfs_upper)
-    return(base)
-  }
-  for (k in names(x$irfs_upper)) {
-    base[[paste0("lower_", k)]] <- as.vector(x$irfs_lower[[k]])
-    base[[paste0("upper_", k)]] <- as.vector(x$irfs_upper[[k]])
-  }
-  base
+  .fLP_tidy_bands(base, x)
 }

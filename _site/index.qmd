@@ -20,15 +20,15 @@ suppressWarnings('tidyverse')
 
 ***Welcome to the website of tidyMacro!***
 
-tidyMacro is an R package for fast estimation and identification of Structural Vector Autoregressions (VAR) and local projections via C++ (Rcpp/RcppArmadillo).
+tidyMacro is an R package for fast estimation and identification of Structural Vector Autoregressions (SVAR) and Local Projections (LP) via C++ (Rcpp/RcppArmadillo).
 
 ## Functionality
 
 - Fast reduced form VAR estimations and rich identification schemes
 - Local projections estimations with clean syntax, support for macros
-- Zero dependency on other packages. Ground up written in C++. All visualizations made with ggplot2 in R.
+- Zero dependency on other econometrics packages. Ground up written in C++. All visualizations made with ggplot2 in R.
 - Publication-ready plots out of the box. Each plot is a ggplot2 object, can be ex post customized
-- The package comes with a proper theme
+- A proper theme for visualizations
 - Parallel bootstrap computations via OpenMP for maximum speed.
 - Excellent documentation with detailed examples for every function
 - Import data via tidyverse, clean, modify and then supply your final data piping as matrix for Armadillo calculations
@@ -36,66 +36,77 @@ tidyMacro is an R package for fast estimation and identification of Structural V
 
 ## Models - Identification - Decompositions
 
-1.  **Identification via short-run / recursive ordering** ✅
+1.  **Identification via short-run / recursive ordering**
 
-    - Impulse response functions ✅
+    - Impulse response functions
       - Residual based bootstraps
       - Wild bootstraps
-    - Bias corrected impulse Response functions ✅
-    - Variance Decomposition ✅
-    - Historical Decomposition ✅
+    - Bias corrected impulse Response functions
+    - Variance Decomposition
+    - Historical Decomposition
     - Replication: @bloom2009
 
 2.  **Identification via long run restrictions**
 
-    - Impulse response functions ✅
-    - Bias corrected impulse Response functions ✅
-    - Variance Decomposition ✅
+    - Impulse response functions
+    - Bias corrected impulse Response functions
+    - Variance Decomposition
     - Replication 1: @gali1999
     - Replication 2: @beaudry2014
 
-3.  **Identification via external instruments (Proxy-SVAR)** ✅
+3.  **Identification via external instruments (Proxy-SVAR)**
 
-    - Impulse Response functions ✅
+    - Impulse Response functions
+
       - Moving block bootstraps
-    - Forecast error variance Decomposition ✅
-    - Historical Decomposition ✅
-    - First Stage F-stats ✅
-    - Recovering the shock series ✅
+
+    - Forecast error variance Decomposition
+
+    - Historical Decomposition
+
+    - First Stage F-stats
+
+    - Recovering the shock series
+
       - Unit normalization
       - One SD normalization
-    - Weak IV Robust IRF ✅
+
+    - Weak IV Robust IRF
+
       - **Delta method**
       - **Anderson-Rubin**
+
     - Replication: @kaenzig2021
-    - **External instrument SVAR analysis for noninvertible shocks** following @forni2022 ✅
-      - Invertibility test ✅
-      - Recoverability test ✅
-      - Calculate IRF, HD, FEVD and relative IRF if none. ✅
+
+      **External instrument SVAR analysis for noninvertible shocks** following @forni2022
+
+      - Invertibility test
+      - Recoverability test
+      - Calculate IRF, HD, FEVD and relative IRF if none.
       - Replication: @forni2022 using a small VAR using @gertler2015 instrument and data
 
-4.  **Identification via Internal instruments** ✅
+4.  **Identification via Internal instruments**
 
     - Adding instrument to VAR as the first variable, then IRF identified recursively
     - Other options in short run / recursive identification apply here
     - Replication: @kaenzig2021
 
-5.  **Identification via Heteroskedasticity** following @rigobon2003 ✅
+5.  **Identification via Heteroskedasticity** following @rigobon2003
 
-    - Impulse Response functions ✅
+    - Impulse Response functions
     - Replication: @kaenzig2021
 
-6.  **Identification via Sign, Narrative and Zero Restrictions** ✅
+6.  **Identification via Sign, Narrative and Zero Restrictions**
 
-    - Impulse response functions ✅
-    - Historical Decomposition ✅
+    - Impulse response functions
+    - Historical Decomposition
     - Narrative restrictions
-      - Rejection sampling ✅
-      - Optional ADRR importance reweighting ✅
+      - Rejection sampling
+      - Optional ADRR importance reweighting
     - Combined with external instruments (sign+IV)
       - Single instrument
       - Multiple instruments, jointly-identified shocks
-    - First-stage F-stats and R² for the instrumented equation(s) ✅
+    - First-stage F-stats and R² for the instrumented equation(s)
     - Replication 1: @uhlig2005 (sign only)
     - Replication 2: @antolindiaz2018 (sign + narrative, Volcker 1979)
     - Replication 3: @arias2019 (sign + single-instrument IV)
@@ -103,17 +114,18 @@ tidyMacro is an R package for fast estimation and identification of Structural V
 
 7.  **Identification via Non-Gaussianity** ⛔
 
-8.  **Local Projections** ✅
+8.  **Local Projections**
 
     - Local projections with Exogenous Shocks
-      - Replicaion: @jorda2025 ✅
+      - Replicaion: @jorda2025
     - Local projections IV
-      - Replication: @jorda2025 ✅
-    - State Dependent and Nonlinear Local projections
-      - Replication: @tenreyro2016a ✅
+      - Replication: @jorda2025
+    - State Dependency and Nonlinear Local projections
+      - Replication: @tenreyro2016a
     - Panel Local projections
-      - Replication: @almuzara2024micro ✅
-    - Local Projections Difference in Differences ✅
+      - Replication: @almuzara2024micro
+    - State Dependent Nonlinear and Panel Local projections ⛔
+    - Local Projections Difference in Differences
       - Replication: @dube2025
 
 ### 📚 How to Cite {.unnumbered}

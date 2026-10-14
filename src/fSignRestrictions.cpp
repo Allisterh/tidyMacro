@@ -273,7 +273,8 @@ bool fSignRotation_cpp(const arma::mat&  SIGN,
 //'
 //' @seealso \code{\link{fSR_cpp}}, \code{\link{fGenerateQ}}
 //'
-//' @export
+//' @keywords internal
+//' @noRd
 // [[Rcpp::export]]
 Rcpp::List fSignRestrictions_cpp(const arma::mat& sigma,
                                  const arma::mat& SIGN,
@@ -348,7 +349,8 @@ Rcpp::List fSignRestrictions_cpp(const arma::mat& sigma,
 //'
 //' @seealso \code{\link{fSignRestrictions_cpp}}
 //'
-//' @export
+//' @keywords internal
+//' @noRd
 // [[Rcpp::export]]
 Rcpp::List fSignRestrictionsAll_cpp(const arma::mat& sigma,
                                     const arma::mat& SIGN,

@@ -27,6 +27,20 @@ VARResult fVAR_cpp(const arma::mat& y, int p, int c,
 VARResult fVAR_cpp(const arma::mat& y, int p, int c,
                    const arma::mat& exog);
 
+// Optional pre-converted exog: nullptr means no exogenous variables.
+VARResult fVAR_cpp(const arma::mat& y, int p, int c,
+                   const arma::mat* exog_ptr);
+
+// VARResult from the list returned by fVAR() (n_exog defaults to 0).
+VARResult fVARResultFromList_cpp(const Rcpp::List& var_result);
+
+// Checks that `exog` is supplied exactly when the fitted VAR used exogenous
+// variables. Call on the main thread, before any OpenMP region.
+void fCheckExogArg_cpp(int n_exog, bool has_exog);
+
+// For routines that do not support exogenous variables.
+void fRequireNoExog_cpp(int n_exog, const char* fun);
+
 
 // R wrapper function (for calling from R)
 Rcpp::List fVAR(const arma::mat& y, int p, int c,

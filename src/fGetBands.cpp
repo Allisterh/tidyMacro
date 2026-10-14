@@ -4,87 +4,92 @@
 #include <vector>
 // [[Rcpp::depends(RcppArmadillo)]]
 
-static double lin_interp(const std::vector<double>& sv, int B, double pct) {
-    double raw = (pct / 100.0) * (B - 1);
-    int lo = static_cast<int>(raw);
-    double frac = raw - lo;
-    if (lo + 1 >= B) return sv[lo];
-    return sv[lo] * (1.0 - frac) + sv[lo + 1] * frac;
+// [[Rcpp::plugins(openmp)]]
+#include "omp_threads.h"
+
+double fPercentileSorted_cpp(const double* sorted, int n, double pct) {
+    const double raw  = (pct / 100.0) * (n - 1);
+    const int    lo   = static_cast<int>(raw);
+    const double frac = raw - lo;
+    if (frac < 1e-12 || lo + 1 >= n) return sorted[lo];
+    return sorted[lo] * (1.0 - frac) + sorted[lo + 1] * frac;
+}
+
+arma::mat fRowPercentiles_cpp(const arma::mat& flat,
+                              const std::vector<double>& pcts,
+                              int n_threads) {
+    const int n_rows = static_cast<int>(flat.n_rows);
+    const int B      = static_cast<int>(flat.n_cols);
+    const int n_pct  = static_cast<int>(pcts.size());
+    arma::mat out(n_rows, n_pct, arma::fill::none);
+    const int n_thr = fResolveThreads_cpp(n_threads);
+
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static) num_threads(n_thr)
+#endif
+    for (int i = 0; i < n_rows; ++i) {
+        std::vector<double> sv(B);
+        for (int b = 0; b < B; ++b) sv[b] = flat(i, b);
+        std::sort(sv.begin(), sv.end());
+        for (int j = 0; j < n_pct; ++j)
+            out(i, j) = fPercentileSorted_cpp(sv.data(), B, pcts[j]);
+    }
+    return out;
+}
+
+std::vector<double> fBandLevels_cpp(double conf, double conf2) {
+    return {50.0 + conf * 0.5, 50.0 - conf * 0.5,
+            50.0 + conf2 * 0.5, 50.0 - conf2 * 0.5, 50.0};
+}
+
+// bootirf is N x H x B; its memory is the flat (N*H) x B matrix.
+static arma::mat cube_flat(const arma::cube& bootirf) {
+    return arma::mat(const_cast<double*>(bootirf.memptr()),
+                     bootirf.n_rows * bootirf.n_cols, bootirf.n_slices,
+                     false, true);
+}
+
+static arma::mat as_NH(const arma::mat& q, int col, int N, int H) {
+    return arma::reshape(q.col(col), N, H);
 }
 
 FGetBandsResult fGetBands_cpp(const arma::cube& bootirf, double conf) {
-    int N = static_cast<int>(bootirf.n_rows);
-    int H = static_cast<int>(bootirf.n_cols);
-    int B = static_cast<int>(bootirf.n_slices);
-
-    double up_pct  = 50.0 + conf / 2.0;
-    double low_pct = 50.0 - conf / 2.0;
-
-    arma::mat upper(N, H, arma::fill::none);
-    arma::mat lower(N, H, arma::fill::none);
-    arma::mat med(N, H, arma::fill::none);
-
-    for (int i = 0; i < N; ++i) {
-        for (int h = 0; h < H; ++h) {
-            std::vector<double> sv(B);
-            for (int b = 0; b < B; ++b) sv[b] = bootirf(i, h, b);
-            std::sort(sv.begin(), sv.end());
-            upper(i, h) = lin_interp(sv, B, up_pct);
-            lower(i, h) = lin_interp(sv, B, low_pct);
-            med(i, h)   = lin_interp(sv, B, 50.0);
-        }
-    }
-
+    const int N = static_cast<int>(bootirf.n_rows);
+    const int H = static_cast<int>(bootirf.n_cols);
+    arma::mat q = fRowPercentiles_cpp(cube_flat(bootirf),
+                                      {50.0 + conf / 2.0, 50.0 - conf / 2.0, 50.0},
+                                      1);
     FGetBandsResult result;
-    result.upper  = upper;
-    result.lower  = lower;
-    result.median = med;
+    result.upper  = as_NH(q, 0, N, H);
+    result.lower  = as_NH(q, 1, N, H);
+    result.median = as_NH(q, 2, N, H);
     return result;
 }
 
-// Sort once, extract all five quantiles — avoids double sort when called for two bands
 FGetBands2Result fGetBands2_cpp(const arma::cube& bootirf, double conf, double conf2) {
-    int N = static_cast<int>(bootirf.n_rows);
-    int H = static_cast<int>(bootirf.n_cols);
-    int B = static_cast<int>(bootirf.n_slices);
-
-    double up1  = 50.0 + conf  / 2.0;
-    double lo1  = 50.0 - conf  / 2.0;
-    double up2  = 50.0 + conf2 / 2.0;
-    double lo2  = 50.0 - conf2 / 2.0;
-
+    const int N = static_cast<int>(bootirf.n_rows);
+    const int H = static_cast<int>(bootirf.n_cols);
+    arma::mat q = fRowPercentiles_cpp(cube_flat(bootirf),
+                                      fBandLevels_cpp(conf, conf2), 1);
     FGetBands2Result res;
-    res.upper  = arma::mat(N, H, arma::fill::none);
-    res.lower  = arma::mat(N, H, arma::fill::none);
-    res.upper2 = arma::mat(N, H, arma::fill::none);
-    res.lower2 = arma::mat(N, H, arma::fill::none);
-    res.median = arma::mat(N, H, arma::fill::none);
-
-    for (int i = 0; i < N; ++i) {
-        for (int h = 0; h < H; ++h) {
-            std::vector<double> sv(B);
-            for (int b = 0; b < B; ++b) sv[b] = bootirf(i, h, b);
-            std::sort(sv.begin(), sv.end());
-            res.upper(i, h)  = lin_interp(sv, B, up1);
-            res.lower(i, h)  = lin_interp(sv, B, lo1);
-            res.upper2(i, h) = lin_interp(sv, B, up2);
-            res.lower2(i, h) = lin_interp(sv, B, lo2);
-            res.median(i, h) = lin_interp(sv, B, 50.0);
-        }
-    }
+    res.upper  = as_NH(q, 0, N, H);
+    res.lower  = as_NH(q, 1, N, H);
+    res.upper2 = as_NH(q, 2, N, H);
+    res.lower2 = as_NH(q, 3, N, H);
+    res.median = as_NH(q, 4, N, H);
     return res;
 }
 
 //' Compute Confidence Bands from Bootstrap IRF Cube
 //'
 //' Computes upper, lower, and median bands from a 3-D bootstrap IRF array
-//' along the third (bootstrap) dimension using linear interpolation of order
-//' statistics.
+//' along the third (bootstrap) dimension. Percentiles follow R's
+//' \code{quantile(type = 7)}.
 //'
 //' @param bootirf N x (hor+1) x nboot cube of bootstrapped IRFs.
 //' @param conf Confidence level (e.g. 68 for 68\% band). Upper and lower
 //'   quantiles are \eqn{(50 + conf/2)}\% and \eqn{(50 - conf/2)}\%.
-//'   Default 68.
+//'   Default 90.
 //'
 //' @return List with three N x (hor+1) matrices: upper, lower, median.
 //'

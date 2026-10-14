@@ -45,7 +45,7 @@ fBootstrapHetero(
 
 \item{conf2}{Secondary confidence level (e.g. 68).}
 
-\item{n_threads}{OpenMP threads (0 = all available - 1).}
+\item{n_threads}{OpenMP threads (0 = all cores minus one).}
 }
 \value{
 A list with \code{upper}, \code{lower}, \code{upper2},

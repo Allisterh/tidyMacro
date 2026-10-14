@@ -9,12 +9,11 @@
 #include "fCompanionMatrix.h"
 #include "fOLS.h"
 #include "fVAR.h"
-#include "fGenerateVARData.h"
+#include "fBootstrapVAR.h"
+#include "fBootstrapIVMBB.h"
+#include "fGetBands.h"
 #include "fMBBVAR.h"
 #include <RcppArmadillo.h>
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 // =========================================================================
 // Internal helper: companion-form HD recursion
@@ -114,97 +113,44 @@ BootstrapHDIVResult fBootstrapHDIV_cpp(const arma::mat& y,
                                             var_result.sigma,
                                             s, var_result.beta, c, p);
 
-    // Storage for bootstrap HDs: T_eff x N x nboot
-    arma::cube bootHD(T_eff, N, nboot, arma::fill::none);
+    // Blocks and centering are fixed; block indices are drawn on the main thread
+    const MBBSamplerState mbb = fmbb_precompute_cpp(Epsstar, p, blocksize, &Zstar);
+    const arma::imat index    = fmbb_draw_cpp(mbb, nboot);
 
-    // OpenMP setup
-    int actual_threads = 1;
-#ifdef _OPENMP
-    actual_threads = (n_threads == 0)
-        ? std::max(1, omp_get_max_threads() - 1)
-        : n_threads;
-    omp_set_num_threads(actual_threads);
-    Rprintf("Using %d thread(s) for bootstrap HD computation...\n", actual_threads);
-#else
-    Rprintf("OpenMP not available. Running in single-threaded mode.\n");
-#endif
+    const int n_thr = fResolveThreads_cpp(n_threads);
+    Rprintf("Using %d thread(s) for bootstrap HD computation...\n", n_thr);
+
+    // Draw b's T_eff x N HD is column b of the flat (T_eff*N) x nboot matrix
+    arma::mat flat(T_eff * N, nboot, arma::fill::none);
 
 #ifdef _OPENMP
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(static) num_threads(n_thr)
 #endif
     for (int b = 0; b < nboot; ++b) {
-        // 1. MBB resample
-        MBBVARResult mbb = fMBBVAR_cpp(Epsstar, p, blocksize, Zstar);
+        MBBVARResult draw = fmbb_sample_cpp(mbb, index.col(b));
 
-        // 2. Pad residuals outside the proxy window with originals
-        arma::mat res_boot = var_result.residuals;
-        res_boot.rows(u_start, u_end) = mbb.eps_boot;
+        // Resampled residuals inside the proxy window, original ones outside
+        arma::mat res_boot = fMBBPadResiduals_cpp(var_result.residuals,
+                                                  draw.eps_boot, u_start);
+        arma::mat yb = fSimulateVAR_cpp(y, var_result, res_boot, nullptr);
+        VARResult var_b = fVAR_cpp(yb, p, c);
 
-        // 3. Generate bootstrap VAR data and re-estimate
-        arma::mat varboot  = fGenerateVARData(y, p, c, var_result.beta, res_boot);
-        VARResult var_loop = fVAR_cpp(varboot, p, c, R_NilValue);
-
-        // 4. IV identification on bootstrap residuals
-        arma::vec u_p_b = var_loop.residuals.col(pv_idx).rows(u_start, u_end);
-        arma::mat u_q_b = var_loop.residuals.rows(u_start, u_end);
-        u_q_b.shed_col(pv_idx);
-
-        OLSResult ols_b     = fOLS_cpp(u_p_b, mbb.M_boot, 0, 0, 0, 0);
-        const arma::mat& uhat_b = ols_b.fitted_partial;
-        arma::mat sq_sp_b   = arma::solve(uhat_b.t() * uhat_b,
-                                          uhat_b.t() * u_q_b);
-
-        arma::vec s_b(N, arma::fill::zeros);
-        int counter = 0;
-        for (int i = 0; i < N; ++i) {
-            s_b(i) = (i == pv_idx) ? 1.0 : sq_sp_b(counter++);
-        }
-
-        // 5. Bootstrap HD
-        bootHD.slice(b) = hd_recursion_iv(var_loop.residuals, var_loop.sigma,
-                                           s_b, var_loop.beta, c, p);
+        arma::vec s_b = fProxyImpact_cpp(var_b.residuals.rows(u_start, u_end),
+                                         draw.M_boot, pv_idx);
+        flat.col(b) = arma::vectorise(hd_recursion_iv(var_b.residuals, var_b.sigma,
+                                                      s_b, var_b.beta, c, p));
     }
 
-    // Compute percentiles and recenter (Kaenzig/Gertler-Karadi convention)
-    const double up_pct  = 50.0 + conf * 0.5;
-    const double low_pct = 50.0 - conf * 0.5;
-
-    arma::mat upper(T_eff, N, arma::fill::none);
-    arma::mat lower(T_eff, N, arma::fill::none);
-    arma::mat boot_med(T_eff, N, arma::fill::none);
-
-#ifdef _OPENMP
-#pragma omp parallel for collapse(2) schedule(static)
-#endif
-    for (int t = 0; t < T_eff; ++t) {
-        for (int n = 0; n < N; ++n) {
-            // Extract bootstrap values for this (t, n) without arma::tube view
-            arma::vec vals(nboot);
-            for (int b = 0; b < nboot; ++b) {
-                vals(b) = bootHD(t, n, b);
-            }
-            arma::vec sorted = arma::sort(vals);
-
-            // Linear interpolation at requested percentiles
-            auto interp = [&](double pct) -> double {
-                double idx = (pct / 100.0) * (nboot - 1);
-                int    fl  = static_cast<int>(idx);
-                double fr  = idx - fl;
-                if (fl < nboot - 1)
-                    return sorted(fl) * (1.0 - fr) + sorted(fl + 1) * fr;
-                return sorted(nboot - 1);
-            };
-
-            boot_med(t, n) = interp(50.0);
-            upper(t, n)    = interp(up_pct)  - boot_med(t, n) + HDshock_pt(t, n);
-            lower(t, n)    = interp(low_pct) - boot_med(t, n) + HDshock_pt(t, n);
-        }
-    }
+    // Percentiles recentred on the point estimate (Kaenzig / Gertler-Karadi):
+    // band = q(pct) - median(boot) + HDshock_point
+    arma::mat q = fRowPercentiles_cpp(
+        flat, {50.0 + conf * 0.5, 50.0 - conf * 0.5, 50.0}, n_threads);
+    arma::mat shift = arma::reshape(q.col(2), T_eff, N);
 
     BootstrapHDIVResult result;
     result.HDshock = HDshock_pt;
-    result.upper   = upper;
-    result.lower   = lower;
+    result.upper   = arma::reshape(q.col(0), T_eff, N) - shift + HDshock_pt;
+    result.lower   = arma::reshape(q.col(1), T_eff, N) - shift + HDshock_pt;
     return result;
 }
 
@@ -283,14 +229,8 @@ Rcpp::List fBootstrapHDIV(const arma::mat& y,
                            double conf = 90.0,
                            int n_threads = 0) {
 
-    VARResult var_struct;
-    var_struct.beta      = Rcpp::as<arma::mat>(var_result["beta"]);
-    var_struct.residuals = Rcpp::as<arma::mat>(var_result["residuals"]);
-    var_struct.sigma     = Rcpp::as<arma::mat>(var_result["sigma"]);
-    var_struct.p         = Rcpp::as<int>(var_result["p"]);
-    var_struct.c         = Rcpp::as<int>(var_result["c"]);
-    var_struct.n_exog    = var_result.containsElementNamed("n_exog")
-                               ? Rcpp::as<int>(var_result["n_exog"]) : 0;
+    VARResult var_struct = fVARResultFromList_cpp(var_result);
+    fRequireNoExog_cpp(var_struct.n_exog, "fBootstrapHDIV");
 
     BootstrapHDIVResult result = fBootstrapHDIV_cpp(
         y, var_struct, Z, s, nboot, blocksize, adjustZ, adjustu,

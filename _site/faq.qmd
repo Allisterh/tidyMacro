@@ -33,7 +33,7 @@ Estimation and bootstrapping live entirely in C++/RcppArmadillo rather than in R
 
 Open an issue at <https://github.com/muhsinciftci/tidyMacro/issues>. Every page on this site also has an "Report an issue" link in its right-hand margin.
 
-### Will thepackage be maintained and extended? 
+### Will thepackage be maintained and extended?
 
 Yes. Even if published on CRAN, I will keep it up to date for future research.
 
@@ -48,7 +48,7 @@ Yes. Even if published on CRAN, I will keep it up to date for future research.
 - How much time do you spend?
   - Much more than I expected. Despite AI, I spend a lot of time for cross checks, model outputs, design and correctness of functions.
 - Is there any case you spotted errors of AI
-  - Yes. There are also different implementations and those are explicitly mentioned in the text. I also change the design of model outputs, inputs, functions, speed, memory efficiency etc.
+  - Yes. Indeed many. There are also different implementations and those are explicitly mentioned in the text.
 - How do I make sure that the results are reliable for my research?
   - Replications of key economics papers serve as a means to ensure the reliability of the package.
 

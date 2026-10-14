@@ -19,6 +19,7 @@
 #include "fSignRestrictions.h"
 #include "fCheckNarrative.h"
 #include "rng_tidymacro.h"
+#include "omp_threads.h"
 #include <RcppArmadillo.h>
 #ifdef _OPENMP
 #include <omp.h>
@@ -164,7 +165,7 @@ void ir_and_vd(const arma::cube& wold, const arma::mat& B, int nsteps,
 //'   and bands, which avoids copying two
 //'   \code{(N * N * nsteps) x ndraws} matrices back into R.
 //' @param exog Optional T x M matrix of exogenous regressors (default NULL).
-//' @param n_threads Integer. \code{0} (default) uses all available OpenMP threads.
+//' @param n_threads Integer. \code{0} (default) uses all cores minus one.
 //' @param seed Integer base seed. Accepted draw \code{d} uses a stream derived
 //'   from \code{seed} and \code{d}, so results are independent of the thread
 //'   count.
@@ -229,7 +230,8 @@ void ir_and_vd(const arma::cube& wold, const arma::mat& B, int nsteps,
 //' @seealso \code{\link{fSignRestrictions_cpp}}, \code{\link{fCheckNarrative_cpp}},
 //'   \code{\link{fRecoverBIV_cpp}}, \code{\link{fVARPosterior_cpp}}
 //'
-//' @export
+//' @keywords internal
+//' @noRd
 // [[Rcpp::export]]
 Rcpp::List fSR_cpp(const arma::mat& y, int p, int c, const arma::mat& SIGN,
                    int nsteps = 40,
@@ -386,8 +388,7 @@ Rcpp::List fSR_cpp(const arma::mat& y, int p, int c, const arma::mat& SIGN,
 
     int actual_threads = 1;
 #ifdef _OPENMP
-    actual_threads = (n_threads <= 0) ? omp_get_max_threads()
-                                      : n_threads;
+    actual_threads = fResolveThreads_cpp(n_threads);
     actual_threads = std::max(1, std::min(actual_threads, ndraws));
     if (verbose) Rprintf("Using %d thread(s) for sign-restriction draws...\n",
                              actual_threads);

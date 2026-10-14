@@ -5,12 +5,11 @@
 #include "fGenerateVARData.h"
 #include "fLagMakerMatrix.h"
 #include "fWoldIRF.h"
+#include "omp_threads.h"
 #include <RcppArmadillo.h>
 #include <cmath>
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 // [[Rcpp::depends(RcppArmadillo)]]
+// [[Rcpp::plugins(openmp)]]
 
 static arma::vec clean_instr_inv(const arma::vec& instr_raw, int p,
                                   const arma::mat& y) {
@@ -50,8 +49,9 @@ arma::cube fBootstrapIVInvertible_cpp(
         for (int i = 0; i < m; ++i) all_rad(i, b) = (u(i) > 0.5) ? 1.0 : -1.0;
     }
 
+    const int n_thr = fResolveThreads_cpp(0);
 #ifdef _OPENMP
-#pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(static) num_threads(n_thr)
 #endif
     for (int b = 0; b < nboot; ++b) {
 
@@ -70,7 +70,7 @@ arma::cube fBootstrapIVInvertible_cpp(
         arma::vec z_b = clean_instr_inv(z_new, p, y_new);
 
         // 4. Estimate VAR and Wold IRF
-        VARResult     vr_b = fVAR_cpp(y_new, p, c, R_NilValue);
+        VARResult     vr_b = fVAR_cpp(y_new, p, c);
         WoldIRFResult wr_b = fWoldIRF_cpp(vr_b, hor);
         const arma::mat& eps_b    = vr_b.residuals;
         const arma::mat  Sigma_inv = arma::inv_sympd(vr_b.sigma);
@@ -134,14 +134,8 @@ Rcpp::List fBootstrapIVInvertible(
     const arma::ivec& cumu,
     double conf = 90.0, double conf2 = 68.0)
 {
-    VARResult vr;
-    vr.beta      = Rcpp::as<arma::mat>(var_result["beta"]);
-    vr.residuals = Rcpp::as<arma::mat>(var_result["residuals"]);
-    vr.sigma     = Rcpp::as<arma::mat>(var_result["sigma"]);
-    vr.p         = Rcpp::as<int>(var_result["p"]);
-    vr.c         = Rcpp::as<int>(var_result["c"]);
-    vr.n_exog    = var_result.containsElementNamed("n_exog") ?
-                   Rcpp::as<int>(var_result["n_exog"]) : 0;
+    VARResult vr = fVARResultFromList_cpp(var_result);
+    fRequireNoExog_cpp(vr.n_exog, "fBootstrapIVInvertible");
 
     arma::cube bootirf = fBootstrapIVInvertible_cpp(
         y, instr, vr, nboot, p, c, hor, cumu);
