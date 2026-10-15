@@ -475,21 +475,18 @@ window.Quarto = {
 <span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Using 3 thread(s) for parallel bootstrap computation...</span></span>
 <span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="fu">toc</span>()</span>
-<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1.124 sec elapsed</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1.012 sec elapsed</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="impulse-response-functions" class="level2" data-number="7">
 <h2 data-number="7" class="anchored" data-anchor-id="impulse-response-functions"><span class="header-section-number">7</span> Impulse Response Functions</h2>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">fPlotIRFIV</span>(</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">result_mbb =</span> result_mbb,</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">varnames   =</span> varnames,</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">shockname  =</span> shockname,</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">scale      =</span> <span class="dv">10</span>,</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">facet_ncol =</span> <span class="dv">3</span></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span></span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlim</span>(<span class="dv">0</span>, <span class="dv">50</span>) <span class="sc">+</span></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="cn">NULL</span>, <span class="at">y =</span> <span class="cn">NULL</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">fPlotIRF</span>(</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">fIRF</span>(result_mbb, <span class="at">varnames =</span> varnames, <span class="at">shocknames =</span> shockname, <span class="at">scale =</span> <span class="dv">10</span>),</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">facet_ncol =</span> <span class="dv">3</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlim</span>(<span class="dv">0</span>, <span class="dv">50</span>) <span class="sc">+</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="cn">NULL</span>, <span class="at">y =</span> <span class="cn">NULL</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div id="fig-irf" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -531,23 +528,23 @@ Figure&nbsp;1: IRFs to oil supply news shock — MBB bootstrap (68% and 90% conf
 <span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fmt_number</span>(<span class="at">columns =</span> <span class="dv">2</span><span class="sc">:</span><span class="dv">3</span>, <span class="at">decimals =</span> <span class="dv">3</span>) <span class="sc">|&gt;</span></span>
 <span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tab_header</span>(<span class="at">title =</span> <span class="st">"First-Stage Instrument Strength"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
-<div id="outpmsgvdt" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#outpmsgvdt table {
+<div id="qdqhdrsuer" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#qdqhdrsuer table {
   font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-#outpmsgvdt thead, #outpmsgvdt tbody, #outpmsgvdt tfoot, #outpmsgvdt tr, #outpmsgvdt td, #outpmsgvdt th {
+#qdqhdrsuer thead, #qdqhdrsuer tbody, #qdqhdrsuer tfoot, #qdqhdrsuer tr, #qdqhdrsuer td, #qdqhdrsuer th {
   border-style: none;
 }
 
-#outpmsgvdt p {
+#qdqhdrsuer p {
   margin: 0;
   padding: 0;
 }
 
-#outpmsgvdt .gt_table {
+#qdqhdrsuer .gt_table {
   display: table;
   border-collapse: collapse;
   line-height: normal;
@@ -573,12 +570,12 @@ Figure&nbsp;1: IRFs to oil supply news shock — MBB bootstrap (68% and 90% conf
   border-left-color: #D3D3D3;
 }
 
-#outpmsgvdt .gt_caption {
+#qdqhdrsuer .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
 
-#outpmsgvdt .gt_title {
+#qdqhdrsuer .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -590,7 +587,7 @@ Figure&nbsp;1: IRFs to oil supply news shock — MBB bootstrap (68% and 90% conf
   border-bottom-width: 0;
 }
 
-#outpmsgvdt .gt_subtitle {
+#qdqhdrsuer .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -602,7 +599,7 @@ Figure&nbsp;1: IRFs to oil supply news shock — MBB bootstrap (68% and 90% conf
   border-top-width: 0;
 }
 
-#outpmsgvdt .gt_heading {
+#qdqhdrsuer .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -614,13 +611,13 @@ Figure&nbsp;1: IRFs to oil supply news shock — MBB bootstrap (68% and 90% conf
   border-right-color: #D3D3D3;
 }
 
-#outpmsgvdt .gt_bottom_border {
+#qdqhdrsuer .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#outpmsgvdt .gt_col_headings {
+#qdqhdrsuer .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -635,7 +632,7 @@ Figure&nbsp;1: IRFs to oil supply news shock — MBB bootstrap (68% and 90% conf
   border-right-color: #D3D3D3;
 }
 
-#outpmsgvdt .gt_col_heading {
+#qdqhdrsuer .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -655,7 +652,7 @@ Figure&nbsp;1: IRFs to oil supply news shock — MBB bootstrap (68% and 90% conf
   overflow-x: hidden;
 }
 
-#outpmsgvdt .gt_column_spanner_outer {
+#qdqhdrsuer .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -667,15 +664,15 @@ Figure&nbsp;1: IRFs to oil supply news shock — MBB bootstrap (68% and 90% conf
   padding-right: 4px;
 }
 
-#outpmsgvdt .gt_column_spanner_outer:first-child {
+#qdqhdrsuer .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#outpmsgvdt .gt_column_spanner_outer:last-child {
+#qdqhdrsuer .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#outpmsgvdt .gt_column_spanner {
+#qdqhdrsuer .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -687,11 +684,11 @@ Figure&nbsp;1: IRFs to oil supply news shock — MBB bootstrap (68% and 90% conf
   width: 100%;
 }
 
-#outpmsgvdt .gt_spanner_row {
+#qdqhdrsuer .gt_spanner_row {
   border-bottom-style: hidden;
 }
 
-#outpmsgvdt .gt_group_heading {
+#qdqhdrsuer .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -717,7 +714,7 @@ Figure&nbsp;1: IRFs to oil supply news shock — MBB bootstrap (68% and 90% conf
   text-align: left;
 }
 
-#outpmsgvdt .gt_empty_group_heading {
+#qdqhdrsuer .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -732,15 +729,15 @@ Figure&nbsp;1: IRFs to oil supply news shock — MBB bootstrap (68% and 90% conf
   vertical-align: middle;
 }
 
-#outpmsgvdt .gt_from_md > :first-child {
+#qdqhdrsuer .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#outpmsgvdt .gt_from_md > :last-child {
+#qdqhdrsuer .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#outpmsgvdt .gt_row {
+#qdqhdrsuer .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -759,7 +756,7 @@ Figure&nbsp;1: IRFs to oil supply news shock — MBB bootstrap (68% and 90% conf
   overflow-x: hidden;
 }
 
-#outpmsgvdt .gt_stub {
+#qdqhdrsuer .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -772,7 +769,7 @@ Figure&nbsp;1: IRFs to oil supply news shock — MBB bootstrap (68% and 90% conf
   padding-right: 5px;
 }
 
-#outpmsgvdt .gt_stub_row_group {
+#qdqhdrsuer .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -786,15 +783,15 @@ Figure&nbsp;1: IRFs to oil supply news shock — MBB bootstrap (68% and 90% conf
   vertical-align: top;
 }
 
-#outpmsgvdt .gt_row_group_first td {
+#qdqhdrsuer .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#outpmsgvdt .gt_row_group_first th {
+#qdqhdrsuer .gt_row_group_first th {
   border-top-width: 2px;
 }
 
-#outpmsgvdt .gt_summary_row {
+#qdqhdrsuer .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -804,16 +801,16 @@ Figure&nbsp;1: IRFs to oil supply news shock — MBB bootstrap (68% and 90% conf
   padding-right: 5px;
 }
 
-#outpmsgvdt .gt_first_summary_row {
+#qdqhdrsuer .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#outpmsgvdt .gt_first_summary_row.thick {
+#qdqhdrsuer .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#outpmsgvdt .gt_last_summary_row {
+#qdqhdrsuer .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -823,7 +820,7 @@ Figure&nbsp;1: IRFs to oil supply news shock — MBB bootstrap (68% and 90% conf
   border-bottom-color: #D3D3D3;
 }
 
-#outpmsgvdt .gt_grand_summary_row {
+#qdqhdrsuer .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -833,7 +830,7 @@ Figure&nbsp;1: IRFs to oil supply news shock — MBB bootstrap (68% and 90% conf
   padding-right: 5px;
 }
 
-#outpmsgvdt .gt_first_grand_summary_row {
+#qdqhdrsuer .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -843,7 +840,7 @@ Figure&nbsp;1: IRFs to oil supply news shock — MBB bootstrap (68% and 90% conf
   border-top-color: #D3D3D3;
 }
 
-#outpmsgvdt .gt_last_grand_summary_row_top {
+#qdqhdrsuer .gt_last_grand_summary_row_top {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -853,11 +850,11 @@ Figure&nbsp;1: IRFs to oil supply news shock — MBB bootstrap (68% and 90% conf
   border-bottom-color: #D3D3D3;
 }
 
-#outpmsgvdt .gt_striped {
+#qdqhdrsuer .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#outpmsgvdt .gt_table_body {
+#qdqhdrsuer .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -866,7 +863,7 @@ Figure&nbsp;1: IRFs to oil supply news shock — MBB bootstrap (68% and 90% conf
   border-bottom-color: #D3D3D3;
 }
 
-#outpmsgvdt .gt_footnotes {
+#qdqhdrsuer .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -880,7 +877,7 @@ Figure&nbsp;1: IRFs to oil supply news shock — MBB bootstrap (68% and 90% conf
   border-right-color: #D3D3D3;
 }
 
-#outpmsgvdt .gt_footnote {
+#qdqhdrsuer .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-top: 4px;
@@ -889,7 +886,7 @@ Figure&nbsp;1: IRFs to oil supply news shock — MBB bootstrap (68% and 90% conf
   padding-right: 5px;
 }
 
-#outpmsgvdt .gt_sourcenotes {
+#qdqhdrsuer .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -903,7 +900,7 @@ Figure&nbsp;1: IRFs to oil supply news shock — MBB bootstrap (68% and 90% conf
   border-right-color: #D3D3D3;
 }
 
-#outpmsgvdt .gt_sourcenote {
+#qdqhdrsuer .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -911,72 +908,72 @@ Figure&nbsp;1: IRFs to oil supply news shock — MBB bootstrap (68% and 90% conf
   padding-right: 5px;
 }
 
-#outpmsgvdt .gt_left {
+#qdqhdrsuer .gt_left {
   text-align: left;
 }
 
-#outpmsgvdt .gt_center {
+#qdqhdrsuer .gt_center {
   text-align: center;
 }
 
-#outpmsgvdt .gt_right {
+#qdqhdrsuer .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#outpmsgvdt .gt_font_normal {
+#qdqhdrsuer .gt_font_normal {
   font-weight: normal;
 }
 
-#outpmsgvdt .gt_font_bold {
+#qdqhdrsuer .gt_font_bold {
   font-weight: bold;
 }
 
-#outpmsgvdt .gt_font_italic {
+#qdqhdrsuer .gt_font_italic {
   font-style: italic;
 }
 
-#outpmsgvdt .gt_super {
+#qdqhdrsuer .gt_super {
   font-size: 65%;
 }
 
-#outpmsgvdt .gt_footnote_marks {
+#qdqhdrsuer .gt_footnote_marks {
   font-size: 75%;
   vertical-align: 0.4em;
   position: initial;
 }
 
-#outpmsgvdt .gt_asterisk {
+#qdqhdrsuer .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#outpmsgvdt .gt_indent_1 {
+#qdqhdrsuer .gt_indent_1 {
   text-indent: 5px;
 }
 
-#outpmsgvdt .gt_indent_2 {
+#qdqhdrsuer .gt_indent_2 {
   text-indent: 10px;
 }
 
-#outpmsgvdt .gt_indent_3 {
+#qdqhdrsuer .gt_indent_3 {
   text-indent: 15px;
 }
 
-#outpmsgvdt .gt_indent_4 {
+#qdqhdrsuer .gt_indent_4 {
   text-indent: 20px;
 }
 
-#outpmsgvdt .gt_indent_5 {
+#qdqhdrsuer .gt_indent_5 {
   text-indent: 25px;
 }
 
-#outpmsgvdt .katex-display {
+#qdqhdrsuer .katex-display {
   display: inline-flex !important;
   margin-bottom: 0.75em !important;
 }
 
-#outpmsgvdt div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+#qdqhdrsuer div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
   height: 0px !important;
 }
 </style>
@@ -1085,7 +1082,7 @@ Figure&nbsp;1: IRFs to oil supply news shock — MBB bootstrap (68% and 90% conf
 <span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Using 3 thread(s) for bootstrap HD computation...</span></span>
 <span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a><span class="fu">toc</span>()</span>
-<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1.103 sec elapsed</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0.875 sec elapsed</span></span>
 <span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>HD1_upper <span class="ot">&lt;-</span> boot_hd<span class="sc">$</span>upper[, <span class="dv">1</span>]</span>
 <span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>HD1_lower <span class="ot">&lt;-</span> boot_hd<span class="sc">$</span>lower[, <span class="dv">1</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -1203,19 +1200,15 @@ Figure&nbsp;3: Forecast error variance decomposition: share explained by oil sup
 <span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Wald statistic (HAC-robust F): 11.67</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">fPlotIRFMSW</span>(</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">msw_result      =</span> msw,</span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">varnames        =</span> varnames,</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">shockname       =</span> shockname,</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">scale           =</span> <span class="dv">10</span>,</span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">facet_ncol      =</span> <span class="dv">3</span>,</span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">line_color      =</span> <span class="st">'black'</span>,</span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">ribbon_fill_ar  =</span> tidyMacro_colors[<span class="dv">1</span>],</span>
-<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">ribbon_fill_dm  =</span> tidyMacro_colors[<span class="dv">3</span>],</span>
-<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">ribbon_alpha_ar =</span> <span class="fl">0.45</span>,</span>
-<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">ribbon_alpha_dm =</span> <span class="fl">0.45</span></span>
-<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span></span>
-<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="cn">NULL</span>, <span class="at">y =</span> <span class="cn">NULL</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">fPlotIRF</span>(</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">fIRF</span>(msw, <span class="at">varnames =</span> varnames, <span class="at">shocknames =</span> shockname, <span class="at">scale =</span> <span class="dv">10</span>),</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">facet_ncol   =</span> <span class="dv">3</span>,</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">line_color   =</span> <span class="st">"black"</span>,</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">ribbon_fill  =</span> <span class="fu">c</span>(<span class="st">"Anderson-Rubin"</span> <span class="ot">=</span> tidyMacro_colors[<span class="dv">1</span>],</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"Delta method"</span>   <span class="ot">=</span> tidyMacro_colors[<span class="dv">3</span>]),</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">ribbon_alpha =</span> <span class="fu">c</span>(<span class="fl">0.45</span>, <span class="fl">0.45</span>)</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="cn">NULL</span>, <span class="at">y =</span> <span class="cn">NULL</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div id="fig-irf-msw" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">

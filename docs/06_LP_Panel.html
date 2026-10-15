@@ -351,7 +351,7 @@ window.Quarto = {
   <li><a href="#estimation-one-flppanel-call" id="toc-estimation-one-flppanel-call" class="nav-link" data-scroll-target="#estimation-one-flppanel-call"><span class="header-section-number">4</span> Estimation — one <code>fLPPanel()</code> call</a></li>
   <li><a href="#alternative-clustering-an-extension-beyond-the-papers-benchmark" id="toc-alternative-clustering-an-extension-beyond-the-papers-benchmark" class="nav-link" data-scroll-target="#alternative-clustering-an-extension-beyond-the-papers-benchmark"><span class="header-section-number">5</span> Alternative clustering: an extension beyond the paper’s benchmark</a></li>
   <li><a href="#side-by-side-check-against-fixest" id="toc-side-by-side-check-against-fixest" class="nav-link" data-scroll-target="#side-by-side-check-against-fixest"><span class="header-section-number">6</span> Side-by-side check against <code>fixest</code></a></li>
-  <li><a href="#two-band-plot-via-fplotlp" id="toc-two-band-plot-via-fplotlp" class="nav-link" data-scroll-target="#two-band-plot-via-fplotlp"><span class="header-section-number">7</span> Two-band plot via <code>fPlotLP()</code></a></li>
+  <li><a href="#two-band-plot-via-fplotirf" id="toc-two-band-plot-via-fplotirf" class="nav-link" data-scroll-target="#two-band-plot-via-fplotirf"><span class="header-section-number">7</span> Two-band plot via <code>fPlotIRF()</code></a></li>
   <li><a href="#other-supported-specifications" id="toc-other-supported-specifications" class="nav-link" data-scroll-target="#other-supported-specifications"><span class="header-section-number">8</span> Other supported specifications</a></li>
   <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
   </ul>
@@ -848,11 +848,11 @@ Figure&nbsp;3: IRF and 90% band on the unbalanced sample. Left: tidyMacro::fLPPa
 </div>
 <hr>
 </section>
-<section id="two-band-plot-via-fplotlp" class="level2" data-number="7">
-<h2 data-number="7" class="anchored" data-anchor-id="two-band-plot-via-fplotlp"><span class="header-section-number">7</span> Two-band plot via <code>fPlotLP()</code></h2>
+<section id="two-band-plot-via-fplotirf" class="level2" data-number="7">
+<h2 data-number="7" class="anchored" data-anchor-id="two-band-plot-via-fplotirf"><span class="header-section-number">7</span> Two-band plot via <code>fPlotIRF()</code></h2>
 <p>The result object has class <code>c("fLPPanel", "fLP")</code> so every <code>fLP</code> helper transfers:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">fPlotLP</span>(lp_pkg) <span class="sc">+</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">fPlotIRF</span>(lp_pkg, <span class="at">facet_scales =</span> <span class="st">"free_y"</span>) <span class="sc">+</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  ggplot2<span class="sc">::</span><span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"h"</span>, <span class="at">y =</span> <span class="st">"Cumulative response"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div id="fig-panel-lp" class="quarto-float quarto-figure quarto-figure-center anchored">

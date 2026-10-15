@@ -497,16 +497,14 @@ window.Quarto = {
 <h3 data-number="3.2" class="anchored" data-anchor-id="financial-shock-responses"><span class="header-section-number">3.2</span> Financial-shock responses</h3>
 <p>The figure plots <strong>shock 2</strong>, the sign-identified financial shock. Its signs over months 0–2 are imposed by construction; responses at later horizons are unrestricted. The instrument-identified monetary shock occupies column 1 and is not the shock plotted here.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">fPlotIRFSign</span>(</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  bs_us,</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">shock =</span> financial_shock,</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">labels =</span> <span class="st">"Financial shock (single-IV pseudo-application)"</span>,</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">conf =</span> <span class="fu">c</span>(<span class="dv">68</span>, <span class="dv">90</span>),</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Convert decimal rates to percentage points and logs to percent.</span></span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="co"># EBP is already in percentage points.</span></span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">scale =</span> <span class="fu">c</span>(<span class="dv">100</span>, <span class="dv">100</span>, <span class="dv">100</span>, <span class="dv">100</span>, <span class="dv">1</span>),</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">facet_ncol =</span> <span class="dv">2</span></span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">fPlotIRF</span>(</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Convert decimal rates to percentage points and logs to percent.</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># EBP is already in percentage points.</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fIRF</span>(bs_us, <span class="at">conf =</span> <span class="fu">c</span>(<span class="dv">68</span>, <span class="dv">90</span>), <span class="at">scale =</span> <span class="fu">c</span>(<span class="dv">100</span>, <span class="dv">100</span>, <span class="dv">100</span>, <span class="dv">100</span>, <span class="dv">1</span>)),</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">shock        =</span> financial_shock,</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">facet_scales =</span> <span class="st">"free_y"</span>,</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">facet_ncol   =</span> <span class="dv">2</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div id="fig-cbs-single-iv" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -535,23 +533,23 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
 <span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="fu">where</span>(is.numeric), \(x) <span class="fu">round</span>(x, <span class="dv">3</span>))) <span class="sc">|&gt;</span></span>
 <span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  gt<span class="sc">::</span><span class="fu">gt</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
-<div id="oqlmmnhetv" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#oqlmmnhetv table {
+<div id="corcifxvdm" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#corcifxvdm table {
   font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-#oqlmmnhetv thead, #oqlmmnhetv tbody, #oqlmmnhetv tfoot, #oqlmmnhetv tr, #oqlmmnhetv td, #oqlmmnhetv th {
+#corcifxvdm thead, #corcifxvdm tbody, #corcifxvdm tfoot, #corcifxvdm tr, #corcifxvdm td, #corcifxvdm th {
   border-style: none;
 }
 
-#oqlmmnhetv p {
+#corcifxvdm p {
   margin: 0;
   padding: 0;
 }
 
-#oqlmmnhetv .gt_table {
+#corcifxvdm .gt_table {
   display: table;
   border-collapse: collapse;
   line-height: normal;
@@ -577,12 +575,12 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   border-left-color: #D3D3D3;
 }
 
-#oqlmmnhetv .gt_caption {
+#corcifxvdm .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
 
-#oqlmmnhetv .gt_title {
+#corcifxvdm .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -594,7 +592,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   border-bottom-width: 0;
 }
 
-#oqlmmnhetv .gt_subtitle {
+#corcifxvdm .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -606,7 +604,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   border-top-width: 0;
 }
 
-#oqlmmnhetv .gt_heading {
+#corcifxvdm .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -618,13 +616,13 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   border-right-color: #D3D3D3;
 }
 
-#oqlmmnhetv .gt_bottom_border {
+#corcifxvdm .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#oqlmmnhetv .gt_col_headings {
+#corcifxvdm .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -639,7 +637,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   border-right-color: #D3D3D3;
 }
 
-#oqlmmnhetv .gt_col_heading {
+#corcifxvdm .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -659,7 +657,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   overflow-x: hidden;
 }
 
-#oqlmmnhetv .gt_column_spanner_outer {
+#corcifxvdm .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -671,15 +669,15 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   padding-right: 4px;
 }
 
-#oqlmmnhetv .gt_column_spanner_outer:first-child {
+#corcifxvdm .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#oqlmmnhetv .gt_column_spanner_outer:last-child {
+#corcifxvdm .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#oqlmmnhetv .gt_column_spanner {
+#corcifxvdm .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -691,11 +689,11 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   width: 100%;
 }
 
-#oqlmmnhetv .gt_spanner_row {
+#corcifxvdm .gt_spanner_row {
   border-bottom-style: hidden;
 }
 
-#oqlmmnhetv .gt_group_heading {
+#corcifxvdm .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -721,7 +719,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   text-align: left;
 }
 
-#oqlmmnhetv .gt_empty_group_heading {
+#corcifxvdm .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -736,15 +734,15 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   vertical-align: middle;
 }
 
-#oqlmmnhetv .gt_from_md > :first-child {
+#corcifxvdm .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#oqlmmnhetv .gt_from_md > :last-child {
+#corcifxvdm .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#oqlmmnhetv .gt_row {
+#corcifxvdm .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -763,7 +761,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   overflow-x: hidden;
 }
 
-#oqlmmnhetv .gt_stub {
+#corcifxvdm .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -776,7 +774,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   padding-right: 5px;
 }
 
-#oqlmmnhetv .gt_stub_row_group {
+#corcifxvdm .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -790,15 +788,15 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   vertical-align: top;
 }
 
-#oqlmmnhetv .gt_row_group_first td {
+#corcifxvdm .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#oqlmmnhetv .gt_row_group_first th {
+#corcifxvdm .gt_row_group_first th {
   border-top-width: 2px;
 }
 
-#oqlmmnhetv .gt_summary_row {
+#corcifxvdm .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -808,16 +806,16 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   padding-right: 5px;
 }
 
-#oqlmmnhetv .gt_first_summary_row {
+#corcifxvdm .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#oqlmmnhetv .gt_first_summary_row.thick {
+#corcifxvdm .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#oqlmmnhetv .gt_last_summary_row {
+#corcifxvdm .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -827,7 +825,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   border-bottom-color: #D3D3D3;
 }
 
-#oqlmmnhetv .gt_grand_summary_row {
+#corcifxvdm .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -837,7 +835,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   padding-right: 5px;
 }
 
-#oqlmmnhetv .gt_first_grand_summary_row {
+#corcifxvdm .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -847,7 +845,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   border-top-color: #D3D3D3;
 }
 
-#oqlmmnhetv .gt_last_grand_summary_row_top {
+#corcifxvdm .gt_last_grand_summary_row_top {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -857,11 +855,11 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   border-bottom-color: #D3D3D3;
 }
 
-#oqlmmnhetv .gt_striped {
+#corcifxvdm .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#oqlmmnhetv .gt_table_body {
+#corcifxvdm .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -870,7 +868,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   border-bottom-color: #D3D3D3;
 }
 
-#oqlmmnhetv .gt_footnotes {
+#corcifxvdm .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -884,7 +882,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   border-right-color: #D3D3D3;
 }
 
-#oqlmmnhetv .gt_footnote {
+#corcifxvdm .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-top: 4px;
@@ -893,7 +891,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   padding-right: 5px;
 }
 
-#oqlmmnhetv .gt_sourcenotes {
+#corcifxvdm .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -907,7 +905,7 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   border-right-color: #D3D3D3;
 }
 
-#oqlmmnhetv .gt_sourcenote {
+#corcifxvdm .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -915,72 +913,72 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
   padding-right: 5px;
 }
 
-#oqlmmnhetv .gt_left {
+#corcifxvdm .gt_left {
   text-align: left;
 }
 
-#oqlmmnhetv .gt_center {
+#corcifxvdm .gt_center {
   text-align: center;
 }
 
-#oqlmmnhetv .gt_right {
+#corcifxvdm .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#oqlmmnhetv .gt_font_normal {
+#corcifxvdm .gt_font_normal {
   font-weight: normal;
 }
 
-#oqlmmnhetv .gt_font_bold {
+#corcifxvdm .gt_font_bold {
   font-weight: bold;
 }
 
-#oqlmmnhetv .gt_font_italic {
+#corcifxvdm .gt_font_italic {
   font-style: italic;
 }
 
-#oqlmmnhetv .gt_super {
+#corcifxvdm .gt_super {
   font-size: 65%;
 }
 
-#oqlmmnhetv .gt_footnote_marks {
+#corcifxvdm .gt_footnote_marks {
   font-size: 75%;
   vertical-align: 0.4em;
   position: initial;
 }
 
-#oqlmmnhetv .gt_asterisk {
+#corcifxvdm .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#oqlmmnhetv .gt_indent_1 {
+#corcifxvdm .gt_indent_1 {
   text-indent: 5px;
 }
 
-#oqlmmnhetv .gt_indent_2 {
+#corcifxvdm .gt_indent_2 {
   text-indent: 10px;
 }
 
-#oqlmmnhetv .gt_indent_3 {
+#corcifxvdm .gt_indent_3 {
   text-indent: 15px;
 }
 
-#oqlmmnhetv .gt_indent_4 {
+#corcifxvdm .gt_indent_4 {
   text-indent: 20px;
 }
 
-#oqlmmnhetv .gt_indent_5 {
+#corcifxvdm .gt_indent_5 {
   text-indent: 25px;
 }
 
-#oqlmmnhetv .katex-display {
+#corcifxvdm .katex-display {
   display: inline-flex !important;
   margin-bottom: 0.75em !important;
 }
 
-#oqlmmnhetv div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+#corcifxvdm div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
   height: 0px !important;
 }
 </style>
@@ -1051,14 +1049,12 @@ Figure&nbsp;1: Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): re
 <span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">seed =</span> <span class="dv">2022</span></span>
 <span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a><span class="fu">fPlotIRFSign</span>(</span>
-<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>  bs_us,</span>
-<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>  <span class="at">shock =</span> <span class="dv">3</span>,</span>
-<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>  <span class="at">labels =</span> <span class="st">"Financial shock"</span>,</span>
-<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a>  <span class="at">conf =</span> <span class="fu">c</span>(<span class="dv">68</span>, <span class="dv">90</span>),</span>
-<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a>  <span class="at">scale =</span> <span class="dv">100</span>,</span>
-<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a>  <span class="at">facet_ncol =</span> <span class="dv">3</span></span>
-<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a><span class="fu">fPlotIRF</span>(</span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fIRF</span>(bs_us, <span class="at">conf =</span> <span class="fu">c</span>(<span class="dv">68</span>, <span class="dv">90</span>), <span class="at">scale =</span> <span class="dv">100</span>),</span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>  <span class="at">shock        =</span> <span class="dv">3</span>,</span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>  <span class="at">facet_scales =</span> <span class="st">"free_y"</span>,</span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a>  <span class="at">facet_ncol   =</span> <span class="dv">3</span></span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 </section>

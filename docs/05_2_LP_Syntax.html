@@ -401,7 +401,7 @@ window.Quarto = {
 
 <section id="purpose-of-this-chapter" class="level2" data-number="1">
 <h2 data-number="1" class="anchored" data-anchor-id="purpose-of-this-chapter"><span class="header-section-number">1</span> Purpose of this chapter</h2>
-<p>The four local-projection engines in <code>tidyMacro</code> — <code>fLP()</code>, <code>fLPIV()</code>, <code>fLPPanel()</code>, <code>fLPDID()</code> — deliberately share a single, <code>fixest</code>-inspired interface: the same formula grammar, the same lag/lead operators, the same panel-index convention, the same multi-band handling, and the same plotting entry point (<code>fPlotLP()</code> / <code>fPlotLPDID()</code>). This chapter is the <strong>one place</strong> where those shared conventions are documented, so the empirical replication chapters that follow (<span class="citation" data-cites="jorda2025">Jorda and Taylor (<a href="#ref-jorda2025" role="doc-biblioref">2025</a>)</span>, <span class="citation" data-cites="almuzara2024micro">Almuzara and Sancibrián (<a href="#ref-almuzara2024micro" role="doc-biblioref">2024</a>)</span>, <span class="citation" data-cites="dube2025">Dube et al. (<a href="#ref-dube2025" role="doc-biblioref">2025</a>)</span>) can stay focused on the economics.</p>
+<p>The four local-projection engines in <code>tidyMacro</code> — <code>fLP()</code>, <code>fLPIV()</code>, <code>fLPPanel()</code>, <code>fLPDID()</code> — deliberately share a single, <code>fixest</code>-inspired interface: the same formula grammar, the same lag/lead operators, the same panel-index convention, the same multi-band handling, and the same plotting entry point (<code>fPlotIRF()</code> / <code>fPlotLPDID()</code>). This chapter is the <strong>one place</strong> where those shared conventions are documented, so the empirical replication chapters that follow (<span class="citation" data-cites="jorda2025">Jorda and Taylor (<a href="#ref-jorda2025" role="doc-biblioref">2025</a>)</span>, <span class="citation" data-cites="almuzara2024micro">Almuzara and Sancibrián (<a href="#ref-almuzara2024micro" role="doc-biblioref">2024</a>)</span>, <span class="citation" data-cites="dube2025">Dube et al. (<a href="#ref-dube2025" role="doc-biblioref">2025</a>)</span>) can stay focused on the economics.</p>
 <p>Read this once, then treat the estimator chapters as extensions:</p>
 <ul>
 <li><code>fLP()</code> and <code>fLPIV()</code> — <a href="05_JordaTaylor2025.html">Local Projections with Shocks and IV</a></li>
@@ -714,7 +714,7 @@ window.Quarto = {
 </table>
 <section id="multi-level-confidence-bands-from-one-fit" class="level3" data-number="3.1">
 <h3 data-number="3.1" class="anchored" data-anchor-id="multi-level-confidence-bands-from-one-fit"><span class="header-section-number">3.1</span> 2.1 · Multi-level confidence bands from one fit</h3>
-<p>Every engine accepts a <strong>vector</strong> <code>conf</code>, e.g.&nbsp;<code>conf = c(68, 95)</code>, and rebuilds every band from the same raw SE in R. There is no re-estimation cost and no multiple-testing story — bands are just alternative visualizations of the same variance. <code>fPlotLP()</code> draws one ribbon per level automatically.</p>
+<p>Every engine accepts a <strong>vector</strong> <code>conf</code>, e.g.&nbsp;<code>conf = c(68, 95)</code>, and rebuilds every band from the same raw SE in R. There is no re-estimation cost and no multiple-testing story — bands are just alternative visualizations of the same variance. <code>fPlotIRF()</code> draws one ribbon per level automatically.</p>
 </section>
 <section id="impulse-units-shock_size" class="level3" data-number="3.2">
 <h3 data-number="3.2" class="anchored" data-anchor-id="impulse-units-shock_size"><span class="header-section-number">3.2</span> 2.2 · Impulse units (<code>shock_size</code>)</h3>
@@ -740,7 +740,7 @@ window.Quarto = {
 </section>
 <section id="what-each-engine-returns" class="level2" data-number="5">
 <h2 data-number="5" class="anchored" data-anchor-id="what-each-engine-returns"><span class="header-section-number">5</span> 4 · What each engine returns</h2>
-<p>The output shapes share a common core so <code>tidy()</code> and <code>fPlotLP()</code> work uniformly.</p>
+<p>The output shapes share a common core so <code>tidy()</code> and <code>fPlotIRF()</code> work uniformly.</p>
 <section id="flp-and-flpiv" class="level3" data-number="5.1">
 <h3 data-number="5.1" class="anchored" data-anchor-id="flp-and-flpiv"><span class="header-section-number">5.1</span> <code>fLP()</code> and <code>fLPIV()</code></h3>
 <p>An S3 object of class <code>"fLP"</code> (<code>fLPIV()</code> adds the <code>"fLPIV"</code> subclass). Core fields:</p>
@@ -786,11 +786,11 @@ window.Quarto = {
 </tbody>
 </table>
 <p><code>tidy.fLP()</code> returns a long data frame; single-band fits give the classic <code>(estimate, se, lower, upper)</code> columns, multi-band fits give one <code>lower_X</code> / <code>upper_X</code> pair per level.</p>
-<p><strong>Weak-instrument fallback for <code>fLPIV()</code>.</strong> When the 2SLS denominator <span class="math inline">\(\hat D' D_r\)</span> is numerically zero (weak / degenerate first stage), <code>fLPIV()</code> returns <code>NaN</code> for that horizon’s estimate and SE rather than a silent <code>0</code>. Downstream <code>tidy.fLP()</code> / <code>fPlotLP()</code> propagate the <code>NaN</code>s so the horizon simply doesn’t render on the plot. Corresponding <code>Fstat_fs[h]</code> values become <code>NaN</code> when the residual df is non-positive.</p>
+<p><strong>Weak-instrument fallback for <code>fLPIV()</code>.</strong> When the 2SLS denominator <span class="math inline">\(\hat D' D_r\)</span> is numerically zero (weak / degenerate first stage), <code>fLPIV()</code> returns <code>NaN</code> for that horizon’s estimate and SE rather than a silent <code>0</code>. Downstream <code>tidy.fLP()</code> / <code>fPlotIRF()</code> propagate the <code>NaN</code>s so the horizon simply doesn’t render on the plot. Corresponding <code>Fstat_fs[h]</code> values become <code>NaN</code> when the residual df is non-positive.</p>
 </section>
 <section id="flppanel" class="level3" data-number="5.2">
 <h3 data-number="5.2" class="anchored" data-anchor-id="flppanel"><span class="header-section-number">5.2</span> <code>fLPPanel()</code></h3>
-<p>An S3 object of class <code>c("fLPPanel", "fLP")</code> — so it plugs into <code>fPlotLP()</code> and <code>tidy.fLP()</code> unchanged. Beyond the core fields, it exposes:</p>
+<p>An S3 object of class <code>c("fLPPanel", "fLP")</code> — so it plugs into <code>fPlotIRF()</code> and <code>tidy.fLP()</code> unchanged. Beyond the core fields, it exposes:</p>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 33%">
@@ -883,14 +883,15 @@ window.Quarto = {
 </section>
 <section id="plotting" class="level2" data-number="7">
 <h2 data-number="7" class="anchored" data-anchor-id="plotting"><span class="header-section-number">7</span> 6 · Plotting</h2>
-<p>Both <code>fPlotLP()</code> and <code>fPlotLPDID()</code> are the same idea: pass a fit (or several) and get a ggplot back.</p>
+<p>Both <code>fPlotIRF()</code> and <code>fPlotLPDID()</code> are the same idea: pass a fit (or several) and get a ggplot back.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">fPlotLP</span>(lp_fit)                      <span class="co"># single fit → one panel per LHS</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">fPlotLP</span>(lp_fit, <span class="at">return_data =</span> <span class="cn">TRUE</span>)  <span class="co"># tibble for hand-rolled ggplot</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="fu">fPlotLPDID</span>(m_ols, m_rw)              <span class="co"># unnamed fits get generic labels</span></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="fu">fPlotLPDID</span>(<span class="st">`</span><span class="at">OLS</span><span class="st">`</span> <span class="ot">=</span> m_ols, <span class="st">`</span><span class="at">Reweighted</span><span class="st">`</span> <span class="ot">=</span> m_rw)      <span class="co"># named → facet labels</span></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="fu">fPlotLPDID</span>(m_ols, <span class="at">ci =</span> <span class="st">"bars"</span>)       <span class="co"># DGJT coefplot style</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">fPlotIRF</span>(lp_fit)                      <span class="co"># single fit → one panel per LHS</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">fPlotIRF</span>(lp_fit, <span class="at">return_data =</span> <span class="cn">TRUE</span>)  <span class="co"># tibble for hand-rolled ggplot</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="fu">fPlotIRF</span>(<span class="st">`</span><span class="at">h</span><span class="st">`</span> <span class="ot">=</span> lp_a, <span class="st">`</span><span class="at">h + 1</span><span class="st">`</span> <span class="ot">=</span> lp_b)   <span class="co"># several fits overlaid, one colour each</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="fu">fPlotLPDID</span>(m_ols, m_rw)              <span class="co"># unnamed fits get generic labels</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="fu">fPlotLPDID</span>(<span class="st">`</span><span class="at">OLS</span><span class="st">`</span> <span class="ot">=</span> m_ols, <span class="st">`</span><span class="at">Reweighted</span><span class="st">`</span> <span class="ot">=</span> m_rw)      <span class="co"># named → facet labels</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="fu">fPlotLPDID</span>(m_ols, <span class="at">ci =</span> <span class="st">"bars"</span>)       <span class="co"># DGJT coefplot style</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Multi-band <code>fLP()</code> / <code>fLPIV()</code> / <code>fLPPanel()</code> fits automatically get one ribbon per level.</p>
 <hr>

@@ -511,14 +511,11 @@ window.Quarto = {
 <span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">fPlotIRFSign</span>(</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    sr_uhlig, </span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">shock =</span> mp_shock, </span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">labels =</span> <span class="st">"Sign restrictions"</span>, </span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">conf =</span> <span class="fu">c</span>(<span class="dv">68</span>, <span class="dv">90</span>), </span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">facet_ncol =</span> <span class="dv">2</span>, </span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">facet_scales =</span> <span class="st">"free"</span></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">fPlotIRF</span>(</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">fIRF</span>(sr_uhlig, <span class="at">conf =</span> <span class="fu">c</span>(<span class="dv">68</span>, <span class="dv">90</span>)),</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">shock      =</span> mp_shock,</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">facet_ncol =</span> <span class="dv">2</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div id="fig-uhlig" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -533,7 +530,7 @@ Figure&nbsp;1: Responses to a contractionary monetary policy shock identified by
 </div>
 </div>
 <p>The key finding is that the output response is ambiguous. The restricted variables behave as assumed (the funds rate rises, prices and non-borrowed reserves fall), but the real GDP band spans both positive and negative values throughout. Under minimal identifying restrictions the data do not deliver a clear verdict on the output effects of monetary policy.</p>
-<p><code>conf</code> accepts several coverage levels at once. The package default is 90%; both <span class="citation" data-cites="uhlig2005">Uhlig (<a href="#ref-uhlig2005" role="doc-biblioref">2005</a>)</span> and <span class="citation" data-cites="antolindiaz2018">Antolín-Díaz and Rubio-Ramírez (<a href="#ref-antolindiaz2018" role="doc-biblioref">2018</a>)</span> use 68%, which is requested explicitly here; asking for <code>c(68, 90)</code> adds the wider band and leaves <code>IRinf</code>/<code>IRsup</code> at the first level, so existing code is unaffected. All requested bands are computed together in C++, including when <code>store_draws = FALSE</code>. Every requested level is stored in <code>sr_uhlig$bands</code>, and <code>fPlotIRFSign()</code> refuses to draw a level that was not requested rather than silently showing the wrong coverage.</p>
+<p><code>conf</code> accepts several coverage levels at once. The package default is 90%; both <span class="citation" data-cites="uhlig2005">Uhlig (<a href="#ref-uhlig2005" role="doc-biblioref">2005</a>)</span> and <span class="citation" data-cites="antolindiaz2018">Antolín-Díaz and Rubio-Ramírez (<a href="#ref-antolindiaz2018" role="doc-biblioref">2018</a>)</span> use 68%, which is requested explicitly here; asking for <code>c(68, 90)</code> adds the wider band and leaves <code>IRinf</code>/<code>IRsup</code> at the first level, so existing code is unaffected. All requested bands are computed together in C++, including when <code>store_draws = FALSE</code>. Every requested level is stored in <code>sr_uhlig$bands</code>, and <code>fIRF()</code> / <code>fPlotIRF()</code> refuse to draw a level that was not requested rather than silently showing the wrong coverage.</p>
 <p>Two things are worth keeping straight when reading the figure. The restricted responses carry their imposed sign over <span class="math inline">\(h = 0,\dots,5\)</span> <em>by construction</em>; their behaviour at longer horizons, and the whole path of real GDP, is governed by the estimated reduced-form dynamics. And the bands are not confidence intervals around a point estimate: they summarize identification uncertainty and, because <code>inference = 1</code>, sampling uncertainty as well.</p>
 <section id="two-ways-to-summarize-the-set" class="level3" data-number="4.1">
 <h3 data-number="4.1" class="anchored" data-anchor-id="two-ways-to-summarize-the-set"><span class="header-section-number">4.1</span> Two ways to summarize the set</h3>

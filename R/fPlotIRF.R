@@ -254,10 +254,3 @@ fPlotIRF <- function(...,
             breaks = function(lim) unique(round(pretty(lim)))) +
         ggplot2::labs(x = "Horizon", y = NULL)
 }
-
-# Warning for the legacy plot functions that fPlotIRF() replaces.
-.fDeprecatedPlot <- function(old, new) {
-    .Deprecated(msg = sprintf(
-        "%s() is deprecated and will be removed in the next release.\nUse instead: %s",
-        old, new))
-}
