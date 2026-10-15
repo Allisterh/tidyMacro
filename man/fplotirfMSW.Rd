@@ -62,9 +62,10 @@ The outer (lighter) band is the Anderson-Rubin set; the inner (darker) band
 is the delta-method interval.
 }
 \details{
-A thin wrapper around \code{\link{fIRF}} and \code{\link{fPlot}}.
-  Use \code{fPlot()} directly to compare several results in one figure.
+\strong{Deprecated.} \code{fPlotIRFMSW()} will be removed in the next
+  release. Use \code{\link{fPlotIRF}} instead:
+  \preformatted{fPlotIRF(fIRF(msw_result, varnames = varnames, shocknames = shockname, scale = scale))}
 }
 \seealso{
-\code{\link{fPlot}}, \code{\link{fIRF}}
+\code{\link{fPlotIRF}}, \code{\link{fIRF}}
 }

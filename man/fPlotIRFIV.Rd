@@ -58,9 +58,10 @@ Creates a grid of IRF plots with shaded confidence bands using ggplot2.
 Accepts the full list returned by \code{fBootstrapIVMBB()} directly.
 }
 \details{
-A thin wrapper around \code{\link{fIRF}} and \code{\link{fPlot}}.
-  Use \code{fPlot()} directly to compare several results in one figure.
+\strong{Deprecated.} \code{fPlotIRFIV()} will be removed in the next
+  release. Use \code{\link{fPlotIRF}} instead:
+  \preformatted{fPlotIRF(fIRF(result_mbb, varnames = varnames, shocknames = shockname, scale = scale))}
 }
 \seealso{
-\code{\link{fPlot}}, \code{\link{fIRF}}
+\code{\link{fPlotIRF}}, \code{\link{fIRF}}
 }

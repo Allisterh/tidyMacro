@@ -158,19 +158,16 @@ sr_uhlig <- fSignRestr(
 #| label: fig-uhlig
 #| fig-cap: "Responses to a contractionary monetary policy shock identified by sign restrictions. Element-wise median with 68% and 90% credible bands across 500 accepted draws. Six-variable VAR(12) with constant, monthly US data 1965m1-2003m12. Replicates Figure 6 of Uhlig (2005)."
 
-fPlotIRFSign(
-    sr_uhlig, 
-    shock = mp_shock, 
-    labels = "Sign restrictions", 
-    conf = c(68, 90), 
-    facet_ncol = 2, 
-    facet_scales = "free"
+fPlotIRF(
+    fIRF(sr_uhlig, conf = c(68, 90)),
+    shock      = mp_shock,
+    facet_ncol = 2
 )
 ```
 
 The key finding is that the output response is ambiguous. The restricted variables behave as assumed (the funds rate rises, prices and non-borrowed reserves fall), but the real GDP band spans both positive and negative values throughout. Under minimal identifying restrictions the data do not deliver a clear verdict on the output effects of monetary policy.
 
-`conf` accepts several coverage levels at once. The package default is 90%; both @uhlig2005 and @antolindiaz2018 use 68%, which is requested explicitly here; asking for `c(68, 90)` adds the wider band and leaves `IRinf`/`IRsup` at the first level, so existing code is unaffected. All requested bands are computed together in C++, including when `store_draws = FALSE`. Every requested level is stored in `sr_uhlig$bands`, and `fPlotIRFSign()` refuses to draw a level that was not requested rather than silently showing the wrong coverage.
+`conf` accepts several coverage levels at once. The package default is 90%; both @uhlig2005 and @antolindiaz2018 use 68%, which is requested explicitly here; asking for `c(68, 90)` adds the wider band and leaves `IRinf`/`IRsup` at the first level, so existing code is unaffected. All requested bands are computed together in C++, including when `store_draws = FALSE`. Every requested level is stored in `sr_uhlig$bands`, and `fIRF()` / `fPlotIRF()` refuse to draw a level that was not requested rather than silently showing the wrong coverage.
 
 Two things are worth keeping straight when reading the figure. The restricted responses carry their imposed sign over $h = 0,\dots,5$ *by construction*; their behaviour at longer horizons, and the whole path of real GDP, is governed by the estimated reduced-form dynamics. And the bands are not confidence intervals around a point estimate: they summarize identification uncertainty and, because `inference = 1`, sampling uncertainty as well.
 

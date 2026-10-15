@@ -57,9 +57,10 @@ automatically draws one ribbon per level (widest ribbon is drawn first with
 lowest opacity so the tighter band is visually on top).
 }
 \details{
-A thin wrapper around \code{\link{fIRF}} and \code{\link{fPlot}}.
-  Use \code{fPlot()} directly to compare several results in one figure.
+\strong{Deprecated.} \code{fPlotLP()} will be removed in the next
+  release. Use \code{\link{fPlotIRF}} instead:
+  \preformatted{fPlotIRF(x)}
 }
 \seealso{
-\code{\link{fPlot}}, \code{\link{fIRF}}
+\code{\link{fPlotIRF}}, \code{\link{fIRF}}
 }

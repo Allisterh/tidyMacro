@@ -120,11 +120,8 @@ toc()
 #| label: fig-irf
 #| fig-cap: "IRFs to oil supply news shock — MBB bootstrap (68% and 90% confidence bands)"
 
-fPlotIRFIV(
-    result_mbb = result_mbb,
-    varnames   = varnames,
-    shockname  = shockname,
-    scale      = 10,
+fPlotIRF(
+    fIRF(result_mbb, varnames = varnames, shocknames = shockname, scale = 10),
     facet_ncol = 3
 ) +
   xlim(0, 50) +
@@ -333,17 +330,13 @@ cat("Wald statistic (HAC-robust F):", round(msw$Waldstat, 2), "\n")
 #| label: fig-irf-msw
 #| fig-cap: "Weak-IV robust IRFs — Anderson-Rubin (outer) and delta-method (inner) 90% bands"
 
-fPlotIRFMSW(
-    msw_result      = msw,
-    varnames        = varnames,
-    shockname       = shockname,
-    scale           = 10,
-    facet_ncol      = 3,
-    line_color      = 'black',
-    ribbon_fill_ar  = tidyMacro_colors[1],
-    ribbon_fill_dm  = tidyMacro_colors[3],
-    ribbon_alpha_ar = 0.45,
-    ribbon_alpha_dm = 0.45
+fPlotIRF(
+    fIRF(msw, varnames = varnames, shocknames = shockname, scale = 10),
+    facet_ncol   = 3,
+    line_color   = "black",
+    ribbon_fill  = c("Anderson-Rubin" = tidyMacro_colors[1],
+                     "Delta method"   = tidyMacro_colors[3]),
+    ribbon_alpha = c(0.45, 0.45)
 ) +
   labs(x = NULL, y = NULL)
 ```

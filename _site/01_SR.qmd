@@ -144,12 +144,10 @@ toc()
 #| label: fig-irf-standard
 #| fig-cap: "IRFs to uncertainty shock — standard bootstrap (68% and 90% confidence bands)"
 
-fPlotIRFChol(
-    point       = point_irf,
-    boot_result = bloom_chol,
-    shock       = shock,
-    varnames    = var_names,
-    facet_ncol  = 3
+fPlotIRF(
+    fIRF(point_irf, bands = bloom_chol, varnames = var_names),
+    shock      = shock,
+    facet_ncol = 3
 ) +
     labs(y = NULL)
 ```
@@ -160,12 +158,10 @@ fPlotIRFChol(
 #| label: fig-irf-corrected
 #| fig-cap: "IRFs to uncertainty shock — bias-corrected bootstrap (68% and 90% confidence bands)"
 
-fPlotIRFChol(
-    point       = point_irf,
-    boot_result = bloom_corrected,
-    shock       = shock,
-    varnames    = var_names,
-    facet_ncol  = 3
+fPlotIRF(
+    fIRF(point_irf, bands = bloom_corrected, varnames = var_names),
+    shock      = shock,
+    facet_ncol = 3
 ) + 
     labs(y = NULL)
 ```

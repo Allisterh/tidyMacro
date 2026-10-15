@@ -72,7 +72,7 @@ estimate and the bands. A negative value flips the sign and keeps
 from the result (\code{conf} element) or \code{c(90, 68)}. For
 \code{fSignRestr}, selects which stored levels to use.}
 
-\item{model}{Label for the \code{model} column; \code{fPlot()} fills it
+\item{model}{Label for the \code{model} column; \code{fPlotIRF()} fills it
 from argument names when missing.}
 
 \item{variables}{For LP fits, the response variables to keep.}
@@ -85,7 +85,7 @@ A tibble of class \code{"fIRF"} with columns \code{model},
 \description{
 Converts the output of any identification scheme into one long tibble
 with the same columns, so that results can be plotted with
-\code{\link{fPlot}}, combined with \code{rbind()}, or used in a
+\code{\link{fPlotIRF}}, combined with \code{rbind()}, or used in a
 hand-made \pkg{ggplot2} figure.
 }
 \details{
@@ -112,9 +112,9 @@ point   <- fCholeskyIRF(wold, t(chol(var_fit$sigma)))
 boot    <- fBootstrapChol(y, var_fit, nboot = 1000, horizon = 20)
 
 irf <- fIRF(point, bands = boot, varnames = colnames(y))
-fPlot(irf, shock = 1)
+fPlotIRF(irf, shock = 1)
 }
 }
 \seealso{
-\code{\link{fPlot}}
+\code{\link{fPlotIRF}}
 }

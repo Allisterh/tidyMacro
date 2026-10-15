@@ -70,7 +70,7 @@ estimation sample. These correspond to \code{LPopt.impact = 1} and
 }
 \value{
 An object of class \code{c("fLPIV", "fLP")} so all existing
-  \code{fLP}-family methods (\code{print}, \code{tidy.fLP}, \code{fPlotLP})
+  \code{fLP}-family methods (\code{print}, \code{tidy.fLP}, \code{fPlotIRF})
   work unchanged. Additional fields: \code{Fstat_fs} and \code{rsqr_fs}
   (both length \code{H + 1}: per-horizon first-stage F-statistic and R²),
   plus \code{endog} and \code{instrument_vars}. \code{Fstat_fs} is the

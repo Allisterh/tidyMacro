@@ -123,11 +123,9 @@ toc()
 #| label: fig-irf-hetero
 #| fig-cap: "IRFs identified via heteroskedasticity — OPEC-announcement months as the high-variance regime (68% and 90% confidence bands)"
 
-fPlotIRFHetero(
-    result     = boot_hetero,
-    varnames   = varnames,
-    shockname  = "Oil Shock (Hetero)",
-    scale      = 10,
+fPlotIRF(
+    fIRF(boot_hetero, varnames = varnames, shocknames = "Oil Shock (Hetero)",
+         scale = 10),
     facet_ncol = 3
 ) +
   labs(x = NULL, y = NULL)

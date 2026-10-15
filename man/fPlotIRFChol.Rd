@@ -59,9 +59,10 @@ shock, with shaded confidence bands using ggplot2. Designed for
 Cholesky-identified VARs.
 }
 \details{
-A thin wrapper around \code{\link{fIRF}} and \code{\link{fPlot}}.
-  Use \code{fPlot()} directly to compare several results in one figure.
+\strong{Deprecated.} \code{fPlotIRFChol()} will be removed in the next
+  release. Use \code{\link{fPlotIRF}} instead:
+  \preformatted{fPlotIRF(fIRF(point, bands = boot_result, varnames = varnames), shock = shock)}
 }
 \seealso{
-\code{\link{fPlot}}, \code{\link{fIRF}}
+\code{\link{fPlotIRF}}, \code{\link{fIRF}}
 }

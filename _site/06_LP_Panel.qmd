@@ -375,14 +375,14 @@ p_pkg + p_fx + plot_layout(ncol = 2)
 
 ------------------------------------------------------------------------
 
-## Two-band plot via `fPlotLP()`
+## Two-band plot via `fPlotIRF()`
 
 The result object has class `c("fLPPanel", "fLP")` so every `fLP` helper transfers:
 
 ```{r}
 #| label: fig-panel-lp
 #| fig-cap: "Cumulative response with 68% (inner) and 90% (outer) Imbens-Kolesar bands"
-fPlotLP(lp_pkg) +
+fPlotIRF(lp_pkg, facet_scales = "free_y") +
   ggplot2::labs(x = "h", y = "Cumulative response")
 ```
 

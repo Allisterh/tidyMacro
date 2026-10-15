@@ -97,13 +97,13 @@ lp_jt <- fLP(
 
 ### Direct plot
 
-`fPlotLP()` draws one ribbon per band automatically (widest first, so the tighter band sits visually on top).
+`fPlotIRF()` draws one ribbon per band automatically (widest first, so the tighter band sits visually on top).
 
 ```{r}
 #| label: fig-jt-direct
-#| fig-cap: "Jordà-Taylor (2025) replication — direct `fPlotLP()` call"
+#| fig-cap: "Jordà-Taylor (2025) replication — direct `fPlotIRF()` call"
 
-p1 <- fPlotLP(lp_jt) +
+p1 <- fPlotIRF(lp_jt, facet_scales = "free_y") +
   labs(title = "CPI response to a unit Romer-Romer shock (Auto)",
        y = "Percent")
 ```
@@ -114,8 +114,8 @@ Every plot can also be assembled by hand from the tidy plot data.
 
 ```{r}
 #| label: fig-jt-custom
-#| fig-cap: "Same fit, hand-rolled ggplot from `fPlotLP(..., return_data = TRUE)`"
-p2 <- fPlotLP(lp_jt, return_data = TRUE) |>
+#| fig-cap: "Same fit, hand-rolled ggplot from `fPlotIRF(..., return_data = TRUE)`"
+p2 <- fPlotIRF(lp_jt, return_data = TRUE) |>
   ggplot(aes(x = horizon, y = point)) +
     geom_ribbon(aes(ymin = lower, ymax = upper, group = band, alpha = band),
                 fill = "#407EC9") +
@@ -154,7 +154,7 @@ lp_multi <- fLP(
 ```{r}
 #| label: fig-multi
 #| fig-cap: "Multi-equation LP — two responses to one Romer-Romer shock, one fit"
-fPlotLP(lp_multi, facet_ncol = 2) +
+fPlotIRF(lp_multi, facet_ncol = 2, facet_scales = "free_y") +
   labs(title = "Responses to a Romer-Romer shock (1 fit, 2 LHS × 2 bands)")
 ```
 
@@ -196,7 +196,7 @@ lp_lev <- fLP(
 
 ```{r}
 
-fPlotLP(lp_cum) + ggtitle('Cumulative Response') + fPlotLP(lp_lev) + ggtitle('Level Response')
+fPlotIRF(lp_cum) + ggtitle('Cumulative Response') + fPlotIRF(lp_lev) + ggtitle('Level Response')
 ```
 
 ------------------------------------------------------------------------
@@ -224,8 +224,8 @@ all.equal(as.numeric(lp_jorda$irfs), as.numeric(lp_mar$irfs))
 ```{r}
 #| label: fig-nw
 #| fig-cap: "Same IRF, different NW bandwidth rule at 90%"
-# fPlot() overlays several fits; argument names become the legend labels.
-fPlot(`Jordà (h)` = lp_jorda, `Miranda-Agrippino (h+1)` = lp_mar) +
+# fPlotIRF() overlays several fits; argument names become the legend labels.
+fPlotIRF(`Jordà (h)` = lp_jorda, `Miranda-Agrippino (h+1)` = lp_mar) +
     labs(title = "CPI response — NW bandwidth comparison at 90%",
          y = "Percent")
 ```
@@ -297,7 +297,7 @@ The print method summarises the endogenous treatment, control set, instrument fo
 ```{r}
 #| label: fig-iv-irf
 #| fig-cap: "Jordà-Taylor (2025) Figure 6a: unemployment response to an FFR shock instrumented by the RR narrative shock"
-fPlotLP(lp_iv) +
+fPlotIRF(lp_iv) +
   labs(title = "Unemployment to a unit FFR shock (LP-IV)",
        subtitle = "Instrument: Romer-Romer shock (0 + 6 lags), NW bandwidth = 6",
        y = "Percentage points")

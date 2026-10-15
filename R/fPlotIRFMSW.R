@@ -26,10 +26,11 @@
 #' @return A ggplot object, or (if \code{return_data = TRUE}) the
 #'   \code{\link{fIRF}} tibble behind it.
 #'
-#' @details A thin wrapper around \code{\link{fIRF}} and \code{\link{fPlot}}.
-#'   Use \code{fPlot()} directly to compare several results in one figure.
+#' @details \strong{Deprecated.} \code{fPlotIRFMSW()} will be removed in the next
+#'   release. Use \code{\link{fPlotIRF}} instead:
+#'   \preformatted{fPlotIRF(fIRF(msw_result, varnames = varnames, shocknames = shockname, scale = scale))}
 #'
-#' @seealso \code{\link{fPlot}}, \code{\link{fIRF}}
+#' @seealso \code{\link{fPlotIRF}}, \code{\link{fIRF}}
 #'
 #' @export
 fPlotIRFMSW <- function(msw_result, varnames, shockname,
@@ -43,14 +44,16 @@ fPlotIRFMSW <- function(msw_result, varnames, shockname,
                          zero_line_color = "#707372",
                          facet_scales    = "free",
                          facet_ncol      = 2) {
-    if (!identical(ribbon_fill_dm, ribbon_fill_ar))
-        warning("fPlotIRFMSW: both bands now share `ribbon_fill_ar`; ",
-                "they are told apart by transparency.", call. = FALSE)
-    fPlot(fIRF(msw_result, varnames = varnames, shocknames = shockname,
-               scale = scale),
-          return_data = return_data,
-          ribbon_fill = ribbon_fill_ar, line_color = line_color,
-          ribbon_alpha = c(ribbon_alpha_ar, ribbon_alpha_dm),
-          zero_line_color = zero_line_color,
-          facet_scales = facet_scales, facet_ncol = facet_ncol)
+    .fDeprecatedPlot("fPlotIRFMSW",
+        "fPlotIRF(fIRF(msw_result, varnames = varnames, shocknames = shockname, scale = scale))")
+    fPlotIRF(fIRF(msw_result, varnames = varnames, shocknames = shockname,
+                  scale = scale),
+             return_data = return_data,
+             ribbon_fill = if (identical(ribbon_fill_dm, ribbon_fill_ar)) ribbon_fill_ar
+                           else c("Anderson-Rubin" = ribbon_fill_ar,
+                                  "Delta method"   = ribbon_fill_dm),
+             line_color = line_color,
+             ribbon_alpha = c(ribbon_alpha_ar, ribbon_alpha_dm),
+             zero_line_color = zero_line_color,
+             facet_scales = facet_scales, facet_ncol = facet_ncol)
 }

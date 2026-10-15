@@ -58,9 +58,10 @@ matrix — works for both LR-Max (\code{fMaxIRF()}) and Uhlig max-share
 (\code{fUhligIRF()}) identifications.
 }
 \details{
-A thin wrapper around \code{\link{fIRF}} and \code{\link{fPlot}}.
-  Use \code{fPlot()} directly to compare several results in one figure.
+\strong{Deprecated.} \code{fPlotIRFLR()} will be removed in the next
+  release. Use \code{\link{fPlotIRF}} instead:
+  \preformatted{fPlotIRF(fIRF(point, bands = boot_result, varnames = varnames))}
 }
 \seealso{
-\code{\link{fPlot}}, \code{\link{fIRF}}
+\code{\link{fPlotIRF}}, \code{\link{fIRF}}
 }

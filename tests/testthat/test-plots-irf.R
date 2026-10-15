@@ -146,110 +146,134 @@ test_that("fIRF checks band dimensions", {
   expect_error(fIRF(x$cube, varnames = "a"), "length 2")
 })
 
-# ---- fPlot -----------------------------------------------------------------
+# ---- fPlotIRF -----------------------------------------------------------------
 
-test_that("fPlot overlays several results and labels them by argument name", {
+test_that("fPlotIRF overlays several results and labels them by argument name", {
   x <- plot_irf_fixture()
   a <- fIRF(x$cube, bands = x$cube_bands, varnames = c("y1", "y2"))
   b <- fIRF(x$cube * 2, bands = x$cube_bands, varnames = c("y1", "y2"))
-  d <- fPlot(A = a, B = b, shock = 1, return_data = TRUE)
+  d <- fPlotIRF(A = a, B = b, shock = 1, return_data = TRUE)
   expect_s3_class(d, "fIRF")
   expect_equal(unique(d$model), c("A", "B"))
   expect_equal(unique(d$shock), "Shock 1")
-  expect_s3_class(fPlot(A = a, B = b, shock = 1), "ggplot")
+  expect_s3_class(fPlotIRF(A = a, B = b, shock = 1), "ggplot")
 
   # Unnamed results get generic labels
-  d2 <- fPlot(a, b, shock = 2, return_data = TRUE)
+  d2 <- fPlotIRF(a, b, shock = 2, return_data = TRUE)
   expect_equal(unique(d2$model), c("Model 1", "Model 2"))
 })
 
-test_that("fPlot selects shocks and variables and validates them", {
+test_that("fPlotIRF selects shocks and variables and validates them", {
   x <- plot_irf_fixture()
   a <- fIRF(x$cube, bands = x$cube_bands, varnames = c("y1", "y2"),
             shocknames = c("s1", "s2"))
-  expect_equal(unique(fPlot(a, shock = "s2", return_data = TRUE)$shock), "s2")
-  expect_equal(unique(fPlot(a, shock = 2:1, return_data = TRUE)$shock),
+  expect_equal(unique(fPlotIRF(a, shock = "s2", return_data = TRUE)$shock), "s2")
+  expect_equal(unique(fPlotIRF(a, shock = 2:1, return_data = TRUE)$shock),
                c("s2", "s1"))
-  expect_equal(unique(fPlot(a, variables = "y2", return_data = TRUE)$variable),
+  expect_equal(unique(fPlotIRF(a, variables = "y2", return_data = TRUE)$variable),
                "y2")
-  expect_error(fPlot(a, shock = 3L), "shock must be between 1 and 2")
-  expect_error(fPlot(a, shock = "s9"), "not found")
-  expect_error(fPlot(a, variables = "zz"), "not found")
-  expect_error(fPlot(), "at least one")
+  expect_error(fPlotIRF(a, shock = 3L), "shock must be between 1 and 2")
+  expect_error(fPlotIRF(a, shock = "s9"), "not found")
+  expect_error(fPlotIRF(a, variables = "zz"), "not found")
+  expect_error(fPlotIRF(), "at least one")
 })
 
-test_that("fPlot facets by variable for one shock and shock x variable otherwise", {
+test_that("fPlotIRF facets by variable for one shock and shock x variable otherwise", {
   x <- plot_irf_fixture()
   a <- fIRF(x$cube, bands = x$cube_bands)
-  one <- fPlot(a, shock = 1)
-  all <- fPlot(a)
+  one <- fPlotIRF(a, shock = 1)
+  all <- fPlotIRF(a)
   expect_equal(names(one$facet$params$facets), "variable")
   expect_equal(names(all$facet$params$facets), c("shock", "variable"))
 })
 
-test_that("fPlot draws results without bands and accepts fits directly", {
+test_that("fPlotIRF draws results without bands and accepts fits directly", {
   x <- plot_irf_fixture()
-  expect_s3_class(fPlot(fIRF(x$mat)), "ggplot")
-  expect_s3_class(fPlot(mock_sign_fit(), shock = 1), "ggplot")
-  expect_error(fPlot(ribbon_alpha = 1:3, fIRF(x$cube, bands = x$cube_bands)),
+  expect_s3_class(fPlotIRF(fIRF(x$mat)), "ggplot")
+  expect_s3_class(fPlotIRF(mock_sign_fit(), shock = 1), "ggplot")
+  expect_error(fPlotIRF(ribbon_alpha = 1:3, fIRF(x$cube, bands = x$cube_bands)),
                "ribbon_alpha")
 })
 
-# ---- legacy wrappers ---------------------------------------------------------
+# ---- legacy wrappers (deprecated) ------------------------------------------
 
-test_that("legacy IRF plotters are wrappers around fIRF + fPlot", {
+# Run legacy code without its deprecation warnings.
+legacy <- function(code) {
+  withCallingHandlers(code, deprecatedWarning = function(w)
+    invokeRestart("muffleWarning"))
+}
+
+test_that("legacy plot functions are deprecated in favour of fPlotIRF", {
   x <- plot_irf_fixture()
   vn <- c("y1", "y2")
+  expect_warning(fPlotIRFChol(x$cube, x$cube_bands, 1L, vn),
+                 "fPlotIRFChol\\(\\) is deprecated.*fPlotIRF\\(fIRF")
+  expect_warning(fPlotIRFLR(x$mat, x$mat_bands, vn), "deprecated")
+  expect_warning(fPlotIRFIV(c(list(meanirf = x$mat), x$mat_bands), vn, "IV"),
+                 "deprecated")
+  expect_warning(fPlotIRFSign(mock_sign_fit()), "deprecated")
+  lp <- fLP(y ~ x, data = sim_lp_df(), horizons = 2L, shock = "x",
+            n_threads = 1L)
+  expect_warning(fPlotLP(lp), "fPlotLP\\(\\) is deprecated")
+})
 
-  d <- fPlotIRFChol(x$cube, x$cube_bands, shock = 2L, varnames = vn,
-                    return_data = TRUE)
-  expect_equal(d, fPlot(fIRF(x$cube, bands = x$cube_bands, varnames = vn),
-                        shock = 2L, return_data = TRUE))
-  expect_s3_class(fPlotIRFChol(x$cube, x$cube_bands, 2L, vn), "ggplot")
-  expect_error(fPlotIRFChol(x$cube, x$cube_bands, 3L, vn),
-               "shock must be between")
+test_that("legacy IRF plotters are wrappers around fIRF + fPlotIRF", {
+  legacy({
+    x <- plot_irf_fixture()
+    vn <- c("y1", "y2")
 
-  d <- fPlotIRFBQ(x$cube, x$cube_bands, vn, c("s1", "s2"),
-                  cumulate = 1L, shocks = 1:2, return_data = TRUE)
-  expect_equal(pick(d, "point", "s1", "y1", "90%"), cumsum(x$cube[1, 1, ]))
-  expect_s3_class(fPlotIRFBQ(x$cube, x$cube_bands, vn, c("s1", "s2"),
-                             cumulate = 1L, shocks = 1:2), "ggplot")
+    d <- fPlotIRFChol(x$cube, x$cube_bands, shock = 2L, varnames = vn,
+                      return_data = TRUE)
+    expect_equal(d, fPlotIRF(fIRF(x$cube, bands = x$cube_bands, varnames = vn),
+                          shock = 2L, return_data = TRUE))
+    expect_s3_class(fPlotIRFChol(x$cube, x$cube_bands, 2L, vn), "ggplot")
+    expect_error(fPlotIRFChol(x$cube, x$cube_bands, 3L, vn),
+                 "shock must be between")
 
-  d <- fPlotIRFLR(x$mat, x$mat_bands, vn, return_data = TRUE)
-  d0 <- fPlotIRFLR(x$mat, varnames = vn, return_data = TRUE)
-  expect_equal(nrow(d), 16L)
-  expect_true(all(is.na(d0$band)))
-  expect_s3_class(fPlotIRFLR(x$mat, x$mat_bands, vn), "ggplot")
+    d <- fPlotIRFBQ(x$cube, x$cube_bands, vn, c("s1", "s2"),
+                    cumulate = 1L, shocks = 1:2, return_data = TRUE)
+    expect_equal(pick(d, "point", "s1", "y1", "90%"), cumsum(x$cube[1, 1, ]))
+    expect_s3_class(fPlotIRFBQ(x$cube, x$cube_bands, vn, c("s1", "s2"),
+                               cumulate = 1L, shocks = 1:2), "ggplot")
 
-  iv <- c(list(meanirf = x$mat), x$mat_bands)
-  he <- c(list(point = x$mat), x$mat_bands)
-  expect_equal(pick(fPlotIRFIV(iv, vn, "IV", scale = 10, return_data = TRUE),
-                    "point", variable = "y1", band = "90%"), 10 * x$mat[1, ])
-  expect_equal(pick(fPlotIRFHetero(he, vn, "H", scale = 10, return_data = TRUE),
-                    "point", variable = "y2", band = "90%"), 10 * x$mat[2, ])
-  expect_s3_class(fPlotIRFIV(iv, vn, "IV"), "ggplot")
-  expect_s3_class(fPlotIRFHetero(he, vn, "H"), "ggplot")
+    d <- fPlotIRFLR(x$mat, x$mat_bands, vn, return_data = TRUE)
+    d0 <- fPlotIRFLR(x$mat, varnames = vn, return_data = TRUE)
+    expect_equal(nrow(d), 16L)
+    expect_true(all(is.na(d0$band)))
+    expect_s3_class(fPlotIRFLR(x$mat, x$mat_bands, vn), "ggplot")
 
-  msw <- list(IRF = x$mat, Dmlbound = x$mat - 0.1, Dmubound = x$mat + 0.1,
-              MSWlbound = x$mat - 0.2, MSWubound = x$mat + 0.2)
-  d <- fPlotIRFMSW(msw, vn, "IV", scale = -1, return_data = TRUE)
-  expect_setequal(unique(d$band), c("Anderson-Rubin", "Delta method"))
-  expect_true(all(d$lower <= d$upper))
-  expect_s3_class(fPlotIRFMSW(msw, vn, "IV"), "ggplot")
+    iv <- c(list(meanirf = x$mat), x$mat_bands)
+    he <- c(list(point = x$mat), x$mat_bands)
+    expect_equal(pick(fPlotIRFIV(iv, vn, "IV", scale = 10, return_data = TRUE),
+                      "point", variable = "y1", band = "90%"), 10 * x$mat[1, ])
+    expect_equal(pick(fPlotIRFHetero(he, vn, "H", scale = 10, return_data = TRUE),
+                      "point", variable = "y2", band = "90%"), 10 * x$mat[2, ])
+    expect_s3_class(fPlotIRFIV(iv, vn, "IV"), "ggplot")
+    expect_s3_class(fPlotIRFHetero(he, vn, "H"), "ggplot")
+
+    msw <- list(IRF = x$mat, Dmlbound = x$mat - 0.1, Dmubound = x$mat + 0.1,
+                MSWlbound = x$mat - 0.2, MSWubound = x$mat + 0.2)
+    d <- fPlotIRFMSW(msw, vn, "IV", scale = -1, return_data = TRUE)
+    expect_setequal(unique(d$band), c("Anderson-Rubin", "Delta method"))
+    expect_true(all(d$lower <= d$upper))
+    expect_s3_class(fPlotIRFMSW(msw, vn, "IV"), "ggplot")
+  })
 })
 
 test_that("fPlotIRFSign maps one or two fitted models", {
-  a <- mock_sign_fit()
-  b <- mock_sign_fit(0.1)
-  d <- fPlotIRFSign(a, shock = 1L, compare = b, labels = c("A", "B"),
-                    return_data = TRUE)
-  expect_equal(nrow(d), 16L)
-  expect_setequal(unique(d$model), c("A", "B"))
-  expect_equal(pick(d[d$model == "A", ], "horizon", variable = "y1"), 0:3)
-  expect_s3_class(fPlotIRFSign(a, shock = 1L), "ggplot")
-  expect_error(fPlotIRFSign(list()), "must be an 'fSignRestr'")
-  d <- fPlotIRFSign(a, shock = 1, scale = -1, return_data = TRUE)
-  expect_true(all(d$lower <= d$upper))
+  legacy({
+    a <- mock_sign_fit()
+    b <- mock_sign_fit(0.1)
+    d <- fPlotIRFSign(a, shock = 1L, compare = b, labels = c("A", "B"),
+                      return_data = TRUE)
+    expect_equal(nrow(d), 16L)
+    expect_setequal(unique(d$model), c("A", "B"))
+    expect_equal(pick(d[d$model == "A", ], "horizon", variable = "y1"), 0:3)
+    expect_s3_class(fPlotIRFSign(a, shock = 1L), "ggplot")
+    expect_error(fPlotIRFSign(list()), "must be an 'fSignRestr'")
+    d <- fPlotIRFSign(a, shock = 1, scale = -1, return_data = TRUE)
+    expect_true(all(d$lower <= d$upper))
+  })
 })
 
 test_that("bootstrap results report their band levels", {

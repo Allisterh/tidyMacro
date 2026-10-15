@@ -23,10 +23,11 @@
 #' @return A ggplot object, or (if \code{return_data = TRUE}) the
 #'   \code{\link{fIRF}} tibble behind it.
 #'
-#' @details A thin wrapper around \code{\link{fIRF}} and \code{\link{fPlot}}.
-#'   Use \code{fPlot()} directly to compare several results in one figure.
+#' @details \strong{Deprecated.} \code{fPlotIRFHetero()} will be removed in the next
+#'   release. Use \code{\link{fPlotIRF}} instead:
+#'   \preformatted{fPlotIRF(fIRF(result, varnames = varnames, shocknames = shockname, scale = scale))}
 #'
-#' @seealso \code{\link{fPlot}}, \code{\link{fIRF}}
+#' @seealso \code{\link{fPlotIRF}}, \code{\link{fIRF}}
 #'
 #' @export
 fPlotIRFHetero <- function(result, varnames, shockname,
@@ -39,12 +40,14 @@ fPlotIRFHetero <- function(result, varnames, shockname,
                            zero_line_color = "#707372",
                            facet_scales    = "free",
                            facet_ncol      = 2) {
-    fPlot(fIRF(result, varnames = varnames, shocknames = shockname,
-               scale = scale),
-          return_data = return_data,
-          ribbon_fill = ribbon_fill, line_color = line_color,
-          ribbon_alpha = if (is.null(result$upper2)) ribbon_alpha
-                         else c(ribbon_alpha, ribbon_alpha2),
-          zero_line_color = zero_line_color,
-          facet_scales = facet_scales, facet_ncol = facet_ncol)
+    .fDeprecatedPlot("fPlotIRFHetero",
+        "fPlotIRF(fIRF(result, varnames = varnames, shocknames = shockname, scale = scale))")
+    fPlotIRF(fIRF(result, varnames = varnames, shocknames = shockname,
+                  scale = scale),
+             return_data = return_data,
+             ribbon_fill = ribbon_fill, line_color = line_color,
+             ribbon_alpha = if (is.null(result$upper2)) ribbon_alpha
+                            else c(ribbon_alpha, ribbon_alpha2),
+             zero_line_color = zero_line_color,
+             facet_scales = facet_scales, facet_ncol = facet_ncol)
 }

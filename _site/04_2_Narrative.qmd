@@ -108,15 +108,11 @@ tibble(model = c("Sign only", "Sign + narrative"),
 #| label: fig-adrr
 #| fig-cap: "Sign restrictions alone (blue) versus sign plus narrative restrictions (red). 68% credible bands, normalised to a 25bp impact on the funds rate. Six-variable VAR(12) without constant, monthly US data 1965m1-2007m11. Replicates Figure 6 of Antolin-Diaz and Rubio-Ramirez (2018)."
 
-fPlotIRFSign(
-    sr_adrr, 
-    shock   = mp_shock, 
-    compare = nsr_adrr,
-    labels        = c("Sign", "Sign + narrative"),
-    scale         = scale_sr,
-    scale_compare = scale_nsr,
-    facet_ncol    = 2,
-    facet_scales  = "free"
+fPlotIRF(
+    Sign               = fIRF(sr_adrr,  scale = scale_sr),
+    `Sign + narrative` = fIRF(nsr_adrr, scale = scale_nsr),
+    shock      = mp_shock,
+    facet_ncol = 2
 )
 ```
 
@@ -189,15 +185,11 @@ tibble(weight = nsr_weighted$weights) |>
 #| label: fig-adrr-weights
 #| fig-cap: "Rejection sampling (the toolbox convention) versus ADRR importance reweighting, under the same narrative restrictions."
 
-fPlotIRFSign(
-    nsr_adrr, 
-    shock   = mp_shock, 
-    compare = nsr_weighted,
-    labels  = c("Rejection sampling", "ADRR reweighting"),
-    scale         = scale_nsr,
-    scale_compare = norm_25bp(nsr_weighted),
-    facet_ncol    = 2,
-    facet_scales  = "free"
+fPlotIRF(
+    `Rejection sampling` = fIRF(nsr_adrr,     scale = scale_nsr),
+    `ADRR reweighting`   = fIRF(nsr_weighted, scale = norm_25bp(nsr_weighted)),
+    shock      = mp_shock,
+    facet_ncol = 2
 )
 ```
 

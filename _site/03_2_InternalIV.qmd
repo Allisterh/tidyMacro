@@ -99,25 +99,13 @@ Responses are rescaled so that the impact on the oil price matches a 10% jump, m
 # point_irf_aug[2, 1, 1]: oil price (row 2), shock 1, h = 0
 scale_int <- 10 / point_irf_aug[2, 1, 1]
 
-fPlotIRFChol(
-    point       = point_irf_aug,
-    boot_result = boot_aug,
-    shock       = 1,
-    varnames    = varnames_aug,
-    facet_ncol  = 3,
-    return_data = TRUE
-) |>
-  filter(variable != "Oil Instrument") |>
-  mutate(
-    variable = factor(variable, levels = varnames),
-    across(c(point, upper, lower, upper2, lower2), ~ . * scale_int)
-  ) |>
-  ggplot(aes(x = horizon)) +
-  geom_ribbon(aes(ymin = lower,  ymax = upper),  fill = "#407EC9", alpha = 0.20) +
-  geom_ribbon(aes(ymin = lower2, ymax = upper2), fill = "#407EC9", alpha = 0.35) +
-  geom_line(aes(y = point), color = "#910048", linewidth = 0.8) +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "#707372", linewidth = 0.6) +
-  facet_wrap(~ variable, scales = "free", ncol = 3) +
+fPlotIRF(
+    fIRF(point_irf_aug, bands = boot_aug, varnames = varnames_aug,
+         scale = scale_int),
+    shock      = 1,
+    variables  = varnames,      # drop the instrument equation
+    facet_ncol = 3
+) +
   labs(x = NULL, y = NULL)
 ```
 

@@ -68,9 +68,10 @@ overlaid, which is the standard way of showing what narrative restrictions
 add to plain sign restrictions.
 }
 \details{
-A thin wrapper around \code{\link{fIRF}} and \code{\link{fPlot}}.
-  Use \code{fPlot()} directly to compare several results in one figure.
+\strong{Deprecated.} \code{fPlotIRFSign()} will be removed in the next
+  release. Use \code{\link{fPlotIRF}} instead:
+  \preformatted{fPlotIRF(sr, shock = shock), or fPlotIRF(Sign = sr, Narrative = compare, shock = shock)}
 }
 \seealso{
-\code{\link{fPlot}}, \code{\link{fIRF}}, \code{\link{fSignRestr}}, \code{\link{fPlotVarDec}}
+\code{\link{fPlotIRF}}, \code{\link{fIRF}}, \code{\link{fSignRestr}}, \code{\link{fPlotVarDec}}
 }

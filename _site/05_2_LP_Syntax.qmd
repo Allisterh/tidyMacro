@@ -17,7 +17,7 @@ knitr::opts_chunk$set(
 
 ## Purpose of this chapter
 
-The four local-projection engines in `tidyMacro` — `fLP()`, `fLPIV()`, `fLPPanel()`, `fLPDID()` — deliberately share a single, `fixest`-inspired interface: the same formula grammar, the same lag/lead operators, the same panel-index convention, the same multi-band handling, and the same plotting entry point (`fPlotLP()` / `fPlotLPDID()`). This chapter is the **one place** where those shared conventions are documented, so the empirical replication chapters that follow (@jorda2025, @almuzara2024micro, @dube2025) can stay focused on the economics.
+The four local-projection engines in `tidyMacro` — `fLP()`, `fLPIV()`, `fLPPanel()`, `fLPDID()` — deliberately share a single, `fixest`-inspired interface: the same formula grammar, the same lag/lead operators, the same panel-index convention, the same multi-band handling, and the same plotting entry point (`fPlotIRF()` / `fPlotLPDID()`). This chapter is the **one place** where those shared conventions are documented, so the empirical replication chapters that follow (@jorda2025, @almuzara2024micro, @dube2025) can stay focused on the economics.
 
 Read this once, then treat the estimator chapters as extensions:
 
@@ -109,7 +109,7 @@ The four engines share more arguments than differ. The list below shows what eve
 
 ### 2.1 · Multi-level confidence bands from one fit
 
-Every engine accepts a **vector** `conf`, e.g. `conf = c(68, 95)`, and rebuilds every band from the same raw SE in R. There is no re-estimation cost and no multiple-testing story — bands are just alternative visualizations of the same variance. `fPlotLP()` draws one ribbon per level automatically.
+Every engine accepts a **vector** `conf`, e.g. `conf = c(68, 95)`, and rebuilds every band from the same raw SE in R. There is no re-estimation cost and no multiple-testing story — bands are just alternative visualizations of the same variance. `fPlotIRF()` draws one ribbon per level automatically.
 
 ### 2.2 · Impulse units (`shock_size`)
 
@@ -136,7 +136,7 @@ Both estimators do the following, once, up front:
 
 ## 4 · What each engine returns
 
-The output shapes share a common core so `tidy()` and `fPlotLP()` work uniformly.
+The output shapes share a common core so `tidy()` and `fPlotIRF()` work uniformly.
 
 ### `fLP()` and `fLPIV()`
 
@@ -152,11 +152,11 @@ An S3 object of class `"fLP"` (`fLPIV()` adds the `"fLPIV"` subclass). Core fiel
 
 `tidy.fLP()` returns a long data frame; single-band fits give the classic `(estimate, se, lower, upper)` columns, multi-band fits give one `lower_X` / `upper_X` pair per level.
 
-**Weak-instrument fallback for `fLPIV()`.** When the 2SLS denominator $\hat D' D_r$ is numerically zero (weak / degenerate first stage), `fLPIV()` returns `NaN` for that horizon's estimate and SE rather than a silent `0`. Downstream `tidy.fLP()` / `fPlotLP()` propagate the `NaN`s so the horizon simply doesn't render on the plot. Corresponding `Fstat_fs[h]` values become `NaN` when the residual df is non-positive.
+**Weak-instrument fallback for `fLPIV()`.** When the 2SLS denominator $\hat D' D_r$ is numerically zero (weak / degenerate first stage), `fLPIV()` returns `NaN` for that horizon's estimate and SE rather than a silent `0`. Downstream `tidy.fLP()` / `fPlotIRF()` propagate the `NaN`s so the horizon simply doesn't render on the plot. Corresponding `Fstat_fs[h]` values become `NaN` when the residual df is non-positive.
 
 ### `fLPPanel()`
 
-An S3 object of class `c("fLPPanel", "fLP")` — so it plugs into `fPlotLP()` and `tidy.fLP()` unchanged. Beyond the core fields, it exposes:
+An S3 object of class `c("fLPPanel", "fLP")` — so it plugs into `fPlotIRF()` and `tidy.fLP()` unchanged. Beyond the core fields, it exposes:
 
 | Field         | Shape           | Description |
 |---------------|-----------------|-------------|
@@ -229,11 +229,12 @@ This reproduces the published numbers on balanced and gap-containing panels alik
 
 ## 6 · Plotting
 
-Both `fPlotLP()` and `fPlotLPDID()` are the same idea: pass a fit (or several) and get a ggplot back.
+Both `fPlotIRF()` and `fPlotLPDID()` are the same idea: pass a fit (or several) and get a ggplot back.
 
 ```{r, eval=FALSE}
-fPlotLP(lp_fit)                      # single fit → one panel per LHS
-fPlotLP(lp_fit, return_data = TRUE)  # tibble for hand-rolled ggplot
+fPlotIRF(lp_fit)                      # single fit → one panel per LHS
+fPlotIRF(lp_fit, return_data = TRUE)  # tibble for hand-rolled ggplot
+fPlotIRF(`h` = lp_a, `h + 1` = lp_b)   # several fits overlaid, one colour each
 
 fPlotLPDID(m_ols, m_rw)              # unnamed fits get generic labels
 fPlotLPDID(`OLS` = m_ols, `Reweighted` = m_rw)      # named → facet labels

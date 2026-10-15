@@ -69,7 +69,7 @@
 #'   (= all cores minus one).
 #'
 #' @return An object of class \code{c("fLPIV", "fLP")} so all existing
-#'   \code{fLP}-family methods (\code{print}, \code{tidy.fLP}, \code{fPlotLP})
+#'   \code{fLP}-family methods (\code{print}, \code{tidy.fLP}, \code{fPlotIRF})
 #'   work unchanged. Additional fields: \code{Fstat_fs} and \code{rsqr_fs}
 #'   (both length \code{H + 1}: per-horizon first-stage F-statistic and R²),
 #'   plus \code{endog} and \code{instrument_vars}. \code{Fstat_fs} is the
@@ -258,7 +258,7 @@ fLPIV <- function(formula, instruments, data,
   res_cpp$endog           <- endog
   res_cpp$ctrl_vars       <- ctrl_vars
   res_cpp$instrument_vars <- iv_vars
-  res_cpp$shock           <- endog                # for fPlotLP labelling
+  res_cpp$shock           <- endog                # for fPlotIRF labelling
   res_cpp$horizons        <- h_seq
   res_cpp$conf            <- conf
   res_cpp$nw_lags_iv      <- nw_lags_iv

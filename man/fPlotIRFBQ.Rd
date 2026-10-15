@@ -70,9 +70,10 @@ Designed for BQ long-run identified VARs. Supports one or multiple shocks;
 when a single shock is supplied the facet shows only response variables.
 }
 \details{
-A thin wrapper around \code{\link{fIRF}} and \code{\link{fPlot}}.
-  Use \code{fPlot()} directly to compare several results in one figure.
+\strong{Deprecated.} \code{fPlotIRFBQ()} will be removed in the next
+  release. Use \code{\link{fPlotIRF}} instead:
+  \preformatted{fPlotIRF(fIRF(point, bands = boot_result, varnames = varnames, cumulate = cumulate), shock = shocks)}
 }
 \seealso{
-\code{\link{fPlot}}, \code{\link{fIRF}}
+\code{\link{fPlotIRF}}, \code{\link{fIRF}}
 }

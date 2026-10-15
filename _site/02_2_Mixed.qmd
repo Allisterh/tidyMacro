@@ -111,12 +111,10 @@ toc()
 #| label: fig-irf-boot-max
 #| fig-cap: "IRF to Tech. news shock — LR-Max bootstrap (68% and 90% confidence bands)"
 
-fPlotIRFLR(
-  point       = struct_irf,
-  boot_result = boot_max,
-  varnames    = varnames,
-  facet_ncol  = 2
-) + labs(y  = NULL)
+fPlotIRF(
+  fIRF(struct_irf, bands = boot_max, varnames = varnames),
+  facet_ncol = 2
+)
 ```
 
 ## Compare the result to @barsky2012
@@ -147,12 +145,10 @@ toc()
 #| label: fig-irf-boot-uhlig
 #| fig-cap: "IRF to news shock — Uhlig max-share bootstrap (68% and 90% confidence bands)"
 
-fPlotIRFLR(
-  point       = struct_irf_uhlig,
-  boot_result = boot_uhlig,
-  varnames    = varnames,
-  facet_ncol  = 2
-) + labs(y  = NULL)
+fPlotIRF(
+  fIRF(struct_irf_uhlig, bands = boot_uhlig, varnames = varnames),
+  facet_ncol = 2
+)
 ```
 
 ## References {.unnumbered}

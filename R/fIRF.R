@@ -11,7 +11,7 @@
 #
 # one row per (model, shock, variable, horizon, band). `band` labels a
 # confidence/credible band ("90%", "68%", "Anderson-Rubin", ...); a result
-# without bands has a single row with band = NA. fPlot() draws this format,
+# without bands has a single row with band = NA. fPlotIRF() draws this format,
 # so a new identification scheme only needs an fIRF() method.
 #
 # Author: Dr. Muhsin Ciftci
@@ -21,7 +21,7 @@
 #'
 #' Converts the output of any identification scheme into one long tibble
 #' with the same columns, so that results can be plotted with
-#' \code{\link{fPlot}}, combined with \code{rbind()}, or used in a
+#' \code{\link{fPlotIRF}}, combined with \code{rbind()}, or used in a
 #' hand-made \pkg{ggplot2} figure.
 #'
 #' Supported inputs:
@@ -55,7 +55,7 @@
 #'   from the result (\code{conf} element) or \code{c(90, 68)}. For
 #'   \code{fSignRestr}, selects which stored levels to use.
 #' @param variables For LP fits, the response variables to keep.
-#' @param model Label for the \code{model} column; \code{fPlot()} fills it
+#' @param model Label for the \code{model} column; \code{fPlotIRF()} fills it
 #'   from argument names when missing.
 #' @param ... Passed to methods.
 #'
@@ -63,7 +63,7 @@
 #'   \code{shock}, \code{variable}, \code{horizon}, \code{band},
 #'   \code{point}, \code{lower}, \code{upper}.
 #'
-#' @seealso \code{\link{fPlot}}
+#' @seealso \code{\link{fPlotIRF}}
 #'
 #' @examples
 #' \dontrun{
@@ -73,7 +73,7 @@
 #' boot    <- fBootstrapChol(y, var_fit, nboot = 1000, horizon = 20)
 #'
 #' irf <- fIRF(point, bands = boot, varnames = colnames(y))
-#' fPlot(irf, shock = 1)
+#' fPlotIRF(irf, shock = 1)
 #' }
 #' @export
 fIRF <- function(x, ...) UseMethod("fIRF")

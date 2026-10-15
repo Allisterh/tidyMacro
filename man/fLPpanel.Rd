@@ -79,7 +79,7 @@ clustering.}
 }
 \value{
 An object of class \code{c("fLPPanel", "fLP")} that plugs into
-  \code{\link{fPlotLP}} and \code{\link{tidy.fLP}}.
+  \code{\link{fPlotIRF}} and \code{\link{tidy.fLP}}.
 }
 \description{
 Estimates panel impulse responses via the local-projection estimator of

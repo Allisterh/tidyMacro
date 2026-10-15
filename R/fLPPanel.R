@@ -31,7 +31,7 @@
 #            interact = c("size", "leverage"))
 #   returns one IRF column per interaction variable.
 #
-# Compatible with fPlotLP() via class = c("fLPPanel", "fLP").
+# Compatible with fPlotIRF() via class = c("fLPPanel", "fLP").
 #
 # Author: Dr. Muhsin Ciftci
 # -----------------------------------------------------------------------
@@ -232,7 +232,7 @@
 #'   clustering.
 #'
 #' @return An object of class \code{c("fLPPanel", "fLP")} that plugs into
-#'   \code{\link{fPlotLP}} and \code{\link{tidy.fLP}}.
+#'   \code{\link{fPlotIRF}} and \code{\link{tidy.fLP}}.
 #'
 #' @examples
 #' \dontrun{

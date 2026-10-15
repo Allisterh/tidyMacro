@@ -46,8 +46,8 @@ horizon is returned as the IRF.}
 \item{conf}{Numeric in (0, 100), in percent. One or more confidence levels
 for bands, e.g. \code{90} or \code{c(68, 95)}. When more than one is supplied,
 \code{irfs_upper} and \code{irfs_lower} become named lists of matrices
-(one per level, keyed by the level as a string) and \code{fPlotLP()} draws
-one ribbon per level. Bands are always rebuilt in R from \code{irfs_se},
+(one per level, keyed by the level as a string) and the plot functions
+(\code{fPlotIRF()}, \code{fPlotNLLP()}) draw one ribbon per level. Bands are always rebuilt in R from \code{irfs_se},
 so multi-level fits cost the same as single-level fits. Default: 90.}
 
 \item{nw_lags}{Integer or \code{NULL}. Base Newey-West bandwidth.

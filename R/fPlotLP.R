@@ -27,10 +27,11 @@
 #' @return A ggplot object, or (if \code{return_data = TRUE}) the
 #'   \code{\link{fIRF}} tibble behind it.
 #'
-#' @details A thin wrapper around \code{\link{fIRF}} and \code{\link{fPlot}}.
-#'   Use \code{fPlot()} directly to compare several results in one figure.
+#' @details \strong{Deprecated.} \code{fPlotLP()} will be removed in the next
+#'   release. Use \code{\link{fPlotIRF}} instead:
+#'   \preformatted{fPlotIRF(x)}
 #'
-#' @seealso \code{\link{fPlot}}, \code{\link{fIRF}}
+#' @seealso \code{\link{fPlotIRF}}, \code{\link{fIRF}}
 #'
 #' @export
 fPlotLP <- function(x,
@@ -43,12 +44,14 @@ fPlotLP <- function(x,
                     zero_line_color = "#707372",
                     facet_scales    = "free_y",
                     facet_ncol      = NULL) {
+    .fDeprecatedPlot("fPlotLP",
+        "fPlotIRF(x)")
   if (!inherits(x, "fLP")) {
     stop("fPlotLP: 'x' must be an object returned by fLP().", call. = FALSE)
   }
-  fPlot(fIRF(x, variables = variables, scale = scale),
-        return_data = return_data,
-        ribbon_fill = ribbon_fill, line_color = line_color,
-        ribbon_alpha = ribbon_alpha, zero_line_color = zero_line_color,
-        facet_scales = facet_scales, facet_ncol = facet_ncol)
+  fPlotIRF(fIRF(x, variables = variables, scale = scale),
+           return_data = return_data,
+           ribbon_fill = ribbon_fill, line_color = line_color,
+           ribbon_alpha = ribbon_alpha, zero_line_color = zero_line_color,
+           facet_scales = facet_scales, facet_ncol = facet_ncol)
 }

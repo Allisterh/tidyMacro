@@ -32,10 +32,11 @@
 #' @return A ggplot object, or (if \code{return_data = TRUE}) the
 #'   \code{\link{fIRF}} tibble behind it.
 #'
-#' @details A thin wrapper around \code{\link{fIRF}} and \code{\link{fPlot}}.
-#'   Use \code{fPlot()} directly to compare several results in one figure.
+#' @details \strong{Deprecated.} \code{fPlotIRFSign()} will be removed in the next
+#'   release. Use \code{\link{fPlotIRF}} instead:
+#'   \preformatted{fPlotIRF(sr, shock = shock), or fPlotIRF(Sign = sr, Narrative = compare, shock = shock)}
 #'
-#' @seealso \code{\link{fPlot}}, \code{\link{fIRF}}, \code{\link{fSignRestr}}, \code{\link{fPlotVarDec}}
+#' @seealso \code{\link{fPlotIRF}}, \code{\link{fIRF}}, \code{\link{fSignRestr}}, \code{\link{fPlotVarDec}}
 #'
 #' @export
 fPlotIRFSign <- function(sr, shock = 1, compare = NULL,
@@ -49,6 +50,8 @@ fPlotIRFSign <- function(sr, shock = 1, compare = NULL,
                          conf          = NULL,
                          facet_scales  = "free_y",
                          facet_ncol    = NULL) {
+    .fDeprecatedPlot("fPlotIRFSign",
+        "fPlotIRF(sr, shock = shock), or fPlotIRF(Sign = sr, Narrative = compare, shock = shock)")
     if (!inherits(sr, "fSignRestr")) stop("`sr` must be an 'fSignRestr' object.")
     if (is.null(conf)) conf <- sr$conf[1]
 
@@ -63,7 +66,7 @@ fPlotIRFSign <- function(sr, shock = 1, compare = NULL,
                              scale = scale_compare)
     }
 
-    do.call(fPlot, c(fits, list(
+    do.call(fPlotIRF, c(fits, list(
         shock = shock, return_data = return_data, colors = colors,
         ribbon_fill = colors[1], line_color = colors[1],
         ribbon_alpha = ribbon_alpha, facet_scales = facet_scales,

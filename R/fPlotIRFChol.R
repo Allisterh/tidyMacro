@@ -25,10 +25,11 @@
 #' @return A ggplot object, or (if \code{return_data = TRUE}) the
 #'   \code{\link{fIRF}} tibble behind it.
 #'
-#' @details A thin wrapper around \code{\link{fIRF}} and \code{\link{fPlot}}.
-#'   Use \code{fPlot()} directly to compare several results in one figure.
+#' @details \strong{Deprecated.} \code{fPlotIRFChol()} will be removed in the next
+#'   release. Use \code{\link{fPlotIRF}} instead:
+#'   \preformatted{fPlotIRF(fIRF(point, bands = boot_result, varnames = varnames), shock = shock)}
 #'
-#' @seealso \code{\link{fPlot}}, \code{\link{fIRF}}
+#' @seealso \code{\link{fPlotIRF}}, \code{\link{fIRF}}
 #'
 #' @export
 fPlotIRFChol <- function(point, boot_result, shock, varnames,
@@ -40,10 +41,12 @@ fPlotIRFChol <- function(point, boot_result, shock, varnames,
                           zero_line_color = "#707372",
                           facet_scales    = "free",
                           facet_ncol      = NULL) {
-    fPlot(fIRF(point, bands = boot_result, varnames = varnames),
-          shock = shock, return_data = return_data,
-          ribbon_fill = ribbon_fill, line_color = line_color,
-          ribbon_alpha = c(ribbon_alpha, ribbon_alpha2),
-          zero_line_color = zero_line_color,
-          facet_scales = facet_scales, facet_ncol = facet_ncol)
+    .fDeprecatedPlot("fPlotIRFChol",
+        "fPlotIRF(fIRF(point, bands = boot_result, varnames = varnames), shock = shock)")
+    fPlotIRF(fIRF(point, bands = boot_result, varnames = varnames),
+             shock = shock, return_data = return_data,
+             ribbon_fill = ribbon_fill, line_color = line_color,
+             ribbon_alpha = c(ribbon_alpha, ribbon_alpha2),
+             zero_line_color = zero_line_color,
+             facet_scales = facet_scales, facet_ncol = facet_ncol)
 }

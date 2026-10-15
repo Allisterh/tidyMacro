@@ -180,5 +180,5 @@ Antolin-Diaz, J., & Rubio-Ramirez, J. F. (2018). \emph{American Economic
 Review}, 108(10), 2802--2829.
 }
 \seealso{
-\code{\link{fPlotIRFSign}}, \code{\link{fHDShock}}
+\code{\link{fPlotIRF}}, \code{\link{fHDShock}}
 }
