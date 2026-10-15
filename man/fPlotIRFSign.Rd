@@ -58,7 +58,8 @@ ribbons, the widest most transparent.}
 \item{facet_ncol}{Number of facet columns (default NULL, auto).}
 }
 \value{
-A \code{ggplot} object, or a tibble when \code{return_data = TRUE}.
+A ggplot object, or (if \code{return_data = TRUE}) the
+  \code{\link{fIRF}} tibble behind it.
 }
 \description{
 Draws the posterior median and credible band of the responses to one
@@ -66,6 +67,10 @@ structural shock, for every variable in the system. Two models can be
 overlaid, which is the standard way of showing what narrative restrictions
 add to plain sign restrictions.
 }
+\details{
+A thin wrapper around \code{\link{fIRF}} and \code{\link{fPlot}}.
+  Use \code{fPlot()} directly to compare several results in one figure.
+}
 \seealso{
-\code{\link{fSignRestr}}, \code{\link{fPlotVarDec}}
+\code{\link{fPlot}}, \code{\link{fIRF}}, \code{\link{fSignRestr}}, \code{\link{fPlotVarDec}}
 }

@@ -126,6 +126,7 @@ fBQIRF <- function(wold, K, scaling = NULL) {
 #'     \item{upper}{N x N x (horizon+1) upper confidence bands}
 #'     \item{lower}{N x N x (horizon+1) lower confidence bands}
 #'     \item{boot_beta}{N x (Np+c) x nboot array of bootstrapped coefficients}
+#'     \item{conf}{Band levels in percent, \code{c(conf, conf2)}}
 #'   }
 #'
 #' @details
@@ -188,6 +189,7 @@ fBootstrapBQ <- function(y, var_result, nboot, horizon, conf = 90.0, conf2 = 68.
 #'     \item{upper2}{N x N x (horizon+1) inner upper confidence bands}
 #'     \item{lower2}{N x N x (horizon+1) inner lower confidence bands}
 #'     \item{boot_beta}{N x (Np+c) x nboot array of bootstrapped coefficients}
+#'     \item{conf}{Band levels in percent, \code{c(conf, conf2)}}
 #'   }
 #'
 #' @export
@@ -219,6 +221,7 @@ fBootstrapChol <- function(y, var_result, nboot, horizon, conf = 90.0, conf2 = 6
 #'     \item{upper2}{N x N x (horizon+1) inner upper confidence bands}
 #'     \item{lower2}{N x N x (horizon+1) inner lower confidence bands}
 #'     \item{boot_beta}{N x (Np+c) x nboot2 array of bootstrapped coefficients}
+#'     \item{conf}{Band levels in percent, \code{c(conf, conf2)}}
 #'   }
 #'
 #' @export
@@ -287,6 +290,7 @@ fBootstrapIVInvertible <- function(y, instr, var_result, nboot, p, c, hor, cumu,
 #'     \item lower2: N x (horizon+1) matrix of secondary lower bands
 #'     \item meanirf: N x (horizon+1) matrix of mean impulse responses
 #'     \item medianirf: N x (horizon+1) matrix of median impulse responses
+#'     \item conf: band levels in percent, \code{c(conf, conf2)}
 #'   }
 #'
 #' @details
@@ -382,7 +386,8 @@ fBootstrapIVRecover <- function(y, instr, var_result, noise, delta, nboot, p, c,
 #' @return A list with \code{bootmax}, an N x (horizon+1) x nboot array;
 #'   \code{upper}, \code{lower}, \code{upper2}, and \code{lower2}, each
 #'   an N x (horizon+1) matrix; and \code{boot_beta}, an N x K x nboot
-#'   coefficient array, where K is the number of regressors. The corrected
+#'   coefficient array, where K is the number of regressors; and
+#'   \code{conf}, the band levels \code{c(conf, conf2)}. The corrected
 #'   variant stores \code{nboot2} draws.
 #' @export
 fBootstrapMax <- function(y, var_result, nboot, horizon, var_idx, conf = 90.0, conf2 = 68.0, cumulate = as.integer( c()), scaling = NULL, exog = NULL, n_threads = 0L) {
@@ -410,7 +415,8 @@ fBootstrapMaxCorrected <- function(y, var_result, nboot1, nboot2, horizon, var_i
 #' @return A list with \code{bootuhlig}, an N x (horizon+1) x nboot array;
 #'   \code{upper}, \code{lower}, \code{upper2}, and \code{lower2}, each
 #'   an N x (horizon+1) matrix; and \code{boot_beta}, an N x K x nboot
-#'   coefficient array, where K is the number of regressors. The corrected
+#'   coefficient array, where K is the number of regressors; and
+#'   \code{conf}, the band levels \code{c(conf, conf2)}. The corrected
 #'   variant stores \code{nboot2} draws.
 #' @export
 fBootstrapUhlig <- function(y, var_result, nboot, horizon, idx, conf = 90.0, conf2 = 68.0, cumulate = as.integer( c()), exog = NULL, n_threads = 0L) {
@@ -845,6 +851,20 @@ fGenerateVARData <- function(y, p, c, beta, residuals) {
     .Call(`_tidyMacro_fGenerateVARData`, y, p, c, beta, residuals)
 }
 
+#' Compute Confidence Bands from Bootstrap IRF Cube
+#'
+#' Computes upper, lower, and median bands from a 3-D bootstrap IRF array
+#' along the third (bootstrap) dimension. Percentiles follow R's
+#' \code{quantile(type = 7)}.
+#'
+#' @param bootirf N x (hor+1) x nboot cube of bootstrapped IRFs.
+#' @param conf Confidence level (e.g. 68 for 68\% band). Upper and lower
+#'   quantiles are \eqn{(50 + conf/2)}\% and \eqn{(50 - conf/2)}\%.
+#'   Default 90.
+#'
+#' @return List with three N x (hor+1) matrices: upper, lower, median.
+#'
+#' @export
 fGetBands <- function(bootirf, conf = 90.0) {
     .Call(`_tidyMacro_fGetBands`, bootirf, conf)
 }
@@ -1009,7 +1029,8 @@ fHeteroIRF <- function(var_result, Z, adjustu, indsR1, hor, nvar, scale = 10.0) 
 #' @param n_threads  OpenMP threads (0 = all cores minus one).
 #'
 #' @return A list with \code{upper}, \code{lower}, \code{upper2},
-#'   \code{lower2}, \code{meanirf}, \code{medianirf} (each N x hor+1).
+#'   \code{lower2}, \code{meanirf}, \code{medianirf}, \code{point} (each
+#'   N x hor+1) and \code{conf}, the band levels \code{c(conf, conf2)}.
 #' @export
 fBootstrapHetero <- function(y, var_result, Z, indsR1, adjustu, nboot = 1000L, blocksize = 0L, hor = 48L, nvar = 1L, scale = 10.0, conf = 90.0, conf2 = 68.0, n_threads = 0L) {
     .Call(`_tidyMacro_fBootstrapHetero`, y, var_result, Z, indsR1, adjustu, nboot, blocksize, hor, nvar, scale, conf, conf2, n_threads)

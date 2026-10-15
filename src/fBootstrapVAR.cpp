@@ -166,6 +166,7 @@ void fCheckBootArgs_cpp(const arma::mat& y, const VARResult& var_result,
 void fSVARBootBands_cpp(SVARBootResult& r, double conf, double conf2,
                         int n_threads) {
     r.bands = fRowPercentiles_cpp(r.flat, fBandLevels_cpp(conf, conf2), n_threads);
+    r.conf  = {conf, conf2};
 }
 
 Rcpp::List fSVARBootList_cpp(const SVARBootResult& r, const char* draws_name,
@@ -189,7 +190,8 @@ Rcpp::List fSVARBootList_cpp(const SVARBootResult& r, const char* draws_name,
         Rcpp::Named("lower")     = band(1),
         Rcpp::Named("upper2")    = band(2),
         Rcpp::Named("lower2")    = band(3),
-        Rcpp::Named("boot_beta") = r.boot_beta);
+        Rcpp::Named("boot_beta") = r.boot_beta,
+        Rcpp::Named("conf")      = Rcpp::NumericVector(r.conf.begin(), r.conf.end()));
 }
 
 //' Bootstrap VAR Model

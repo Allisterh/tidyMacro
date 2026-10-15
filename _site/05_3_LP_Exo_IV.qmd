@@ -117,11 +117,11 @@ Every plot can also be assembled by hand from the tidy plot data.
 #| fig-cap: "Same fit, hand-rolled ggplot from `fPlotLP(..., return_data = TRUE)`"
 p2 <- fPlotLP(lp_jt, return_data = TRUE) |>
   ggplot(aes(x = horizon, y = point)) +
-    geom_ribbon(aes(ymin = lower, ymax = upper, group = conf, alpha = conf, fill = NULL),
+    geom_ribbon(aes(ymin = lower, ymax = upper, group = band, alpha = band),
                 fill = "#407EC9") +
     geom_line(linewidth = 0.9, colour = "#910048") +
     geom_hline(yintercept = 0, linewidth = 0.4, linetype = "dashed") +
-    scale_alpha_manual(values = c(`0.95` = 0.18, `0.68` = 0.34)) +
+    scale_alpha_manual(values = c(`95%` = 0.18, `68%` = 0.34)) +
     scale_x_continuous(breaks = seq(0, 15, 5)) +
     labs(title = "CPI response to Romer-Romer shock (Manual)", y = "Percent")
 
@@ -224,16 +224,10 @@ all.equal(as.numeric(lp_jorda$irfs), as.numeric(lp_mar$irfs))
 ```{r}
 #| label: fig-nw
 #| fig-cap: "Same IRF, different NW bandwidth rule at 90%"
-bind_rows(
-  fPlotLP(lp_jorda, return_data = TRUE) |> mutate(rule = "Jordà (h)"),
-  fPlotLP(lp_mar,   return_data = TRUE) |> mutate(rule = "Miranda-Agrippino (h+1)")
-) |>
-  ggplot(aes(x = horizon, y = point, colour = rule, fill = rule)) +
-    geom_ribbon(aes(ymin = lower, ymax = upper, color = rule), alpha = 0.5) +
-    geom_line(linewidth = 0.9) +
-    geom_hline(yintercept = 0, linewidth = 0.4, linetype = "dashed") +
+# fPlot() overlays several fits; argument names become the legend labels.
+fPlot(`Jordà (h)` = lp_jorda, `Miranda-Agrippino (h+1)` = lp_mar) +
     labs(title = "CPI response — NW bandwidth comparison at 90%",
-         x = "Horizon", y = "Percent", colour = NULL, fill = NULL)
+         y = "Percent")
 ```
 
 ------------------------------------------------------------------------

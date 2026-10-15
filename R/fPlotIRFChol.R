@@ -22,7 +22,13 @@
 #'   "fixed" (default: "free")
 #' @param facet_ncol Number of columns in facet grid (default: NULL, auto-calculated)
 #'
-#' @return A ggplot object (if \code{return_data = FALSE}) or a tibble.
+#' @return A ggplot object, or (if \code{return_data = TRUE}) the
+#'   \code{\link{fIRF}} tibble behind it.
+#'
+#' @details A thin wrapper around \code{\link{fIRF}} and \code{\link{fPlot}}.
+#'   Use \code{fPlot()} directly to compare several results in one figure.
+#'
+#' @seealso \code{\link{fPlot}}, \code{\link{fIRF}}
 #'
 #' @export
 fPlotIRFChol <- function(point, boot_result, shock, varnames,
@@ -34,25 +40,10 @@ fPlotIRFChol <- function(point, boot_result, shock, varnames,
                           zero_line_color = "#707372",
                           facet_scales    = "free",
                           facet_ncol      = NULL) {
-
-    N <- dim(point)[1]
-    if (shock < 1 || shock > N)
-        stop(sprintf("shock must be between 1 and %d", N))
-    if (is.null(facet_ncol))
-        facet_ncol <- ceiling(sqrt(N))
-
-    two <- !is.null(boot_result$upper2) && !is.null(boot_result$lower2)
-    irf_data <- .fIRFLong(varnames, list(
-        point  = .fShockMat(point, shock),
-        upper  = .fShockMat(boot_result$upper, shock),
-        lower  = .fShockMat(boot_result$lower, shock),
-        upper2 = if (two) .fShockMat(boot_result$upper2, shock),
-        lower2 = if (two) .fShockMat(boot_result$lower2, shock)
-    ))
-
-    if (return_data)
-        return(irf_data)
-
-    .fIRFPlot(irf_data, ~ variable, facet_scales, facet_ncol, ribbon_fill,
-              ribbon_alpha, ribbon_alpha2, line_color, zero_line_color)
+    fPlot(fIRF(point, bands = boot_result, varnames = varnames),
+          shock = shock, return_data = return_data,
+          ribbon_fill = ribbon_fill, line_color = line_color,
+          ribbon_alpha = c(ribbon_alpha, ribbon_alpha2),
+          zero_line_color = zero_line_color,
+          facet_scales = facet_scales, facet_ncol = facet_ncol)
 }

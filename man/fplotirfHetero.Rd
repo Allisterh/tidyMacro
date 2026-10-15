@@ -48,10 +48,18 @@ fPlotIRFHetero(
 \item{facet_ncol}{Number of columns in facet grid. Default 2.}
 }
 \value{
-A ggplot object (or a tibble if \code{return_data = TRUE}).
+A ggplot object, or (if \code{return_data = TRUE}) the
+  \code{\link{fIRF}} tibble behind it.
 }
 \description{
 Creates a grid of IRF plots for results from \code{fBootstrapHetero()}.
 Uses the plug-in point estimate (\code{result$point}) as the center line,
 which is the correct center for Hall (1992) recentered confidence bands.
+}
+\details{
+A thin wrapper around \code{\link{fIRF}} and \code{\link{fPlot}}.
+  Use \code{fPlot()} directly to compare several results in one figure.
+}
+\seealso{
+\code{\link{fPlot}}, \code{\link{fIRF}}
 }

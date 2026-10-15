@@ -21,9 +21,13 @@
 #'   "fixed" (default: "free")
 #' @param facet_ncol Number of columns in facet grid (default: 2)
 #'
-#' @return A ggplot object (if \code{return_data = FALSE}) or a tibble with
-#'   columns \code{variable}, \code{horizon}, \code{point}, \code{upper},
-#'   \code{lower} (and optionally \code{upper2}, \code{lower2}).
+#' @return A ggplot object, or (if \code{return_data = TRUE}) the
+#'   \code{\link{fIRF}} tibble behind it.
+#'
+#' @details A thin wrapper around \code{\link{fIRF}} and \code{\link{fPlot}}.
+#'   Use \code{fPlot()} directly to compare several results in one figure.
+#'
+#' @seealso \code{\link{fPlot}}, \code{\link{fIRF}}
 #'
 #' @export
 fPlotIRFIV <- function(result_mbb, varnames, shockname,
@@ -36,23 +40,12 @@ fPlotIRFIV <- function(result_mbb, varnames, shockname,
                         zero_line_color = "#707372",
                         facet_scales    = "free",
                         facet_ncol      = 2) {
-
-    two   <- !is.null(result_mbb$upper2) && !is.null(result_mbb$lower2)
-    band  <- .fScaleBand(result_mbb$upper, result_mbb$lower, scale)
-    band2 <- if (two) .fScaleBand(result_mbb$upper2, result_mbb$lower2, scale)
-
-    irf_data <- .fIRFLong(varnames, list(
-        point  = result_mbb$meanirf * scale,
-        upper  = band$upper,
-        lower  = band$lower,
-        shock  = shockname,
-        upper2 = band2$upper,
-        lower2 = band2$lower
-    ))
-
-    if (return_data)
-        return(irf_data)
-
-    .fIRFPlot(irf_data, ~ variable, facet_scales, facet_ncol, ribbon_fill,
-              ribbon_alpha, ribbon_alpha2, line_color, zero_line_color)
+    fPlot(fIRF(result_mbb, varnames = varnames, shocknames = shockname,
+               scale = scale),
+          return_data = return_data,
+          ribbon_fill = ribbon_fill, line_color = line_color,
+          ribbon_alpha = if (is.null(result_mbb$upper2)) ribbon_alpha
+                         else c(ribbon_alpha, ribbon_alpha2),
+          zero_line_color = zero_line_color,
+          facet_scales = facet_scales, facet_ncol = facet_ncol)
 }

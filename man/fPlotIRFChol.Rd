@@ -50,10 +50,18 @@ fPlotIRFChol(
 \item{facet_ncol}{Number of columns in facet grid (default: NULL, auto-calculated)}
 }
 \value{
-A ggplot object (if \code{return_data = FALSE}) or a tibble.
+A ggplot object, or (if \code{return_data = TRUE}) the
+  \code{\link{fIRF}} tibble behind it.
 }
 \description{
 Creates a grid of IRF plots showing responses of all variables to a single
 shock, with shaded confidence bands using ggplot2. Designed for
 Cholesky-identified VARs.
+}
+\details{
+A thin wrapper around \code{\link{fIRF}} and \code{\link{fPlot}}.
+  Use \code{fPlot()} directly to compare several results in one figure.
+}
+\seealso{
+\code{\link{fPlot}}, \code{\link{fIRF}}
 }

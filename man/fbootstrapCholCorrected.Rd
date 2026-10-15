@@ -50,6 +50,7 @@ List with elements:
     \item{upper2}{N x N x (horizon+1) inner upper confidence bands}
     \item{lower2}{N x N x (horizon+1) inner lower confidence bands}
     \item{boot_beta}{N x (Np+c) x nboot2 array of bootstrapped coefficients}
+    \item{conf}{Band levels in percent, \code{c(conf, conf2)}}
   }
 }
 \description{

@@ -50,11 +50,17 @@ of a 10-unit shock). Default 1.}
 \item{facet_ncol}{Number of columns in facet grid (default: 2)}
 }
 \value{
-A ggplot object (if \code{return_data = FALSE}) or a tibble with
-  columns \code{variable}, \code{horizon}, \code{point}, \code{upper},
-  \code{lower} (and optionally \code{upper2}, \code{lower2}).
+A ggplot object, or (if \code{return_data = TRUE}) the
+  \code{\link{fIRF}} tibble behind it.
 }
 \description{
 Creates a grid of IRF plots with shaded confidence bands using ggplot2.
 Accepts the full list returned by \code{fBootstrapIVMBB()} directly.
+}
+\details{
+A thin wrapper around \code{\link{fIRF}} and \code{\link{fPlot}}.
+  Use \code{fPlot()} directly to compare several results in one figure.
+}
+\seealso{
+\code{\link{fPlot}}, \code{\link{fIRF}}
 }

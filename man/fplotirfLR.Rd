@@ -48,11 +48,19 @@ fPlotIRFLR(
 \item{facet_ncol}{Number of columns in facet grid (default: NULL, auto-calculated)}
 }
 \value{
-A ggplot object (if \code{return_data = FALSE}) or a tibble.
+A ggplot object, or (if \code{return_data = TRUE}) the
+  \code{\link{fIRF}} tibble behind it.
 }
 \description{
 Creates a grid of IRF plots with shaded confidence bands using ggplot2.
 Designed for long-run identified VARs where the point estimate is an N x H
 matrix — works for both LR-Max (\code{fMaxIRF()}) and Uhlig max-share
 (\code{fUhligIRF()}) identifications.
+}
+\details{
+A thin wrapper around \code{\link{fIRF}} and \code{\link{fPlot}}.
+  Use \code{fPlot()} directly to compare several results in one figure.
+}
+\seealso{
+\code{\link{fPlot}}, \code{\link{fIRF}}
 }

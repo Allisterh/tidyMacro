@@ -23,58 +23,34 @@
 #'   Default "free".
 #' @param facet_ncol Number of columns in the facet grid. Default 2.
 #'
-#' @return A ggplot object (or a tibble if \code{return_data = TRUE}).
+#' @return A ggplot object, or (if \code{return_data = TRUE}) the
+#'   \code{\link{fIRF}} tibble behind it.
+#'
+#' @details A thin wrapper around \code{\link{fIRF}} and \code{\link{fPlot}}.
+#'   Use \code{fPlot()} directly to compare several results in one figure.
+#'
+#' @seealso \code{\link{fPlot}}, \code{\link{fIRF}}
 #'
 #' @export
 fPlotIRFMSW <- function(msw_result, varnames, shockname,
                          scale           = 1,
                          return_data     = FALSE,
                          ribbon_fill_ar  = "#407EC9",
-                         ribbon_fill_dm  = "#407EC9",
+                         ribbon_fill_dm  = ribbon_fill_ar,
                          ribbon_alpha_ar = 0.18,
                          ribbon_alpha_dm = 0.35,
                          line_color      = "#910048",
                          zero_line_color = "#707372",
                          facet_scales    = "free",
                          facet_ncol      = 2) {
-
-    dm <- .fScaleBand(msw_result$Dmubound,  msw_result$Dmlbound,  scale)
-    ar <- .fScaleBand(msw_result$MSWubound, msw_result$MSWlbound, scale)
-
-    irf_data <- .fIRFLong(varnames, list(
-        point = msw_result$IRF * scale,
-        dm_lo = dm$lower,
-        dm_hi = dm$upper,
-        ar_lo = ar$lower,
-        ar_hi = ar$upper,
-        shock = shockname
-    ))
-
-    if (return_data)
-        return(irf_data)
-
-    ggplot2::ggplot(irf_data, ggplot2::aes(x = .data$horizon)) +
-        ggplot2::geom_ribbon(
-            ggplot2::aes(ymin = .data$ar_lo, ymax = .data$ar_hi, fill = "Anderson-Rubin"),
-            alpha = ribbon_alpha_ar) +
-        ggplot2::geom_ribbon(
-            ggplot2::aes(ymin = .data$dm_lo, ymax = .data$dm_hi, fill = "Delta Method"),
-            alpha = ribbon_alpha_dm) +
-        ggplot2::geom_line(ggplot2::aes(y = .data$point, color = "Point estimate"),
-                           linewidth = 0.8) +
-        ggplot2::geom_hline(yintercept = 0,
-                            color = zero_line_color, linetype = "dashed",
-                            linewidth = 0.6) +
-        ggplot2::scale_fill_manual(
-            name   = NULL,
-            values = c("Anderson-Rubin" = ribbon_fill_ar,
-                       "Delta Method"   = ribbon_fill_dm),
-            guide  = ggplot2::guide_legend(
-                override.aes = list(alpha = c(ribbon_alpha_ar, ribbon_alpha_dm)))
-        ) +
-        ggplot2::scale_color_manual(
-            name   = NULL,
-            values = c("Point estimate" = line_color)
-        ) +
-        ggplot2::facet_wrap(~ variable, scales = facet_scales, ncol = facet_ncol)
+    if (!identical(ribbon_fill_dm, ribbon_fill_ar))
+        warning("fPlotIRFMSW: both bands now share `ribbon_fill_ar`; ",
+                "they are told apart by transparency.", call. = FALSE)
+    fPlot(fIRF(msw_result, varnames = varnames, shocknames = shockname,
+               scale = scale),
+          return_data = return_data,
+          ribbon_fill = ribbon_fill_ar, line_color = line_color,
+          ribbon_alpha = c(ribbon_alpha_ar, ribbon_alpha_dm),
+          zero_line_color = zero_line_color,
+          facet_scales = facet_scales, facet_ncol = facet_ncol)
 }

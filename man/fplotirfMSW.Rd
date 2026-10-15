@@ -11,7 +11,7 @@ fPlotIRFMSW(
   scale = 1,
   return_data = FALSE,
   ribbon_fill_ar = "#407EC9",
-  ribbon_fill_dm = "#407EC9",
+  ribbon_fill_dm = ribbon_fill_ar,
   ribbon_alpha_ar = 0.18,
   ribbon_alpha_dm = 0.35,
   line_color = "#910048",
@@ -52,11 +52,19 @@ Default "free".}
 \item{facet_ncol}{Number of columns in the facet grid. Default 2.}
 }
 \value{
-A ggplot object (or a tibble if \code{return_data = TRUE}).
+A ggplot object, or (if \code{return_data = TRUE}) the
+  \code{\link{fIRF}} tibble behind it.
 }
 \description{
 Creates a faceted IRF plot showing both the plug-in (delta method) and
 Anderson-Rubin weak-IV robust confidence sets from \code{fMSW()}.
 The outer (lighter) band is the Anderson-Rubin set; the inner (darker) band
 is the delta-method interval.
+}
+\details{
+A thin wrapper around \code{\link{fIRF}} and \code{\link{fPlot}}.
+  Use \code{fPlot()} directly to compare several results in one figure.
+}
+\seealso{
+\code{\link{fPlot}}, \code{\link{fIRF}}
 }

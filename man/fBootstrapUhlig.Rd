@@ -65,7 +65,8 @@ cores minus one, with a minimum of one. Without OpenMP, uses one.}
 A list with \code{bootuhlig}, an N x (horizon+1) x nboot array;
   \code{upper}, \code{lower}, \code{upper2}, and \code{lower2}, each
   an N x (horizon+1) matrix; and \code{boot_beta}, an N x K x nboot
-  coefficient array, where K is the number of regressors. The corrected
+  coefficient array, where K is the number of regressors; and
+  \code{conf}, the band levels \code{c(conf, conf2)}. The corrected
   variant stores \code{nboot2} draws.
 }
 \description{

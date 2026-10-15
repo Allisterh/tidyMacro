@@ -232,7 +232,8 @@ Rcpp::List fHeteroIRF(const Rcpp::List& var_result,
 //' @param n_threads  OpenMP threads (0 = all cores minus one).
 //'
 //' @return A list with \code{upper}, \code{lower}, \code{upper2},
-//'   \code{lower2}, \code{meanirf}, \code{medianirf} (each N x hor+1).
+//'   \code{lower2}, \code{meanirf}, \code{medianirf}, \code{point} (each
+//'   N x hor+1) and \code{conf}, the band levels \code{c(conf, conf2)}.
 //' @export
 // [[Rcpp::export]]
 Rcpp::List fBootstrapHetero(const arma::mat& y,
@@ -264,6 +265,7 @@ Rcpp::List fBootstrapHetero(const arma::mat& y,
         Rcpp::Named("lower2")    = res.lower2,
         Rcpp::Named("meanirf")   = res.meanirf,
         Rcpp::Named("medianirf") = res.medianirf,
-        Rcpp::Named("point")     = res.point
+        Rcpp::Named("point")     = res.point,
+        Rcpp::Named("conf")      = Rcpp::NumericVector::create(conf, conf2)
     );
 }

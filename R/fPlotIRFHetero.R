@@ -20,7 +20,13 @@
 #'   \code{"free_x"}, or \code{"fixed"}. Default \code{"free"}.
 #' @param facet_ncol     Number of columns in facet grid. Default 2.
 #'
-#' @return A ggplot object (or a tibble if \code{return_data = TRUE}).
+#' @return A ggplot object, or (if \code{return_data = TRUE}) the
+#'   \code{\link{fIRF}} tibble behind it.
+#'
+#' @details A thin wrapper around \code{\link{fIRF}} and \code{\link{fPlot}}.
+#'   Use \code{fPlot()} directly to compare several results in one figure.
+#'
+#' @seealso \code{\link{fPlot}}, \code{\link{fIRF}}
 #'
 #' @export
 fPlotIRFHetero <- function(result, varnames, shockname,
@@ -33,23 +39,12 @@ fPlotIRFHetero <- function(result, varnames, shockname,
                            zero_line_color = "#707372",
                            facet_scales    = "free",
                            facet_ncol      = 2) {
-
-    two   <- !is.null(result$upper2) && !is.null(result$lower2)
-    band  <- .fScaleBand(result$upper, result$lower, scale)
-    band2 <- if (two) .fScaleBand(result$upper2, result$lower2, scale)
-
-    irf_data <- .fIRFLong(varnames, list(
-        point  = result$point * scale,
-        upper  = band$upper,
-        lower  = band$lower,
-        shock  = shockname,
-        upper2 = band2$upper,
-        lower2 = band2$lower
-    ))
-
-    if (return_data)
-        return(irf_data)
-
-    .fIRFPlot(irf_data, ~ variable, facet_scales, facet_ncol, ribbon_fill,
-              ribbon_alpha, ribbon_alpha2, line_color, zero_line_color)
+    fPlot(fIRF(result, varnames = varnames, shocknames = shockname,
+               scale = scale),
+          return_data = return_data,
+          ribbon_fill = ribbon_fill, line_color = line_color,
+          ribbon_alpha = if (is.null(result$upper2)) ribbon_alpha
+                         else c(ribbon_alpha, ribbon_alpha2),
+          zero_line_color = zero_line_color,
+          facet_scales = facet_scales, facet_ncol = facet_ncol)
 }

@@ -23,7 +23,13 @@
 #'   "fixed" (default: "free")
 #' @param facet_ncol Number of columns in facet grid (default: NULL, auto-calculated)
 #'
-#' @return A ggplot object (if \code{return_data = FALSE}) or a tibble.
+#' @return A ggplot object, or (if \code{return_data = TRUE}) the
+#'   \code{\link{fIRF}} tibble behind it.
+#'
+#' @details A thin wrapper around \code{\link{fIRF}} and \code{\link{fPlot}}.
+#'   Use \code{fPlot()} directly to compare several results in one figure.
+#'
+#' @seealso \code{\link{fPlot}}, \code{\link{fIRF}}
 #'
 #' @export
 fPlotIRFLR <- function(point, boot_result = NULL, varnames,
@@ -35,22 +41,11 @@ fPlotIRFLR <- function(point, boot_result = NULL, varnames,
                        zero_line_color = "#707372",
                        facet_scales    = "free",
                        facet_ncol      = NULL) {
-
-    if (is.null(facet_ncol))
-        facet_ncol <- ceiling(sqrt(nrow(point)))
-
-    two <- !is.null(boot_result$upper2) && !is.null(boot_result$lower2)
-    irf_data <- .fIRFLong(varnames, list(
-        point  = point,
-        upper  = boot_result$upper,
-        lower  = boot_result$lower,
-        upper2 = if (two) boot_result$upper2,
-        lower2 = if (two) boot_result$lower2
-    ))
-
-    if (return_data)
-        return(irf_data)
-
-    .fIRFPlot(irf_data, ~ variable, facet_scales, facet_ncol, ribbon_fill,
-              ribbon_alpha, ribbon_alpha2, line_color, zero_line_color)
+    fPlot(fIRF(point, bands = boot_result, varnames = varnames),
+          return_data = return_data,
+          ribbon_fill = ribbon_fill, line_color = line_color,
+          ribbon_alpha = if (is.null(boot_result$upper2)) ribbon_alpha
+                         else c(ribbon_alpha, ribbon_alpha2),
+          zero_line_color = zero_line_color,
+          facet_scales = facet_scales, facet_ncol = facet_ncol)
 }

@@ -49,7 +49,8 @@ fBootstrapHetero(
 }
 \value{
 A list with \code{upper}, \code{lower}, \code{upper2},
-  \code{lower2}, \code{meanirf}, \code{medianirf} (each N x hor+1).
+  \code{lower2}, \code{meanirf}, \code{medianirf}, \code{point} (each
+  N x hor+1) and \code{conf}, the band levels \code{c(conf, conf2)}.
 }
 \description{
 Moving-block bootstrap confidence bands for structural IRFs identified via

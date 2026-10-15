@@ -132,6 +132,7 @@ fBootstrapIVMBB_cpp(const arma::mat &y, const VARResult &var_result,
 //'     \item lower2: N x (horizon+1) matrix of secondary lower bands
 //'     \item meanirf: N x (horizon+1) matrix of mean impulse responses
 //'     \item medianirf: N x (horizon+1) matrix of median impulse responses
+//'     \item conf: band levels in percent, \code{c(conf, conf2)}
 //'   }
 //'
 //' @details
@@ -185,5 +186,6 @@ Rcpp::List fBootstrapIVMBB(const arma::mat &y, const Rcpp::List &var_result,
                             Rcpp::Named("upper2")    = result.upper2,
                             Rcpp::Named("lower2")    = result.lower2,
                             Rcpp::Named("meanirf")   = result.meanirf,
-                            Rcpp::Named("medianirf") = result.medianirf);
+                            Rcpp::Named("medianirf") = result.medianirf,
+                            Rcpp::Named("conf")      = Rcpp::NumericVector::create(conf, conf2));
 }

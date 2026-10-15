@@ -61,6 +61,7 @@ A list containing:
     \item lower2: N x (horizon+1) matrix of secondary lower bands
     \item meanirf: N x (horizon+1) matrix of mean impulse responses
     \item medianirf: N x (horizon+1) matrix of median impulse responses
+    \item conf: band levels in percent, \code{c(conf, conf2)}
   }
 }
 \description{

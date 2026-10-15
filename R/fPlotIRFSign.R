@@ -29,9 +29,13 @@
 #'   \code{ggplot2::facet_wrap} (default "free_y").
 #' @param facet_ncol Number of facet columns (default NULL, auto).
 #'
-#' @return A \code{ggplot} object, or a tibble when \code{return_data = TRUE}.
+#' @return A ggplot object, or (if \code{return_data = TRUE}) the
+#'   \code{\link{fIRF}} tibble behind it.
 #'
-#' @seealso \code{\link{fSignRestr}}, \code{\link{fPlotVarDec}}
+#' @details A thin wrapper around \code{\link{fIRF}} and \code{\link{fPlot}}.
+#'   Use \code{fPlot()} directly to compare several results in one figure.
+#'
+#' @seealso \code{\link{fPlot}}, \code{\link{fIRF}}, \code{\link{fSignRestr}}, \code{\link{fPlotVarDec}}
 #'
 #' @export
 fPlotIRFSign <- function(sr, shock = 1, compare = NULL,
@@ -45,97 +49,23 @@ fPlotIRFSign <- function(sr, shock = 1, compare = NULL,
                          conf          = NULL,
                          facet_scales  = "free_y",
                          facet_ncol    = NULL) {
-
     if (!inherits(sr, "fSignRestr")) stop("`sr` must be an 'fSignRestr' object.")
-
     if (is.null(conf)) conf <- sr$conf[1]
-    conf <- sort(as.numeric(conf), decreasing = TRUE)
 
-    ## Bands come from the `bands` list so that a level the model was not asked
-    ## for fails loudly instead of being silently drawn at the wrong coverage.
-    band_of <- function(obj, level) {
-        key <- format(level)
-        b   <- obj$bands[[key]]
-        if (is.null(b))
-            stop(sprintf(
-                "Band %s%% is not available; refit with conf = c(%s).",
-                key, paste(unique(c(obj$conf, level)), collapse = ", ")))
-        b
-    }
-
-    grab <- function(obj, lab, sc) {
-        N  <- dim(obj$IRmed)[1]
-        H  <- dim(obj$IRmed)[3]
-        if (shock < 1 || shock > N)
-            stop(sprintf("`shock` must be between 1 and %d.", N))
-        vn <- if (!is.null(varnames)) varnames else obj$varnames
-        sc <- rep_len(sc, N)
-        do.call(rbind, lapply(conf, function(level) {
-            b <- band_of(obj, level)
-            do.call(rbind, lapply(seq_len(N), function(i) {
-                band <- .fScaleBand(as.numeric(b$IRsup[i, shock, ]),
-                                    as.numeric(b$IRinf[i, shock, ]), sc[i])
-                tibble::tibble(
-                    model    = lab,
-                    level    = level,
-                    variable = vn[i],
-                    horizon  = 0L:(H - 1L),
-                    median   = as.numeric(obj$IRmed[i, shock, ]) * sc[i],
-                    lower    = band$lower,
-                    upper    = band$upper)
-            }))
-        }))
-    }
-
-    dat <- grab(sr, labels[1], scale)
+    fits <- list(fIRF(sr, conf = conf, varnames = varnames, scale = scale))
+    names(fits) <- labels[1]
     if (!is.null(compare)) {
         if (!inherits(compare, "fSignRestr"))
             stop("`compare` must be an 'fSignRestr' object.")
         if (is.null(scale_compare)) scale_compare <- scale
         lab2 <- if (length(labels) >= 2) labels[2] else "Comparison"
-        dat  <- rbind(dat, grab(compare, lab2, scale_compare))
+        fits[[lab2]] <- fIRF(compare, conf = conf, varnames = varnames,
+                             scale = scale_compare)
     }
 
-    vn <- if (!is.null(varnames)) varnames else sr$varnames
-    dat$variable <- factor(dat$variable, levels = vn)
-    dat$model    <- factor(dat$model, levels = unique(dat$model))
-
-    if (return_data) return(tibble::as_tibble(dat))
-
-    if (is.null(facet_ncol)) facet_ncol <- ceiling(sqrt(length(vn)))
-    pal <- stats::setNames(colors[seq_along(levels(dat$model))], levels(dat$model))
-
-    ## One ribbon per (model, level); the median is drawn once per model.
-    dat$band <- interaction(dat$model, dat$level, drop = TRUE)
-    med <- dat[dat$level == conf[1], , drop = FALSE]
-
-    ## Widest band faintest, so nested levels stay readable.
-    alphas <- if (length(conf) == 1L) ribbon_alpha
-              else ribbon_alpha * seq(0.75, 1.45, length.out = length(conf))
-    names(alphas) <- format(conf)
-
-    p <- ggplot2::ggplot(dat, ggplot2::aes(x = .data$horizon)) +
-        ggplot2::geom_ribbon(
-            ggplot2::aes(ymin = .data$lower, ymax = .data$upper,
-                         fill = .data$model, group = .data$band,
-                         alpha = factor(format(.data$level), levels = format(conf))),
-            colour = NA) +
-        ggplot2::scale_alpha_manual(values = alphas, name = NULL,
-                                    labels = paste0(format(conf), "%"),
-                                    guide = if (length(conf) == 1L) "none"
-                                            else ggplot2::guide_legend()) +
-        ggplot2::geom_line(
-            data = med,
-            ggplot2::aes(y = .data$median, colour = .data$model),
-            linewidth = 0.8) +
-        ggplot2::geom_hline(yintercept = 0, colour = "#707372",
-                            linetype = "dashed", linewidth = 0.5) +
-        ggplot2::scale_colour_manual(values = pal, name = NULL) +
-        ggplot2::scale_fill_manual(values = pal, name = NULL) +
-        ggplot2::facet_wrap(~ .data$variable, scales = facet_scales,
-                            ncol = facet_ncol) +
-        ggplot2::labs(x = "Horizon", y = NULL)
-
-    if (is.null(compare)) p <- p + ggplot2::guides(colour = "none", fill = "none")
-    p
+    do.call(fPlot, c(fits, list(
+        shock = shock, return_data = return_data, colors = colors,
+        ribbon_fill = colors[1], line_color = colors[1],
+        ribbon_alpha = ribbon_alpha, facet_scales = facet_scales,
+        facet_ncol = facet_ncol)))
 }

@@ -29,7 +29,13 @@
 #'   \code{"fixed"}.
 #' @param facet_ncol Number of columns in the facet layout. Default NULL.
 #'
-#' @return A ggplot object (if \code{return_data = FALSE}) or a tibble.
+#' @return A ggplot object, or (if \code{return_data = TRUE}) the
+#'   \code{\link{fIRF}} tibble behind it.
+#'
+#' @details A thin wrapper around \code{\link{fIRF}} and \code{\link{fPlot}}.
+#'   Use \code{fPlot()} directly to compare several results in one figure.
+#'
+#' @seealso \code{\link{fPlot}}, \code{\link{fIRF}}
 #'
 #' @export
 fPlotIRFBQ <- function(point, boot_result, varnames, shocknames,
@@ -42,44 +48,25 @@ fPlotIRFBQ <- function(point, boot_result, varnames, shocknames,
                         zero_line_color = "#707372",
                         facet_scales    = c("free", "free_y", "free_x", "fixed"),
                         facet_ncol      = NULL) {
-
     facet_scales <- match.arg(facet_scales)
-
-    N        <- dim(point)[1]
-    n_shocks <- length(shocks)
-
-    if (is.null(facet_ncol))
-        facet_ncol <- if (n_shocks == 1L) ceiling(sqrt(N)) else n_shocks
-
-    if (length(shocknames) != n_shocks)
+    N <- dim(point)[1]
+    if (length(shocknames) != length(shocks))
         stop("shocknames must have the same length as shocks")
     if (any(shocks < 1) || any(shocks > N))
         stop(sprintf("All shocks must be between 1 and %d", N))
-    if (any(cumulate < 1) || any(cumulate > N))
-        stop(sprintf("All cumulate indices must be between 1 and %d", N))
 
-    two <- !is.null(boot_result$upper2) && !is.null(boot_result$lower2)
-    irf_data <- do.call(rbind, lapply(seq_along(shocks), function(j) {
-        s <- shocks[j]
-        # Cumulate the point IRF (bands are already cumulated in the bootstrap)
-        pt <- .fShockMat(point, s)
-        for (ci in cumulate) pt[ci, ] <- cumsum(pt[ci, ])
-        d <- .fIRFLong(varnames, list(
-            point  = pt,
-            upper  = .fShockMat(boot_result$upper, s),
-            lower  = .fShockMat(boot_result$lower, s),
-            upper2 = if (two) .fShockMat(boot_result$upper2, s),
-            lower2 = if (two) .fShockMat(boot_result$lower2, s)
-        ))
-        tibble::add_column(d, shock = shocknames[j], .after = "variable")
-    }))
-    irf_data$shock <- factor(irf_data$shock, levels = shocknames)
+    # shocknames label the selected shocks only
+    all_names <- paste("Shock", seq_len(N))
+    all_names[shocks] <- shocknames
+    if (is.null(facet_ncol) && length(shocks) == 1L)
+        facet_ncol <- ceiling(sqrt(N))
 
-    if (return_data)
-        return(irf_data)
-
-    facet <- if (n_shocks == 1L) ~ variable else ~ shock + variable
-    .fIRFPlot(irf_data, facet, facet_scales, facet_ncol, ribbon_fill,
-              ribbon_alpha, ribbon_alpha2, line_color, zero_line_color) +
-        ggplot2::labs(x = NULL, y = NULL, caption = NULL)
+    out <- fPlot(fIRF(point, bands = boot_result, varnames = varnames,
+                      shocknames = all_names, cumulate = cumulate),
+                 shock = shocks, return_data = return_data,
+                 ribbon_fill = ribbon_fill, line_color = line_color,
+                 ribbon_alpha = c(ribbon_alpha, ribbon_alpha2),
+                 zero_line_color = zero_line_color,
+                 facet_scales = facet_scales, facet_ncol = facet_ncol)
+    if (return_data) out else out + ggplot2::labs(x = NULL, y = NULL)
 }

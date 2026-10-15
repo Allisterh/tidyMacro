@@ -46,7 +46,8 @@ length as the confidence levels, matched widest-to-tightest.}
 \item{facet_ncol}{Number of facet columns. Defaults to an automatic layout.}
 }
 \value{
-A ggplot object, or a tibble if \code{return_data = TRUE}.
+A ggplot object, or (if \code{return_data = TRUE}) the
+  \code{\link{fIRF}} tibble behind it.
 }
 \description{
 Plots impulse responses and confidence bands from an object returned by
@@ -54,4 +55,11 @@ Plots impulse responses and confidence bands from an object returned by
 if \code{fLP()} was called with \code{conf = c(68, 95)} the plot
 automatically draws one ribbon per level (widest ribbon is drawn first with
 lowest opacity so the tighter band is visually on top).
+}
+\details{
+A thin wrapper around \code{\link{fIRF}} and \code{\link{fPlot}}.
+  Use \code{fPlot()} directly to compare several results in one figure.
+}
+\seealso{
+\code{\link{fPlot}}, \code{\link{fIRF}}
 }

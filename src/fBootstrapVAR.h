@@ -75,6 +75,7 @@ struct SVARBootResult {
   arma::mat  flat;       // stat_size x nboot identified responses per draw
   arma::mat  bands;      // stat_size x 5: upper, lower, upper2, lower2, median
   arma::cube boot_beta;  // N x n_coef x nboot bootstrapped coefficients
+  arma::vec  conf;       // band levels in percent: conf, conf2
 };
 
 // Bands of an SVARBootResult (fills r.bands from r.flat).

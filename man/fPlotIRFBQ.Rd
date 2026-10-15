@@ -61,10 +61,18 @@ Default FALSE.}
 \item{facet_ncol}{Number of columns in the facet layout. Default NULL.}
 }
 \value{
-A ggplot object (if \code{return_data = FALSE}) or a tibble.
+A ggplot object, or (if \code{return_data = TRUE}) the
+  \code{\link{fIRF}} tibble behind it.
 }
 \description{
 Creates a grid of IRF plots with shaded confidence bands using ggplot2.
 Designed for BQ long-run identified VARs. Supports one or multiple shocks;
 when a single shock is supplied the facet shows only response variables.
+}
+\details{
+A thin wrapper around \code{\link{fIRF}} and \code{\link{fPlot}}.
+  Use \code{fPlot()} directly to compare several results in one figure.
+}
+\seealso{
+\code{\link{fPlot}}, \code{\link{fIRF}}
 }

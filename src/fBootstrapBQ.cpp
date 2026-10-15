@@ -70,6 +70,7 @@ SVARBootResult fBootstrapBQ_cpp(const arma::mat& y, const VARResult& var_result,
 //'     \item{upper}{N x N x (horizon+1) upper confidence bands}
 //'     \item{lower}{N x N x (horizon+1) lower confidence bands}
 //'     \item{boot_beta}{N x (Np+c) x nboot array of bootstrapped coefficients}
+//'     \item{conf}{Band levels in percent, \code{c(conf, conf2)}}
 //'   }
 //'
 //' @details
