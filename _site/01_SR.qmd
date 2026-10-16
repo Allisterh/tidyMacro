@@ -111,7 +111,7 @@ bloom_chol <- fBootstrapChol(
     nboot      = 1000,
     horizon    = horizon,
     bootscheme = "wild",
-    n_threads  = 3
+    n_threads  = 2
 )
 toc()
 ```
@@ -129,7 +129,7 @@ bloom_corrected <- fBootstrapCholCorrected(
     nboot2     = 1000,
     horizon    = horizon,
     bootscheme = "wild",
-    n_threads  = 3
+    n_threads  = 2
 )
 toc()
 ```
@@ -145,7 +145,9 @@ toc()
 #| fig-cap: "IRFs to uncertainty shock — standard bootstrap (68% and 90% confidence bands)"
 
 fPlotIRF(
-    fIRF(point_irf, bands = bloom_chol, varnames = var_names),
+    point_irf,
+    bands      = bloom_chol,
+    varnames   = var_names,
     shock      = shock,
     facet_ncol = 3
 ) +
@@ -159,7 +161,9 @@ fPlotIRF(
 #| fig-cap: "IRFs to uncertainty shock — bias-corrected bootstrap (68% and 90% confidence bands)"
 
 fPlotIRF(
-    fIRF(point_irf, bands = bloom_corrected, varnames = var_names),
+    point_irf,
+    bands      = bloom_corrected,
+    varnames   = var_names,
     shock      = shock,
     facet_ncol = 3
 ) + 

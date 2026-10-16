@@ -17,7 +17,8 @@ fBootstrapIVRecover(
   hor,
   cumu,
   conf = 90,
-  conf2 = 68
+  conf2 = 68,
+  n_threads = 0L
 )
 }
 \arguments{
@@ -48,6 +49,8 @@ and r future VAR residual coefficients) from the invertibility regression.}
 \item{conf}{Primary confidence level (e.g. 90). Default 90.}
 
 \item{conf2}{Secondary confidence level (e.g. 68). Default 68.}
+
+\item{n_threads}{OpenMP threads. 0 (default) uses all cores minus one.}
 }
 \value{
 List with N x (hor+1) matrices: upper, lower (at \code{conf}),

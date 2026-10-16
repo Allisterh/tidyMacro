@@ -12,7 +12,7 @@ SVARBootResult fBootstrapUhlig_cpp(const arma::mat& y, const VARResult& var_resu
                                    int nboot, int horizon, int idx,
                                    double conf, double conf2,
                                    const arma::uvec& cumulate,
-                                   const arma::mat* exog_ptr, int n_threads) {
+                                   const arma::mat* exog_ptr, int n_threads, bool verbose) {
     fCheckBootArgs_cpp(y, var_result, nboot, horizon, conf, conf2);
     const int N = static_cast<int>(y.n_cols);
     const int H = horizon + 1;
@@ -21,7 +21,9 @@ SVARBootResult fBootstrapUhlig_cpp(const arma::mat& y, const VARResult& var_resu
         y, var_result, nboot, horizon, "residual", exog_ptr, n_threads,
         N * H, "Uhlig max-share",
         [&](const VARResult& var_b, const arma::cube& wold_b, arma::vec& out) {
-            arma::mat S = fLowerChol_cpp(var_b.sigma);
+            bool chol_ok = true;
+            const arma::mat S = fLowerChol_cpp(var_b.sigma, &chol_ok);
+            if (!chol_ok) return false;
             arma::vec impact = S * fUhligMaxShare_cpp(wold_b, S, idx);
 
             // Sign: last-horizon response of variable 1 is non-negative
@@ -33,8 +35,9 @@ SVARBootResult fBootstrapUhlig_cpp(const arma::mat& y, const VARResult& var_resu
             for (arma::uword ci = 0; ci < cumulate.n_elem; ++ci)
                 irf.row(cumulate(ci)) = arma::cumsum(irf.row(cumulate(ci)));
             out = arma::vectorise(irf);
-        });
-    fSVARBootBands_cpp(r, conf, conf2, n_threads);
+            return true;
+        }, verbose);
+    fSVARBootBands_cpp(r, conf, conf2, n_threads, "fBootstrapUhlig");
     return r;
 }
 
@@ -73,7 +76,7 @@ Rcpp::List fBootstrapUhlig(const arma::mat& y, const Rcpp::List& var_result,
                             double conf = 90.0, double conf2 = 68.0,
                             Rcpp::IntegerVector cumulate = Rcpp::IntegerVector::create(),
                             Rcpp::Nullable<arma::mat> exog = R_NilValue,
-                            int n_threads = 0) {
+                            int n_threads = 0, bool verbose = false) {
   VARResult vr = fVARResultFromList_cpp(var_result);
   fCheckExogArg_cpp(vr.n_exog, exog.isNotNull());
   arma::mat exog_mat;
@@ -83,7 +86,7 @@ Rcpp::List fBootstrapUhlig(const arma::mat& y, const Rcpp::List& var_result,
   arma::uvec cumulate_cpp = uhlig_args(N, idx, cumulate);
 
   SVARBootResult r = fBootstrapUhlig_cpp(y, vr, nboot, horizon, idx - 1, conf,
-                                         conf2, cumulate_cpp, exog_ptr, n_threads);
+                                         conf2, cumulate_cpp, exog_ptr, n_threads, verbose);
   return fSVARBootList_cpp(r, "bootuhlig", {N, horizon + 1});
 }
 
@@ -96,7 +99,7 @@ Rcpp::List fBootstrapUhligCorrected(const arma::mat& y, const Rcpp::List& var_re
                                      double conf = 90.0, double conf2 = 68.0,
                                      Rcpp::IntegerVector cumulate = Rcpp::IntegerVector::create(),
                                      Rcpp::Nullable<arma::mat> exog = R_NilValue,
-                                     int n_threads = 0) {
+                                     int n_threads = 0, bool verbose = false) {
   VARResult vr = fVARResultFromList_cpp(var_result);
   fCheckExogArg_cpp(vr.n_exog, exog.isNotNull());
   arma::mat exog_mat;
@@ -107,9 +110,9 @@ Rcpp::List fBootstrapUhligCorrected(const arma::mat& y, const Rcpp::List& var_re
   fCheckBootArgs_cpp(y, vr, nboot2, horizon, conf, conf2);
 
   VARResult corrected = fBiasCorrectedVAR_cpp(y, vr, nboot1, "residual",
-                                              exog_ptr, n_threads);
+                                              exog_ptr, n_threads, verbose);
   SVARBootResult r = fBootstrapUhlig_cpp(y, corrected, nboot2, horizon, idx - 1,
                                          conf, conf2, cumulate_cpp, exog_ptr,
-                                         n_threads);
+                                         n_threads, verbose);
   return fSVARBootList_cpp(r, "bootuhlig", {N, horizon + 1});
 }

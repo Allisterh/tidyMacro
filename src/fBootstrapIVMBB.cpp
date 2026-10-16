@@ -10,7 +10,8 @@
 #include "fMBBVAR.h"
 #include "fOLS.h"
 
-arma::vec fProxyImpact_cpp(const arma::mat& u, const arma::mat& Z, int pv) {
+bool fProxyImpact_cpp(const arma::mat& u, const arma::mat& Z, int pv,
+                      arma::vec& s) {
   const int N = static_cast<int>(u.n_cols);
 
   // First stage: policy residual on the instrument
@@ -21,13 +22,17 @@ arma::vec fProxyImpact_cpp(const arma::mat& u, const arma::mat& Z, int pv) {
   const arma::mat& uhat = ols1.fitted_partial;
 
   // Second stage: non-policy residuals on the fitted policy residual
-  arma::mat sq_sp = arma::solve(uhat.t() * uhat, uhat.t() * u_q);
+  arma::mat sq_sp;
+  if (!arma::solve(sq_sp, uhat.t() * uhat, uhat.t() * u_q,
+                   arma::solve_opts::fast))
+    return false;
+  if (!sq_sp.is_finite()) return false;
 
-  arma::vec s(N, arma::fill::none);
+  s.set_size(N);
   int counter = 0;
   for (int i = 0; i < N; ++i)
     s(i) = (i == pv) ? 1.0 : sq_sp(counter++);
-  return s;
+  return true;
 }
 
 arma::mat fMBBPadResiduals_cpp(const arma::mat& residuals, const arma::mat& eps_boot,
@@ -42,7 +47,7 @@ fBootstrapIVMBB_cpp(const arma::mat &y, const VARResult &var_result,
                      const arma::mat &Z, int nboot, int blocksize,
                      const arma::ivec &adjustZ, const arma::ivec &adjustu,
                      int policyvar, int horizon, double conf, double conf2,
-                     const arma::mat* exog_ptr, int n_threads) {
+                     const arma::mat* exog_ptr, int n_threads, bool verbose) {
 
   const arma::mat &residuals = var_result.residuals;
   const int p  = var_result.p;
@@ -59,15 +64,27 @@ fBootstrapIVMBB_cpp(const arma::mat &y, const VARResult &var_result,
   const arma::mat Zstar   = Z.rows(Z_start, Z_end);
   const arma::mat Epsstar = residuals.rows(u_start, u_end);
 
+  // Point estimate on the original sample, before any resampling.
+  arma::vec s_point;
+  if (!fProxyImpact_cpp(Epsstar, Zstar, pv, s_point))
+    Rcpp::stop("fBootstrapIVMBB: the proxy-SVAR second stage is singular on "
+               "the original sample; the instrument carries no usable "
+               "variation for this policy variable.");
+  const WoldIRFResult wold_pt = fWoldIRF_cpp(var_result, horizon);
+  arma::mat point(N, H, arma::fill::none);
+  for (int h = 0; h < H; ++h) point.col(h) = wold_pt.irfwold.slice(h) * s_point;
+
   // Blocks and centering are fixed; block indices are drawn on the main thread
   const MBBSamplerState mbb = fmbb_precompute_cpp(Epsstar, p, blocksize, &Zstar);
   const arma::imat index    = fmbb_draw_cpp(mbb, nboot);
 
   const int n_thr = fResolveThreads_cpp(n_threads);
-  Rprintf("Using %d thread(s) for parallel bootstrap computation...\n", n_thr);
+  if (verbose)
+    Rprintf("Using %d thread(s) for parallel bootstrap computation...\n", n_thr);
 
   // Draw b's N x H responses are column b of the flat (N*H) x nboot matrix
   arma::mat flat(N * H, nboot, arma::fill::none);
+  std::vector<unsigned char> ok(nboot, 0);   // per-draw success, no R API
 
 #ifdef _OPENMP
 #pragma omp parallel for schedule(static) num_threads(n_thr)
@@ -79,23 +96,27 @@ fBootstrapIVMBB_cpp(const arma::mat &y, const VARResult &var_result,
     arma::mat res_boot = fMBBPadResiduals_cpp(residuals, draw.eps_boot, u_start);
     arma::mat yb = fSimulateVAR_cpp(y, var_result, res_boot, exog_ptr);
     VARResult var_b = fVAR_cpp(yb, p, c, exog_ptr);
+    if (!var_b.ok) continue;                 // rank-deficient resample
 
-    arma::vec s = fProxyImpact_cpp(var_b.residuals.rows(u_start, u_end),
-                                   draw.M_boot, pv);
+    arma::vec s;
+    if (!fProxyImpact_cpp(var_b.residuals.rows(u_start, u_end),
+                          draw.M_boot, pv, s)) continue;
+
     WoldIRFResult wold_b = fWoldIRF_cpp(var_b, horizon);
     for (int h = 0; h < H; ++h)
       flat.col(b).rows(h * N, h * N + N - 1) = wold_b.irfwold.slice(h) * s;
+    ok[b] = 1;
   }
 
-  arma::mat q = fRowPercentiles_cpp(flat, fBandLevels_cpp(conf, conf2), n_threads);
+  const arma::mat kept = fKeepValidDraws_cpp(flat, ok, "fBootstrapIVMBB");
+  arma::mat q = fRowPercentiles_cpp(kept, fBandLevels_cpp(conf, conf2), n_threads);
 
   BootstrapIVMBBResult result;
-  result.upper     = arma::reshape(q.col(0), N, H);
-  result.lower     = arma::reshape(q.col(1), N, H);
-  result.upper2    = arma::reshape(q.col(2), N, H);
-  result.lower2    = arma::reshape(q.col(3), N, H);
-  result.medianirf = arma::reshape(q.col(4), N, H);
-  result.meanirf   = arma::reshape(arma::mean(flat, 1), N, H);
+  result.upper  = arma::reshape(q.col(0), N, H);
+  result.lower  = arma::reshape(q.col(1), N, H);
+  result.upper2 = arma::reshape(q.col(2), N, H);
+  result.lower2 = arma::reshape(q.col(3), N, H);
+  result.point  = point;
   return result;
 }
 
@@ -123,6 +144,8 @@ fBootstrapIVMBB_cpp(const arma::mat &y, const VARResult &var_result,
 //'   Default is 0 (uses all available cores minus one, with a minimum of one).
 //'   Set to 1 for single-threaded execution. If OpenMP is not available,
 //'   automatically falls back to single-threaded execution.
+//' @param verbose Logical. If \code{TRUE}, report the number of threads used.
+//'   Default \code{FALSE}, so the function is silent.
 //'
 //' @return A list containing:
 //'   \itemize{
@@ -130,8 +153,11 @@ fBootstrapIVMBB_cpp(const arma::mat &y, const VARResult &var_result,
 //'     \item lower: N x (horizon+1) matrix of lower confidence bands
 //'     \item upper2: N x (horizon+1) matrix of secondary upper bands
 //'     \item lower2: N x (horizon+1) matrix of secondary lower bands
-//'     \item meanirf: N x (horizon+1) matrix of mean impulse responses
-//'     \item medianirf: N x (horizon+1) matrix of median impulse responses
+//'     \item point: N x (horizon+1) matrix of impulse responses on the
+//'       original sample, computed as the Wold coefficients times the
+//'       proxy-SVAR impact vector, exactly as in \code{fHeteroIRF()} and
+//'       \code{fMSW()}. The bootstrap supplies the bands only, never the
+//'       point estimate.
 //'     \item conf: band levels in percent, \code{c(conf, conf2)}
 //'   }
 //'
@@ -147,20 +173,21 @@ fBootstrapIVMBB_cpp(const arma::mat &y, const VARResult &var_result,
 //' available, the function automatically falls back to single-threaded execution.
 //'
 //' @examples
-//' \dontrun{
+//' set.seed(123)
+//' y <- matrix(rnorm(400), ncol = 2)
 //' var_result <- fVAR(y, p = 2, c = 1)
-//' result <- fBootstrapIVMBB(y, var_result, Z,
-//'                             nboot = 1000, blocksize = 10,
-//'                             adjustZ = c(1, 100), adjustu = c(1, 100),
-//'                             policyvar = 1, horizon = 20, conf = 68)
 //'
-//' # Use 4 threads for parallel computation
-//' result <- fBootstrapIVMBB(y, var_result, Z,
-//'                             nboot = 1000, blocksize = 10,
-//'                             adjustZ = c(1, 100), adjustu = c(1, 100),
-//'                             policyvar = 1, horizon = 20, conf = 68,
-//'                             n_threads = 4)
-//' }
+//' # An instrument correlated with the first reduced-form residual
+//' u <- var_result$residuals
+//' Z <- matrix(u[, 1] + rnorm(nrow(u), sd = 0.5), ncol = 1)
+//' rows <- c(1, nrow(u))
+//'
+//' # Few draws here to keep the example quick; use 1000 or more in practice.
+//' result <- fBootstrapIVMBB(y, var_result, Z, nboot = 50, blocksize = 10,
+//'                           adjustZ = rows, adjustu = rows,
+//'                           policyvar = 1, horizon = 12, conf = 68,
+//'                           n_threads = 2)
+//' fPlotIRF(result, varnames = c("y1", "y2"))
 //'
 //' @export
 // [[Rcpp::export]]
@@ -170,22 +197,28 @@ Rcpp::List fBootstrapIVMBB(const arma::mat &y, const Rcpp::List &var_result,
                             const arma::ivec &adjustu, int policyvar,
                             int horizon, double conf = 90.0, double conf2 = 68.0,
                             Rcpp::Nullable<arma::mat> exog = R_NilValue,
-                            int n_threads = 0) {
+                            int n_threads = 0, bool verbose = false) {
   VARResult vr = fVARResultFromList_cpp(var_result);
   fCheckExogArg_cpp(vr.n_exog, exog.isNotNull());
+  fCheckBootArgs_cpp(y, vr, nboot, horizon, conf, conf2);
+  if (blocksize < 0)
+    Rcpp::stop("'blocksize' must be non-negative (0 selects it automatically).");
+  if (policyvar < 1 || policyvar > static_cast<int>(y.n_cols))
+    Rcpp::stop("'policyvar' must be between 1 and %d.",
+               static_cast<int>(y.n_cols));
   arma::mat exog_mat;
   if (exog.isNotNull()) exog_mat = Rcpp::as<arma::mat>(exog);
 
   BootstrapIVMBBResult result =
       fBootstrapIVMBB_cpp(y, vr, Z, nboot, blocksize, adjustZ, adjustu,
                           policyvar, horizon, conf, conf2,
-                          exog.isNotNull() ? &exog_mat : nullptr, n_threads);
+                          exog.isNotNull() ? &exog_mat : nullptr, n_threads,
+                          verbose);
 
-  return Rcpp::List::create(Rcpp::Named("upper")     = result.upper,
-                            Rcpp::Named("lower")     = result.lower,
-                            Rcpp::Named("upper2")    = result.upper2,
-                            Rcpp::Named("lower2")    = result.lower2,
-                            Rcpp::Named("meanirf")   = result.meanirf,
-                            Rcpp::Named("medianirf") = result.medianirf,
-                            Rcpp::Named("conf")      = Rcpp::NumericVector::create(conf, conf2));
+  return Rcpp::List::create(Rcpp::Named("upper")  = result.upper,
+                            Rcpp::Named("lower")  = result.lower,
+                            Rcpp::Named("upper2") = result.upper2,
+                            Rcpp::Named("lower2") = result.lower2,
+                            Rcpp::Named("point")  = result.point,
+                            Rcpp::Named("conf")   = Rcpp::NumericVector::create(conf, conf2));
 }

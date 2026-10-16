@@ -17,7 +17,8 @@ fBootstrapIVMBB(
   conf = 90,
   conf2 = 68,
   exog = NULL,
-  n_threads = 0L
+  n_threads = 0L,
+  verbose = FALSE
 )
 }
 \arguments{
@@ -51,6 +52,9 @@ fBootstrapIVMBB(
 Default is 0 (uses all available cores minus one, with a minimum of one).
 Set to 1 for single-threaded execution. If OpenMP is not available,
 automatically falls back to single-threaded execution.}
+
+\item{verbose}{Logical. If \code{TRUE}, report the number of threads used.
+Default \code{FALSE}, so the function is silent.}
 }
 \value{
 A list containing:
@@ -59,8 +63,11 @@ A list containing:
     \item lower: N x (horizon+1) matrix of lower confidence bands
     \item upper2: N x (horizon+1) matrix of secondary upper bands
     \item lower2: N x (horizon+1) matrix of secondary lower bands
-    \item meanirf: N x (horizon+1) matrix of mean impulse responses
-    \item medianirf: N x (horizon+1) matrix of median impulse responses
+    \item point: N x (horizon+1) matrix of impulse responses on the
+      original sample, computed as the Wold coefficients times the
+      proxy-SVAR impact vector, exactly as in \code{fHeteroIRF()} and
+      \code{fMSW()}. The bootstrap supplies the bands only, never the
+      point estimate.
     \item conf: band levels in percent, \code{c(conf, conf2)}
   }
 }
@@ -81,19 +88,20 @@ computation is independent and can be parallelized. If OpenMP is not
 available, the function automatically falls back to single-threaded execution.
 }
 \examples{
-\dontrun{
+set.seed(123)
+y <- matrix(rnorm(400), ncol = 2)
 var_result <- fVAR(y, p = 2, c = 1)
-result <- fBootstrapIVMBB(y, var_result, Z,
-                            nboot = 1000, blocksize = 10,
-                            adjustZ = c(1, 100), adjustu = c(1, 100),
-                            policyvar = 1, horizon = 20, conf = 68)
 
-# Use 4 threads for parallel computation
-result <- fBootstrapIVMBB(y, var_result, Z,
-                            nboot = 1000, blocksize = 10,
-                            adjustZ = c(1, 100), adjustu = c(1, 100),
-                            policyvar = 1, horizon = 20, conf = 68,
-                            n_threads = 4)
-}
+# An instrument correlated with the first reduced-form residual
+u <- var_result$residuals
+Z <- matrix(u[, 1] + rnorm(nrow(u), sd = 0.5), ncol = 1)
+rows <- c(1, nrow(u))
+
+# Few draws here to keep the example quick; use 1000 or more in practice.
+result <- fBootstrapIVMBB(y, var_result, Z, nboot = 50, blocksize = 10,
+                          adjustZ = rows, adjustu = rows,
+                          policyvar = 1, horizon = 12, conf = 68,
+                          n_threads = 2)
+fPlotIRF(result, varnames = c("y1", "y2"))
 
 }

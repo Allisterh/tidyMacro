@@ -13,7 +13,7 @@ SVARBootResult fBootstrapBQ_cpp(const arma::mat& y, const VARResult& var_result,
                                 const std::string& bootscheme,
                                 const arma::uvec& cumulate,
                                 bool has_scaling, int scale_idx, double scale_size,
-                                const arma::mat* exog_ptr, int n_threads) {
+                                const arma::mat* exog_ptr, int n_threads, bool verbose) {
   fCheckBootArgs_cpp(y, var_result, nboot, horizon, conf, conf2);
   const int N = static_cast<int>(y.n_cols);
   const int H = horizon + 1;
@@ -26,8 +26,11 @@ SVARBootResult fBootstrapBQ_cpp(const arma::mat& y, const VARResult& var_result,
         // long-run covariance, K = C1 \ D1
         arma::mat C1(N, N, arma::fill::zeros);
         for (int h = 0; h < H; ++h) C1 += wold_b.slice(h);
-        arma::mat D1 = fLowerChol_cpp(C1 * var_b.sigma * C1.t());
-        arma::mat K  = arma::solve(C1, D1);
+        bool chol_ok = true;
+        const arma::mat D1 = fLowerChol_cpp(C1 * var_b.sigma * C1.t(), &chol_ok);
+        if (!chol_ok) return false;
+        arma::mat K;
+        if (!arma::solve(K, C1, D1)) return false;
 
         arma::cube irf = fBQIRF_cpp(wold_b, K, has_scaling, scale_idx, scale_size);
 
@@ -38,8 +41,9 @@ SVARBootResult fBootstrapBQ_cpp(const arma::mat& y, const VARResult& var_result,
             irf.tube(cumulate(ci), j) = arma::cumsum(tmp);
           }
         out = arma::vectorise(irf);
-      });
-  fSVARBootBands_cpp(r, conf, conf2, n_threads);
+        return true;
+      }, verbose);
+  fSVARBootBands_cpp(r, conf, conf2, n_threads, "fBootstrapBQ");
   return r;
 }
 
@@ -61,6 +65,8 @@ SVARBootResult fBootstrapBQ_cpp(const arma::mat& y, const VARResult& var_result,
 //' @param exog Optional T x M matrix of exogenous variables. Must be provided
 //'   if the original VAR was estimated with exogenous variables; must be
 //'   omitted otherwise.
+//' @param verbose Logical. If \code{TRUE}, report the number of threads
+//'   used. Default \code{FALSE}, so the function is silent.
 //' @param n_threads Number of OpenMP threads. 0 = all cores minus one.
 //'   Default 0.
 //'
@@ -90,20 +96,19 @@ SVARBootResult fBootstrapBQ_cpp(const arma::mat& y, const VARResult& var_result,
 //' \emph{American Economic Review}, 89(1), 249--271.
 //'
 //' @examples
-//' \dontrun{
+//' set.seed(123)
+//' y          <- matrix(rnorm(400), ncol = 2)
 //' var_result <- fVAR(y, p = 2, c = 1)
-//' wold       <- fWoldIRF(var_result, horizon = 40)
-//' Sigma      <- var_result$sigma
+//' wold       <- fWoldIRF(var_result, horizon = 12)
 //' C1         <- apply(wold, c(1, 2), sum)
-//' D1         <- t(chol(C1 %*% Sigma %*% t(C1)))
-//' K          <- solve(C1, D1)
-//' point_irf  <- fBQIRF(wold, K)
+//' D1         <- t(chol(C1 %*% var_result$sigma %*% t(C1)))
+//' point_irf  <- fBQIRF(wold, solve(C1, D1))
 //'
-//' # Bootstrap with cumulation of both variables (VAR in first differences)
-//' boot <- fBootstrapBQ(y, var_result, nboot = 1000, horizon = 40,
+//' # Few draws here to keep the example quick; use 1000 or more in practice.
+//' boot <- fBootstrapBQ(y, var_result, nboot = 50, horizon = 12,
 //'                      conf = 68, bootscheme = "residual",
-//'                      cumulate = c(1L, 2L))
-//' }
+//'                      cumulate = c(1L, 2L), n_threads = 2)
+//' fPlotIRF(point_irf, bands = boot, shock = 1)
 //'
 //' @export
 // [[Rcpp::export]]
@@ -113,7 +118,7 @@ Rcpp::List fBootstrapBQ(const arma::mat &y, const Rcpp::List &var_result,
                         Rcpp::IntegerVector cumulate = Rcpp::IntegerVector::create(),
                         Rcpp::Nullable<arma::vec> scaling = R_NilValue,
                         Rcpp::Nullable<arma::mat> exog = R_NilValue,
-                        int n_threads = 0) {
+                        int n_threads = 0, bool verbose = false) {
   VARResult vr = fVARResultFromList_cpp(var_result);
   fCheckExogArg_cpp(vr.n_exog, exog.isNotNull());
   arma::mat exog_mat;
@@ -140,6 +145,6 @@ Rcpp::List fBootstrapBQ(const arma::mat &y, const Rcpp::List &var_result,
                                       bootscheme, cumulate_cpp, has_scaling,
                                       scale_idx, scale_size,
                                       exog.isNotNull() ? &exog_mat : nullptr,
-                                      n_threads);
+                                      n_threads, verbose);
   return fSVARBootList_cpp(r, "bootbq", {N, N, horizon + 1});
 }

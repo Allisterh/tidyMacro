@@ -36,11 +36,15 @@ decompositions, and spectral FEVDs can all be recovered via the generalised
 SVAR-IV procedure.
 }
 \examples{
-\dontrun{
-inv <- fTestInvertibility(z, var_result$residuals, r = 3)
+set.seed(123)
+X   <- matrix(rnorm(600), ncol = 3)
+fit <- fVAR(X, p = 2, c = 1)
+u   <- fit$residuals
+z   <- u[, 1] + rnorm(nrow(u), sd = 0.5)
+
+inv <- fTestInvertibility(z, u, r = 3)
 rec <- fTestRecoverability(inv$fit, lags = 2)
 cat(sprintf("Ljung-Box p-value (lag \%d): \%.4f\n", rec$lags, rec$pval))
-}
 
 }
 \references{

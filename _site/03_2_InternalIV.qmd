@@ -73,7 +73,6 @@ point_irf_aug <- fCholeskyIRF(wold_aug, S_aug)
 
 ```{r}
 #| label: internal-bootstrap
-#| cache: true
 
 tic()
 boot_aug <- fBootstrapChol(
@@ -83,7 +82,7 @@ boot_aug <- fBootstrapChol(
     horizon    = hor,
     conf        = 90,
     conf2       = 68,
-    n_threads  = 3
+    n_threads  = 2
 )
 toc()
 ```
@@ -100,8 +99,10 @@ Responses are rescaled so that the impact on the oil price matches a 10% jump, m
 scale_int <- 10 / point_irf_aug[2, 1, 1]
 
 fPlotIRF(
-    fIRF(point_irf_aug, bands = boot_aug, varnames = varnames_aug,
-         scale = scale_int),
+    point_irf_aug,
+    bands      = boot_aug,
+    varnames   = varnames_aug,
+    scale      = scale_int,
     shock      = 1,
     variables  = varnames,      # drop the instrument equation
     facet_ncol = 3

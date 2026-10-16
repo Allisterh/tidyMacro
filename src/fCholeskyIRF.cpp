@@ -25,21 +25,13 @@
 //' of variables determining the causal structure.
 //'
 //' @examples
-//' \dontrun{
-//' # Generate sample Wold representation
-//' N <- 3
-//' horizon <- 20
-//' wold <- array(rnorm(N * N * horizon), dim = c(N, N, horizon))
-//'
-//' # Compute Cholesky factor
-//' Sigma <- matrix(c(1, 0.5, 0.3,
-//'                   0.5, 1, 0.4,
-//'                   0.3, 0.4, 1), 3, 3)
-//' S <- t(chol(Sigma))  # Lower triangular
-//'
-//' # Compute Cholesky IRF
+//' set.seed(123)
+//' y     <- matrix(rnorm(400), ncol = 2)
+//' VAR   <- fVAR(y, p = 2, c = 1)
+//' wold  <- fWoldIRF(VAR, horizon = 10)
+//' S     <- t(chol(VAR$sigma))        # lower-triangular factor
 //' chol_irf <- fCholeskyIRF(wold, S)
-//' }
+//' chol_irf[, 1, 1]                   # impact responses to shock 1
 //'
 //' @export
 // [[Rcpp::export]]

@@ -90,10 +90,9 @@ arma::mat fGenerateQ_cpp(int N) {
 //' \emph{Review of Economic Studies}, 77(2), 665--696.
 //'
 //' @examples
-//' \dontrun{
+//' set.seed(123)
 //' Q <- fGenerateQ(3)
-//' round(t(Q) %*% Q, 10)  # should be identity
-//' }
+//' round(t(Q) %*% Q, 10)  # the identity matrix
 //'
 //' @export
 // [[Rcpp::export]]

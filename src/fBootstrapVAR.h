@@ -50,23 +50,62 @@ arma::mat fBootstrapMeanBeta_cpp(const arma::mat& y,
 VARResult fBiasCorrectedVAR_cpp(const arma::mat& y,
                                 const VARResult& var_result,
                                 int nboot1, const std::string& bootscheme,
-                                const arma::mat* exog_ptr, int n_threads);
+                                const arma::mat* exog_ptr, int n_threads,
+                                bool verbose);
 
-// Lower Cholesky factor of a bootstrap covariance, with a small ridge when
-// the draw is numerically not positive definite (never throws).
-inline arma::mat fLowerChol_cpp(const arma::mat& sigma) {
+// Lower Cholesky factor of a bootstrap covariance. A draw that is only
+// numerically indefinite is rescued with a ridge that grows until the
+// factorisation succeeds; `ok` reports whether it ever did, so the caller
+// can drop the draw. Never throws, so it is safe inside an OpenMP region.
+inline arma::mat fLowerChol_cpp(const arma::mat& sigma, bool* ok = nullptr) {
   arma::mat S;
-  if (!arma::chol(S, sigma, "lower")) {
-    arma::mat reg = 0.5 * (sigma + sigma.t());
-    reg.diag() += 1e-8 * arma::trace(reg) / reg.n_rows;
-    arma::chol(S, reg, "lower");
+  if (arma::chol(S, sigma, "lower")) {
+    if (ok) *ok = true;
+    return S;
   }
+  arma::mat reg = 0.5 * (sigma + sigma.t());
+  const double scale = std::max(arma::trace(reg) / reg.n_rows, 1e-12);
+  for (double eps = 1e-8; eps <= 1e-2; eps *= 100.0) {
+    arma::mat tryreg = reg;
+    tryreg.diag() += eps * scale;
+    if (arma::chol(S, tryreg, "lower")) {
+      if (ok) *ok = true;
+      return S;
+    }
+  }
+  if (ok) *ok = false;
+  S.zeros(sigma.n_rows, sigma.n_cols);
   return S;
 }
 
 // Argument checks shared by the identified-VAR bootstraps (main thread).
 void fCheckBootArgs_cpp(const arma::mat& y, const VARResult& var_result,
                         int nboot, int horizon, double conf, double conf2);
+
+// Minimal checks for the bootstraps that do not re-estimate a VAR first.
+void fCheckDrawArgs_cpp(int nboot, int horizon, double conf, double conf2);
+
+// Keeps the columns of `flat` whose draw both succeeded and is finite.
+// A draw can fail on resampled data when the instrument is weak or the VAR
+// is near-singular; workers record that in `ok` without touching the R API,
+// and this runs after the parallel region. Stops when no draw survives and
+// warns when some are dropped, so the bands are never built on NaN.
+arma::mat fKeepValidDraws_cpp(const arma::mat& flat,
+                              const std::vector<unsigned char>& ok,
+                              const char* label);
+
+// Same rule for bootstraps that store one N x H slice per draw. A failed
+// draw would otherwise leave a slice of zeros and pull the bands towards
+// zero, which is worse than an obvious NaN.
+arma::cube fKeepValidSlices_cpp(const arma::cube& draws,
+                                const std::vector<unsigned char>& ok,
+                                const char* label);
+
+// Residual of the instrument after projecting out p of its own lags and p
+// lags of y: the pre-whitening step shared by the invertibility and
+// recoverability bootstraps.
+arma::vec fCleanInstrument_cpp(const arma::vec& instr_raw, int p,
+                               const arma::mat& y);
 
 // ------------------------------------------------------------------------- //
 //  Identified-VAR bootstrap driver (Cholesky, BQ, LR-max, Uhlig max-share)  //
@@ -76,11 +115,12 @@ struct SVARBootResult {
   arma::mat  bands;      // stat_size x 5: upper, lower, upper2, lower2, median
   arma::cube boot_beta;  // N x n_coef x nboot bootstrapped coefficients
   arma::vec  conf;       // band levels in percent: conf, conf2
+  std::vector<unsigned char> ok;  // per-draw success; see fKeepValidDraws_cpp
 };
 
-// Bands of an SVARBootResult (fills r.bands from r.flat).
+// Bands of an SVARBootResult (fills r.bands from the draws that succeeded).
 void fSVARBootBands_cpp(SVARBootResult& r, double conf, double conf2,
-                        int n_threads);
+                        int n_threads, const char* label);
 
 // R list {<draws_name>, upper, lower, upper2, lower2, boot_beta}; `dims`
 // gives the dimensions of one draw (e.g. N, N, H or N, H).
@@ -97,7 +137,7 @@ SVARBootResult fBootstrapSVAR_cpp(const arma::mat& y,
                                   const std::string& bootscheme,
                                   const arma::mat* exog_ptr, int n_threads,
                                   int stat_size, const char* label,
-                                  Identify identify) {
+                                  Identify identify, bool verbose = false) {
   const int p      = var_result.p;
   const int c      = var_result.c;
   const int N      = static_cast<int>(y.n_cols);
@@ -107,11 +147,13 @@ SVARBootResult fBootstrapSVAR_cpp(const arma::mat& y,
   const BootstrapPlan plan = fBootstrapPlan_cpp(
       bootscheme, T_iter, var_result.residuals.n_rows, nboot);
   const int n_thr = fResolveThreads_cpp(n_threads);
-  Rprintf("Using %d thread(s) for %s bootstrap...\n", n_thr, label);
+  if (verbose)
+    Rprintf("Using %d thread(s) for %s bootstrap...\n", n_thr, label);
 
   SVARBootResult r;
   r.flat.set_size(stat_size, nboot);
   r.boot_beta.set_size(N, n_coef, nboot);
+  r.ok.assign(nboot, 0);
 
 #ifdef _OPENMP
 #pragma omp parallel for schedule(static) num_threads(n_thr)
@@ -120,9 +162,12 @@ SVARBootResult fBootstrapSVAR_cpp(const arma::mat& y,
     arma::mat yb = fBootstrapVAR_cpp(y, var_result, plan, b, exog_ptr);
     VARResult var_b = fVAR_cpp(yb, p, c, exog_ptr);
     r.boot_beta.slice(b) = var_b.beta.t();
+    if (!var_b.ok) continue;                 // rank-deficient resample
     WoldIRFResult wold_b = fWoldIRF_cpp(var_b, horizon);
     arma::vec out(r.flat.colptr(b), stat_size, false, true);
-    identify(var_b, wold_b.irfwold, out);
+    // `identify` runs on workers: it reports failure instead of throwing.
+    if (!identify(var_b, wold_b.irfwold, out)) continue;
+    r.ok[b] = 1;
   }
   return r;
 }

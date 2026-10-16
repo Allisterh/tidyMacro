@@ -32,7 +32,8 @@ BootstrapHDIVResult fBootstrapHDIV_cpp(const arma::mat& y,
                                         const arma::ivec& adjustu,
                                         int policyvar,
                                         double conf,
-                                        int n_threads);
+                                        int n_threads,
+                                        bool verbose);
 
 // R wrapper functions
 Rcpp::List fHDIV(const arma::mat& residuals,

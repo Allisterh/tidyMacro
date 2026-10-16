@@ -97,23 +97,25 @@ Supported inputs:
     \code{\link{fBootstrapChol}}, \code{\link{fBootstrapCholCorrected}},
     \code{\link{fBootstrapBQ}}, \code{\link{fBootstrapMax}} or
     \code{\link{fBootstrapUhlig}};
-  \item the lists returned by \code{\link{fBootstrapIVMBB}} (point =
-    \code{meanirf}), \code{\link{fBootstrapHetero}} (point = \code{point})
-    and \code{\link{fMSW}} (Anderson-Rubin and delta-method bands);
+  \item the lists returned by \code{\link{fBootstrapIVMBB}} and
+    \code{\link{fBootstrapHetero}} (both carry the sample estimate in
+    \code{point}), and \code{\link{fMSW}} (Anderson-Rubin and
+    delta-method bands);
   \item \code{fLP}, \code{fLPIV} and \code{fLPPanel} fits;
   \item \code{fSignRestr} fits (point = posterior median).
 }
 }
 \examples{
-\dontrun{
-var_fit <- fVAR(y, p = 4, c = 1)
-wold    <- fWoldIRF(var_fit, horizon = 20)
-point   <- fCholeskyIRF(wold, t(chol(var_fit$sigma)))
-boot    <- fBootstrapChol(y, var_fit, nboot = 1000, horizon = 20)
+set.seed(123)
+y     <- matrix(rnorm(400), ncol = 2, dimnames = list(NULL, c("y1", "y2")))
+fit   <- fVAR(y, p = 2, c = 1)
+wold  <- fWoldIRF(fit, horizon = 12)
+point <- fCholeskyIRF(wold, t(chol(fit$sigma)))
+boot  <- fBootstrapChol(y, fit, nboot = 50, horizon = 12, n_threads = 2)
 
 irf <- fIRF(point, bands = boot, varnames = colnames(y))
+head(irf)
 fPlotIRF(irf, shock = 1)
-}
 }
 \seealso{
 \code{\link{fPlotIRF}}

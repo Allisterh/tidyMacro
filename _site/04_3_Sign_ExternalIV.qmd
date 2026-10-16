@@ -130,9 +130,11 @@ The figure plots **shock 2**, the sign-identified financial shock. Its signs ove
 #| fig-cap: "Pseudo-application adapted from Cesa-Bianchi and Sokol (2022): responses to an adverse financial shock, conditional on a monetary shock identified by a single instrument. Median with 68% and 90% conditional credible bands. Five-variable monthly US VAR(12) with a constant, 1979:M7-2016:M12. GDP and CPI responses are in approximate percent; interest-rate and EBP responses are in percentage points."
 
 fPlotIRF(
+  bs_us,
+  conf  = c(68, 90),
   # Convert decimal rates to percentage points and logs to percent.
   # EBP is already in percentage points.
-  fIRF(bs_us, conf = c(68, 90), scale = c(100, 100, 100, 100, 1)),
+  scale = c(100, 100, 100, 100, 1),
   shock        = financial_shock,
   facet_scales = "free_y",
   facet_ncol   = 2
@@ -208,7 +210,9 @@ bs_us <- fSignRestr(
 )
 
 fPlotIRF(
-  fIRF(bs_us, conf = c(68, 90), scale = 100),
+  bs_us,
+  conf         = c(68, 90),
+  scale        = 100,
   shock        = 3,
   facet_scales = "free_y",
   facet_ncol   = 3

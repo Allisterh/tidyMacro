@@ -136,17 +136,15 @@ MBBVARResult fmbb_sample_cpp(const MBBSamplerState& s, const arma::ivec& index) 
 //' For instruments, only non-zero values are centered (to handle sparse instruments).
 //' 
 //' @examples
-//' \dontrun{
-//' # Bootstrap residuals only
-//' eps <- matrix(rnorm(200), 100, 2)
+//' set.seed(123)
+//' eps    <- matrix(rnorm(200), 100, 2)
 //' result <- fMBBVAR(eps, lags = 2, BlockSize = 0)
-//' eps_boot <- result$eps_boot
-//' 
-//' # Bootstrap residuals and instruments
-//' M <- matrix(rnorm(100), 100, 1)
+//' dim(result$eps_boot)
+//'
+//' # Bootstrap the residuals and an instrument jointly
+//' M      <- matrix(rnorm(100), 100, 1)
 //' result <- fMBBVAR(eps, lags = 2, BlockSize = 0, M)
-//' M_boot <- result$M_boot
-//' }
+//' dim(result$M_boot)
 //' 
 //' @export
 // [[Rcpp::export]]

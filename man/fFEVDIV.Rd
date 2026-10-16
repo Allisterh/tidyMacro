@@ -56,26 +56,18 @@ The FEVD values are proportions between 0 and 1, where higher values indicate
 that the identified shock explains a larger share of the forecast error variance.
 }
 \examples{
-\dontrun{
-# Estimate VAR and compute Wold IRF
-var_result <- fVAR(y, p = 2, c = 1)
-wold <- fWoldIRF(var_result, horizon = 20)
+set.seed(123)
+y    <- matrix(rnorm(600), ncol = 3)
+VAR  <- fVAR(y, p = 2, c = 1)
+wold <- fWoldIRF(VAR, horizon = 20)
 
-# IV identification
-s <- c(1, 0.5, 0.3)
-sigma <- var_result$sigma
-S <- t(chol(sigma))
-
-# Compute FEVD
-result <- fFEVDIV(s, S, wold, N = 3, hor = 20,
-                  sigma = sigma, u = var_result$residuals,
-                  T1 = nrow(var_result$residuals), p = 2)
-
-# Plot FEVD for first variable
-plot(result$fFEVDIV[1, ], type = "l", ylim = c(0, 1),
-     main = "FEVD: Share of Variance Explained by Shock",
-     xlab = "Horizon", ylab = "Share")
-}
+# An impact vector from an external instrument, normalised on variable 1
+s     <- c(1, 0.5, 0.3)
+sigma <- VAR$sigma
+result <- fFEVDIV(s, t(chol(sigma)), wold, N = 3, hor = 20,
+                  sigma = sigma, u = VAR$residuals,
+                  T1 = nrow(VAR$residuals), p = 2)
+result$fFEVDIV[1, 1:5]
 
 }
 \seealso{

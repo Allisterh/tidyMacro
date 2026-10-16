@@ -11,6 +11,11 @@ struct VARResult {
   int p;                 // Lag order
   int c;                 // Intercept indicator
   int n_exog;            // Number of exogenous variables
+  bool ok = true;        // false when the design was rank deficient, so beta
+                         // comes from a pseudo-inverse and is not unique.
+                         // Set without touching the R API, so bootstrap
+                         // workers can record a failed draw and the caller
+                         // can reject it after the parallel region.
 };
 
 // Internal C++ function — no-exog overload. Use this inside parallel regions
@@ -33,6 +38,13 @@ VARResult fVAR_cpp(const arma::mat& y, int p, int c,
 
 // VARResult from the list returned by fVAR() (n_exog defaults to 0).
 VARResult fVARResultFromList_cpp(const Rcpp::List& var_result);
+
+// Validates the arguments of an exported VAR entry point: p, c, a finite and
+// long enough y, matching exogenous rows, and positive residual degrees of
+// freedom. Calls Rcpp::stop, so it runs on the main thread only, once per
+// call — never inside a bootstrap draw.
+void fCheckVARArgs_cpp(const arma::mat& y, int p, int c,
+                       const arma::mat* exog_ptr);
 
 // Checks that `exog` is supplied exactly when the fitted VAR used exogenous
 // variables. Call on the main thread, before any OpenMP region.

@@ -42,25 +42,15 @@ If the number of groups exceeds the 14 available colors, the palette will
 be recycled with a warning.
 }
 \examples{
-\dontrun{
+\donttest{
 library(ggplot2)
-library(tidyMacro)
 
-# IRF plot with multiple variables
-ggplot(irf_data, aes(x = horizon, y = response, color = variable)) +
-  geom_line(linewidth = 1) +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
-  labs(title = "Impulse Response Functions",
-       x = "Horizon",
-       y = "Response") +
-  scale_color_tidyMacro() +
-  fThemeTidyMacro()
+# Use the tidyMacro theme for every plot in the session
+old <- ggplot2::theme_get()
+fSetTidyMacroTheme()
+ggplot(mtcars, aes(x = wt, y = mpg, color = factor(cyl))) + geom_point()
 
-# Reverse color order
-ggplot(fevd_data, aes(x = horizon, y = share, color = shock)) +
-  geom_line(linewidth = 1) +
-  scale_color_tidyMacro(reverse = TRUE) +
-  fThemeTidyMacro()
+ggplot2::theme_set(old)   # restore
 }
 
 }

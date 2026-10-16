@@ -81,8 +81,8 @@ test_that("fIRF cumulates the point estimate only", {
 
 test_that("fIRF reads IV-MBB, heteroskedasticity and MSW result lists", {
   x <- plot_irf_fixture()
-  iv  <- c(list(meanirf = x$mat), x$mat_bands)
-  he  <- c(list(point = x$mat, meanirf = x$mat + 1), x$mat_bands)
+  iv  <- c(list(point = x$mat), x$mat_bands)
+  he  <- c(list(point = x$mat), x$mat_bands)
   msw <- list(IRF = x$mat, Dmlbound = x$mat - 0.1, Dmubound = x$mat + 0.1,
               MSWlbound = x$mat - 0.2, MSWubound = x$mat + 0.2)
 
@@ -147,6 +147,39 @@ test_that("fIRF checks band dimensions", {
 })
 
 # ---- fPlotIRF -----------------------------------------------------------------
+
+test_that("fPlotIRF takes fIRF arguments directly for a single result", {
+  x <- plot_irf_fixture()
+  vn <- c("y1", "y2")
+  short <- fPlotIRF(x$cube, bands = x$cube_bands, varnames = vn, shock = 1,
+                    return_data = TRUE)
+  long  <- fPlotIRF(fIRF(x$cube, bands = x$cube_bands, varnames = vn),
+                    shock = 1, return_data = TRUE)
+  expect_equal(short, long)
+
+  # cumulate and conf travel through as well
+  expect_equal(
+    fPlotIRF(x$cube, bands = x$cube_bands, varnames = vn, cumulate = "y1",
+             return_data = TRUE),
+    fPlotIRF(fIRF(x$cube, bands = x$cube_bands, varnames = vn,
+                  cumulate = "y1"), return_data = TRUE))
+
+  # varnames/shocknames also rename a table fIRF() already built, so one set
+  # of labels can serve several results
+  d <- fPlotIRF(fIRF(x$cube, bands = x$cube_bands), varnames = c("A", "B"),
+                shocknames = c("s1", "s2"), return_data = TRUE)
+  expect_equal(unique(d$variable), c("A", "B"))
+  expect_equal(unique(d$shock), c("s1", "s2"))
+  expect_error(fPlotIRF(fIRF(x$cube), varnames = "A"), "must have length 2")
+  expect_error(fPlotIRF(fIRF(x$cube), cumulate = 1), "cannot be applied")
+
+  # a misspelled option would otherwise be drawn as an extra model
+  expect_error(fPlotIRF(x$cube, varname = vn), "did you mean 'varnames'")
+  expect_error(fPlotIRF(x$cube, Scale = 2), "did you mean 'scale'")
+  # bands belong to one result
+  expect_error(fPlotIRF(A = fIRF(x$cube), B = fIRF(x$cube),
+                        bands = x$cube_bands), "applies to one result only")
+})
 
 test_that("fPlotIRF overlays several results and labels them by argument name", {
   x <- plot_irf_fixture()

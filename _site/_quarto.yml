@@ -136,6 +136,10 @@ format:
     number-sections: true
 
 execute:
-  freeze: auto
+  # `freeze: auto` re-executes a page only when its .qmd changes, never when
+  # the package underneath it does, so a figure could survive a rebuild that
+  # changed the numbers behind it. The site documents the installed package,
+  # so every render executes every page.
+  freeze: false
   warning: false
   message: false

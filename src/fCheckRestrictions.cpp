@@ -96,17 +96,18 @@ int fCheckRestrictions_cpp(const arma::cube&   irf,
 //' "generic" (no restriction) and are ignored when counting satisfied constraints.
 //'
 //' @examples
-//' \dontrun{
-//' # After computing cholirf and drawing Q:
-//' Q   <- fGenerateQ(3)
-//' irf <- array(NA, dim = c(3,3,21))
-//' for (h in 1:21) irf[,,h] <- cholirf[,,h] %*% Q
+//' set.seed(123)
+//' y        <- matrix(rnorm(600), ncol = 3)
+//' VAR      <- fVAR(y, p = 2, c = 1)
+//' wold     <- fWoldIRF(VAR, horizon = 20)
+//' cholirf  <- fCholeskyIRF(wold, t(chol(VAR$sigma)))
 //'
-//' # Check monetary policy shock (col 3): FFR up, GDP and PCE down at impact
-//' restr   <- c(-1, -1, 1)
-//' hor_vec <- c(1L)
-//' fCheckRestrictions(irf, shock = 3, restr = restr, hor_vec = hor_vec)
-//' }
+//' Q   <- fGenerateQ(3)
+//' irf <- array(NA_real_, dim = dim(cholirf))
+//' for (h in seq_len(dim(irf)[3])) irf[, , h] <- cholirf[, , h] %*% Q
+//'
+//' # Shock 3 should lower variables 1 and 2 and raise variable 3 on impact
+//' fCheckRestrictions(irf, shock = 3, restr = c(-1, -1, 1), hor_vec = 1L)
 //'
 //' @seealso \code{\link{fGenerateQ}}, \code{\link{fSignRestr}}
 //'

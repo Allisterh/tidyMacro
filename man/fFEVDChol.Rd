@@ -34,20 +34,16 @@ each structural shock j. For Cholesky-identified VARs:
 \deqn{FEVD(i,j,h) = \frac{\sum_{s=0}^{h} [\Psi_s P]_{ij}^2}{\sum_{k=1}^{N} \sum_{s=0}^{h} [\Psi_s P]_{ik}^2}}
 }
 \examples{
-\dontrun{
-# Estimate VAR
-var_result <- fVAR(y, p = 2, c = 1)
-wold <- fWoldIRF(var_result, horizon = 20)
-S <- t(chol(var_result$sigma))
-chol_irf <- fCholeskyIRF(wold, S)
+set.seed(123)
+y        <- matrix(rnorm(400), ncol = 2)
+VAR      <- fVAR(y, p = 2, c = 1)
+wold     <- fWoldIRF(VAR, horizon = 20)
+chol_irf <- fCholeskyIRF(wold, t(chol(VAR$sigma)))
 
-# Full decomposition (all shocks) — returns 3D cube
-vardec <- fFEVDChol(chol_irf)
-
-# Single shock decomposition — returns N x horizon matrix
-shock <- match("UNCERT", colnames(y))
-vardec <- fFEVDChol(chol_irf, shock = shock)
-}
+# All shocks (a 3-D array), then one shock (an N x horizon matrix)
+vardec   <- fFEVDChol(chol_irf)$fevd
+vardec_1 <- fFEVDChol(chol_irf, shock = 1)$fevd
+colSums(vardec[1, , ])   # shares of variable 1 sum to one at every horizon
 
 }
 \seealso{

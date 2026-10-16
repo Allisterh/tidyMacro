@@ -91,7 +91,8 @@ BootstrapHDIVResult fBootstrapHDIV_cpp(const arma::mat& y,
                                         const arma::ivec& adjustu,
                                         int policyvar,
                                         double conf,
-                                        int n_threads) {
+                                        int n_threads,
+                                        bool verbose) {
 
     const int N      = static_cast<int>(y.n_cols);
     const int T_eff  = static_cast<int>(var_result.residuals.n_rows);
@@ -118,10 +119,12 @@ BootstrapHDIVResult fBootstrapHDIV_cpp(const arma::mat& y,
     const arma::imat index    = fmbb_draw_cpp(mbb, nboot);
 
     const int n_thr = fResolveThreads_cpp(n_threads);
-    Rprintf("Using %d thread(s) for bootstrap HD computation...\n", n_thr);
+    if (verbose)
+        Rprintf("Using %d thread(s) for bootstrap HD computation...\n", n_thr);
 
     // Draw b's T_eff x N HD is column b of the flat (T_eff*N) x nboot matrix
     arma::mat flat(T_eff * N, nboot, arma::fill::none);
+    std::vector<unsigned char> ok(nboot, 0);   // per-draw success, no R API
 
 #ifdef _OPENMP
 #pragma omp parallel for schedule(static) num_threads(n_thr)
@@ -134,17 +137,23 @@ BootstrapHDIVResult fBootstrapHDIV_cpp(const arma::mat& y,
                                                   draw.eps_boot, u_start);
         arma::mat yb = fSimulateVAR_cpp(y, var_result, res_boot, nullptr);
         VARResult var_b = fVAR_cpp(yb, p, c);
+        if (!var_b.ok) continue;               // rank-deficient resample
 
-        arma::vec s_b = fProxyImpact_cpp(var_b.residuals.rows(u_start, u_end),
-                                         draw.M_boot, pv_idx);
+        arma::vec s_b;
+        if (!fProxyImpact_cpp(var_b.residuals.rows(u_start, u_end),
+                              draw.M_boot, pv_idx, s_b)) continue;
+
         flat.col(b) = arma::vectorise(hd_recursion_iv(var_b.residuals, var_b.sigma,
                                                       s_b, var_b.beta, c, p));
+        ok[b] = 1;
     }
+
+    const arma::mat kept = fKeepValidDraws_cpp(flat, ok, "fBootstrapHDIV");
 
     // Percentiles recentred on the point estimate (Kaenzig / Gertler-Karadi):
     // band = q(pct) - median(boot) + HDshock_point
     arma::mat q = fRowPercentiles_cpp(
-        flat, {50.0 + conf * 0.5, 50.0 - conf * 0.5, 50.0}, n_threads);
+        kept, {50.0 + conf * 0.5, 50.0 - conf * 0.5, 50.0}, n_threads);
     arma::mat shift = arma::reshape(q.col(2), T_eff, N);
 
     BootstrapHDIVResult result;
@@ -210,6 +219,8 @@ Rcpp::List fHDIV(const arma::mat& residuals,
 //' @param policyvar Integer (1-based) index of the IV policy variable. Default 1.
 //' @param conf Confidence level in percent (e.g. 90 for 90\% CI). Default 90.
 //' @param n_threads OpenMP threads. 0 = all cores minus one. Default 0.
+//' @param verbose Logical. If \code{TRUE}, report the number of threads used.
+//'   Default \code{FALSE}, so the function is silent.
 //'
 //' @return A list with elements:
 //'   \item{HDshock}{(T-p) x N point-estimate HD matrix.}
@@ -227,14 +238,19 @@ Rcpp::List fBootstrapHDIV(const arma::mat& y,
                            const arma::ivec& adjustu,
                            int policyvar = 1,
                            double conf = 90.0,
-                           int n_threads = 0) {
+                           int n_threads = 0,
+                           bool verbose = false) {
 
     VARResult var_struct = fVARResultFromList_cpp(var_result);
     fRequireNoExog_cpp(var_struct.n_exog, "fBootstrapHDIV");
+    fCheckDrawArgs_cpp(nboot, 0, conf, conf);
+    if (policyvar < 1 || policyvar > static_cast<int>(y.n_cols))
+        Rcpp::stop("'policyvar' must be between 1 and %d.",
+                   static_cast<int>(y.n_cols));
 
     BootstrapHDIVResult result = fBootstrapHDIV_cpp(
         y, var_struct, Z, s, nboot, blocksize, adjustZ, adjustu,
-        policyvar, conf, n_threads);
+        policyvar, conf, n_threads, verbose);
 
     return Rcpp::List::create(
         Rcpp::Named("HDshock") = result.HDshock,

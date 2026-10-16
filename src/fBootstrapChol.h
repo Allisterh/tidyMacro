@@ -9,6 +9,6 @@
 SVARBootResult fBootstrapChol_cpp(const arma::mat& y, const VARResult& var_result,
                                   int nboot, int horizon, double conf, double conf2,
                                   const std::string& bootscheme,
-                                  const arma::mat* exog_ptr, int n_threads);
+                                  const arma::mat* exog_ptr, int n_threads, bool verbose);
 
 #endif

@@ -53,14 +53,69 @@ test_that("fLPPanel clustering choices change the standard errors", {
   expect_equal(t_cl$irfs, two$irfs, tolerance = 1e-10)
 })
 
-test_that("fLPPanel small-sample correction only applies to time clustering", {
+test_that("fLPPanel ssc = 'IK' only applies to time clustering", {
   d <- sim_panel_df()
   base <- panel_fit(d)
-  ss   <- panel_fit(d, small_sample = TRUE)
+  ss   <- panel_fit(d, ssc = "IK")
   expect_equal(base$irfs, ss$irfs, tolerance = 1e-10)
   expect_false(isTRUE(all.equal(base$irfs_se, ss$irfs_se)))
-  expect_error(panel_fit(d, cluster = ~unit, small_sample = TRUE),
+  expect_error(panel_fit(d, cluster = ~unit, ssc = "IK"),
                "only for time clustering")
+})
+
+test_that("small_sample = TRUE is deprecated in favour of ssc = 'IK'", {
+  d <- sim_panel_df()
+  expect_warning(ss <- panel_fit(d, small_sample = TRUE),
+                 "'small_sample = TRUE' is deprecated")
+  expect_identical(ss$ssc, "IK")
+  expect_equal(ss$irfs_se, panel_fit(d, ssc = "IK")$irfs_se)
+  expect_error(panel_fit(d, small_sample = TRUE, ssc = "CR1"), "disagree")
+})
+
+test_that("ssc = 'CR1' matches the Stata / fixest finite-sample rule", {
+  d <- sim_panel_df()
+  for (cl in list(NULL, ~unit, ~unit + tt)) {
+    base <- panel_fit(d, cluster = cl)
+    cr1  <- panel_fit(d, cluster = cl, ssc = "CR1")
+
+    # Only the variance changes, never the coefficient.
+    expect_equal(base$irfs, cr1$irfs, tolerance = 1e-12)
+    expect_true(all(cr1$irfs_se > base$irfs_se))
+
+    # CR1 uses t degrees of freedom; the asymptotic mode uses the normal.
+    # One-way clusters on its own dimension, two-way on the smaller one.
+    G <- switch(cr1$cluster_type,
+                time = length(unique(d$tt)),
+                unit = length(unique(d$unit)),
+                min(length(unique(d$unit)), length(unique(d$tt))))
+    expect_true(all(is.finite(cr1$df)))
+    expect_true(all(cr1$df <= G - 1))
+    expect_true(all(is.infinite(base$df)))
+
+    # Wider bands, from both the factor and the t critical value.
+    expect_true(all((cr1$irfs_upper - cr1$irfs_lower) >
+                    (base$irfs_upper - base$irfs_lower)))
+  }
+})
+
+test_that("ssc = 'CR1' reproduces the documented one-way factor exactly", {
+  d <- sim_panel_df()
+  N <- nrow(d)
+
+  # K = slopes + intercept + (L - 1) for every absorbed factor that is NOT
+  # nested in the clustering dimension. Clustering on units makes the unit
+  # fixed effect free, and vice versa.
+  check <- function(cl, G, L_other) {
+    base <- panel_fit(d, cluster = cl)
+    cr1  <- panel_fit(d, cluster = cl, ssc = "CR1")
+    K <- 1 + 1 + (L_other - 1)
+    expect_equal(unname(cr1$irfs_se[1, 1] / base$irfs_se[1, 1]),
+                 sqrt((G / (G - 1)) * ((N - 1) / (N - K))),
+                 tolerance = 1e-8)
+    expect_equal(unname(cr1$df[1, 1]), G - 1)
+  }
+  check(~tt,   length(unique(d$tt)),   length(unique(d$unit)))
+  check(~unit, length(unique(d$unit)), length(unique(d$tt)))
 })
 
 test_that("fLPPanel cumulative projections differ from level projections", {

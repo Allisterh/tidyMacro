@@ -20,12 +20,12 @@
 //' \deqn{y_t = c + A_1 y_{t-1} + \cdots + A_p y_{t-p} + e_t}
 //'
 //' @examples
-//' \dontrun{
+//' set.seed(123)
 //' y_init    <- matrix(rnorm(200), ncol = 2)
 //' beta      <- matrix(rnorm(10), 5, 2)
-//' residuals <- matrix(rnorm(190), 95, 2)
+//' residuals <- matrix(rnorm(196), 98, 2)
 //' y_new     <- fGenerateVARData(y_init, p = 2, c = 1, beta, residuals)
-//' }
+//' dim(y_new)
 //'
 //' @export
 // [[Rcpp::export]]

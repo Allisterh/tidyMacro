@@ -109,7 +109,7 @@ result_mbb <- fBootstrapIVMBB(
     adjustu    = adjustu,
     policyvar  = 1,
     horizon    = hor,
-    n_threads  = 3
+    n_threads  = 2
 )
 toc()
 ```
@@ -121,7 +121,10 @@ toc()
 #| fig-cap: "IRFs to oil supply news shock — MBB bootstrap (68% and 90% confidence bands)"
 
 fPlotIRF(
-    fIRF(result_mbb, varnames = varnames, shocknames = shockname, scale = 10),
+    result_mbb,
+    varnames   = varnames,
+    shocknames = shockname,
+    scale      = 10,
     facet_ncol = 3
 ) +
   xlim(0, 50) +
@@ -208,7 +211,6 @@ HDshock <- hd_result$HDshock
 
 ```{r}
 #| label: boot-hd-bands
-#| cache: true
 
 tic()
 boot_hd <- fBootstrapHDIV(
@@ -222,7 +224,7 @@ boot_hd <- fBootstrapHDIV(
     adjustu    = adjustu,
     policyvar  = 1L,
     conf        = 90,
-    n_threads  = 3
+    n_threads  = 2
 )
 toc()
 
@@ -331,7 +333,10 @@ cat("Wald statistic (HAC-robust F):", round(msw$Waldstat, 2), "\n")
 #| fig-cap: "Weak-IV robust IRFs — Anderson-Rubin (outer) and delta-method (inner) 90% bands"
 
 fPlotIRF(
-    fIRF(msw, varnames = varnames, shocknames = shockname, scale = 10),
+    msw,
+    varnames     = varnames,
+    shocknames   = shockname,
+    scale        = 10,
     facet_ncol   = 3,
     line_color   = "black",
     ribbon_fill  = c("Anderson-Rubin" = tidyMacro_colors[1],

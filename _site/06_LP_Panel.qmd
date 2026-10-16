@@ -28,7 +28,7 @@ The estimated equation at horizon $h$ (per $j$-th interaction component of $s_{i
 **Estimator-specific arguments** (beyond the shared list):
 
 - `cluster` selects the asymptotic clustering dimension: `~unit`, `~tt`, or `~unit + tt`. Omitting it preserves the paper's time-clustered default.
-- `small_sample = TRUE` invokes the @imbens2016 refinement, reporting a component-specific effective degrees of freedom instead of the default asymptotic $t$-clustered (LAHR) SE $\hat V_h = (X'X)^{-1}\big(\sum_t Z_t Z_t'\big)(X'X)^{-1}$ with $Z_t = \sum_i X_{it}\hat u_{it}$.
+- `ssc` selects the small-sample correction applied to that covariance matrix. `"none"` (the default) is the asymptotic $t$-clustered (LAHR) SE $\hat V_h = (X'X)^{-1}\big(\sum_t Z_t Z_t'\big)(X'X)^{-1}$ with $Z_t = \sum_i X_{it}\hat u_{it}$, read against normal critical values — the convention of @almuzara2024micro. `"CR1"` applies the multiplier $\tfrac{G}{G-1}\cdot\tfrac{N-1}{N-K}$ to each one-way component of the meat and reads the result against $t$ with $\min(G)-1$ degrees of freedom, which is what Stata and `fixest` do; $K$ counts the regressors, the intercept, and $L-1$ parameters for every absorbed factor with $L$ levels that is not nested in a clustering dimension. `"IK"` invokes the @imbens2016 refinement, reporting a component-specific effective degrees of freedom; it is defined for the time-clustered score sequence only. The predecessor argument `small_sample = TRUE` still works and maps onto `ssc = "IK"`, with a deprecation warning.
 - `p_max` caps the number of lags of the regressand and the shock interaction added as controls (at horizon $h$ the effective number is $\min(h, p_\max)$).
 - `cumulative = TRUE` projects $\sum_{r=0}^{h} y_{i,t+r}$ instead of $y_{i,t+h}$.
 
@@ -120,7 +120,7 @@ lp_pkg <- fLPPanel(
   horizons     = 5,
   conf         = c(68, 90),     # two bands from a single fit
   cluster      = ~tt,               # paper's time-level clustering
-  small_sample = TRUE,              # Imbens–Kolesar (2016) refinement
+  ssc          = "IK",              # Imbens–Kolesar (2016) refinement
   cumulative   = TRUE,              # sum_{k=0..h} y_{i,t+k}
   n_threads    = 2                  # OpenMP over horizons
 )
@@ -138,7 +138,7 @@ tidyMacro:::tidy.fLPPanel(lp_pkg) |>
 
 ## Alternative clustering: an extension beyond the paper's benchmark
 
-The benchmark above follows @almuzara2024micro: aggregate shocks make the time dimension central for inference, and `small_sample = TRUE` applies their time-clustered Imbens--Kolesár refinement. `fLPPanel()` also provides the conventional clustering choices used across the broader panel literature. This is an extension of the implementation beyond the main paper's recommended specification; it makes it possible to reproduce applications that cluster within units or in both dimensions and to report sensitivity to the covariance estimator.
+The benchmark above follows @almuzara2024micro: aggregate shocks make the time dimension central for inference, and `ssc = "IK"` applies their time-clustered Imbens--Kolesár refinement. `fLPPanel()` also provides the conventional clustering choices used across the broader panel literature. This is an extension of the implementation beyond the main paper's recommended specification; it makes it possible to reproduce applications that cluster within units or in both dimensions and to report sensitivity to the covariance estimator.
 
 Unit and time clustering use the same one-way cluster-robust sandwich, with observations grouped by different keys [@liang1986]. `cluster = ~unit` allows arbitrary dependence over time within a unit, while `cluster = ~tt` allows arbitrary cross-sectional dependence within a period. Two-way clustering uses the @Cameron2011 inclusion-exclusion estimator
 
@@ -147,7 +147,7 @@ $$\widehat M_{2W}
 + \widehat M_{time}
 - \widehat M_{unit\times time}.$$
 
-@Petersen2009 provides a practical comparison of unit, time, and two-way clustering in panel data. These choices affect the covariance matrix, not the regression: the formula after `|` continues to determine the absorbed fixed effects. The three fits below therefore have identical coefficients and different standard errors. The Imbens--Kolesár refinement is defined for the time-clustered score sequence, so unit and two-way clustering require `small_sample = FALSE`.
+@Petersen2009 provides a practical comparison of unit, time, and two-way clustering in panel data. These choices affect the covariance matrix, not the regression: the formula after `|` continues to determine the absorbed fixed effects. The three fits below therefore have identical coefficients and different standard errors. The Imbens--Kolesár refinement is defined for the time-clustered score sequence, so unit and two-way clustering take `ssc = "none"` (or `"CR1"`, which is available in every clustering dimension).
 
 ```{r}
 #| label: lp-panel-cluster-fits
@@ -160,7 +160,7 @@ cluster_arguments <- list(
   shock        = "shock:size",
   horizons     = H,
   conf         = 90,
-  small_sample = FALSE,
+  ssc          = "none",
   cumulative   = TRUE,
   n_threads    = 2
 )
@@ -273,7 +273,7 @@ There is no mechanical ordering of these standard errors. In particular, a two-w
 
 `fixest` doesn't ship a dedicated panel-LP function, but a cumulative panel LP is *definitionally* a stack of `feols` fits — one per horizon, with the leaded / cumulated regressand on the LHS and the same shock and fixed-effects on the RHS. We build that stack manually and compare it against `fLPPanel()` on the **same unbalanced sample**.
 
-For an apples-to-apples comparison we fit `fLPPanel()` again with `small_sample = FALSE` so both estimators use asymptotic time-clustered (LAHR) standard errors.
+The comparison is run twice, because the two packages differ in exactly one place — the small-sample correction. `ssc = "none"` is the asymptotic LAHR variance of @almuzara2024micro; `ssc = "CR1"` applies the same correction `fixest` applies by default. The first should differ from `fixest` by that multiplier alone, the second should match it to machine precision.
 
 ```{r}
 #| label: fixest-fit
@@ -305,40 +305,54 @@ fixest_tbl <- purrr::map_dfr(0:H, function(h) {
 
   fit <- fixest::feols(y_h ~ shock:size | unit + tt,
                        data    = df_h,
-                       cluster = ~tt,      # time-clustered LAHR SE
+                       cluster = ~tt,      # time-clustered, fixest's default ssc
                        notes   = FALSE)
+  # fixest reads its clustered SE against t with min(G) - 1 degrees of
+  # freedom, so the band uses the same quantile rather than the normal one.
+  ci <- stats::confint(fit, level = 0.90)
   tibble::tibble(
     h        = h,
     estimate = coef(fit)[["shock:size"]],
-    se       = fit$se[["shock:size"]]
+    se       = fit$se[["shock:size"]],
+    lo90     = ci["shock:size", 1],
+    hi90     = ci["shock:size", 2]
   )
-}) |>
-  dplyr::mutate(
-    lo90 = estimate - stats::qnorm(0.95) * se,
-    hi90 = estimate + stats::qnorm(0.95) * se
-  )
+})
 ```
 
 ```{r}
-#| label: pkg-refit-asy
-# Reuse the asymptotic time-clustered fit from the comparison above.
-lp_pkg_asy <- lp_cluster_time
+#| label: pkg-refit-ssc
+# Same estimator, the two small-sample conventions.
+ssc_arguments <- cluster_arguments
+ssc_arguments$ssc     <- NULL          # supplied per fit below
+ssc_arguments$cluster <- ~tt
+
+lp_pkg_none <- do.call(fLPPanel, c(ssc_arguments, list(ssc = "none")))
+lp_pkg_cr1  <- do.call(fLPPanel, c(ssc_arguments, list(ssc = "CR1")))
 ```
 
-Point estimates coincide to machine precision — both fits solve the same OLS system on the same effective sample. Standard errors agree up to fixest's finite-sample cluster multiplier $G/(G-1)\cdot(N-1)/(N-k)$, which `fLPPanel` does not apply in its asymptotic LAHR mode:
+Point estimates coincide to machine precision — all three fits solve the same OLS system on the same effective sample. The standard errors separate the two conventions: `ssc = "none"` differs from `fixest` by the finite-sample multiplier $\tfrac{G}{G-1}\cdot\tfrac{N-1}{N-K}$, while `ssc = "CR1"` reproduces it.
 
 ```{r}
 #| label: fixest-diff
 cat(sprintf(
-  "max |estimate diff| = %.3e\nmax |SE       diff| = %.3e  (fixest cluster small-sample multiplier)\n",
-  max(abs(as.vector(lp_pkg_asy$irfs)    - fixest_tbl$estimate)),
-  max(abs(as.vector(lp_pkg_asy$irfs_se) - fixest_tbl$se))
+  paste0("max |estimate diff|           = %.3e\n",
+         "max |SE diff|, ssc = \"none\"   = %.3e  (fixest's small-sample multiplier)\n",
+         "max |SE diff|, ssc = \"CR1\"    = %.3e\n",
+         "max |90%% band diff|, ssc = \"CR1\" = %.3e\n"),
+  max(abs(as.vector(lp_pkg_cr1$irfs)     - fixest_tbl$estimate)),
+  max(abs(as.vector(lp_pkg_none$irfs_se) - fixest_tbl$se)),
+  max(abs(as.vector(lp_pkg_cr1$irfs_se)  - fixest_tbl$se)),
+  max(abs(c(as.vector(lp_pkg_cr1$irfs_lower) - fixest_tbl$lo90,
+            as.vector(lp_pkg_cr1$irfs_upper) - fixest_tbl$hi90)))
 ))
 ```
 
+The band agrees as well because `ssc = "CR1"` also switches the critical value from the normal to $t$ with $\min(G)-1$ degrees of freedom, which is `fixest`'s `t.df = "min"` default. `K` follows `fixest`'s `fixef.K = "nested"` rule: the `tt` factor is nested in the clustering dimension and so contributes no parameters, while the `unit` factor contributes its $L-1$ absorbed levels.
+
 ```{r}
 #| label: fig-panel-lp-fixest
-#| fig-cap: "IRF and 90% band on the unbalanced sample. Left: tidyMacro::fLPPanel() with asymptotic time-clustered SEs. Right: stack of fixest::feols fits, one per horizon, with the same clustering."
+#| fig-cap: "IRF and 90% band on the unbalanced sample. Left: tidyMacro::fLPPanel() with ssc = \"CR1\". Right: stack of fixest::feols fits, one per horizon, with the same clustering and fixest's default small-sample correction. The two panels coincide."
 horizons <- 0:H
 blue     <- "#0055A4"
 
@@ -353,10 +367,10 @@ mk_panel <- function(est, lo, hi, title) {
     theme_minimal(base_size = 13)
 }
 
-p_pkg <- mk_panel(as.vector(lp_pkg_asy$irfs),
-                  as.vector(lp_pkg_asy$irfs_lower),
-                  as.vector(lp_pkg_asy$irfs_upper),
-                  "tidyMacro::fLPPanel()")
+p_pkg <- mk_panel(as.vector(lp_pkg_cr1$irfs),
+                  as.vector(lp_pkg_cr1$irfs_lower),
+                  as.vector(lp_pkg_cr1$irfs_upper),
+                  "tidyMacro::fLPPanel(ssc = \"CR1\")")
 p_fx  <- mk_panel(fixest_tbl$estimate,
                   fixest_tbl$lo90,
                   fixest_tbl$hi90,
@@ -369,7 +383,7 @@ p_pkg + p_fx + plot_layout(ncol = 2)
 - One call instead of one per horizon.
 - Panel-aware `l()` / `f()` operators that respect unit boundaries.
 - OpenMP-parallel horizon loop (each horizon is independent once y is leaded).
-- Optional @imbens2016 small-sample refinement with component-specific effective degrees of freedom (set `small_sample = TRUE`; not in `fixest`).
+- A choice of small-sample convention in one argument: `ssc = "CR1"` matches `fixest` exactly, `ssc = "none"` the asymptotic variance of the paper, and `ssc = "IK"` the @imbens2016 refinement with component-specific effective degrees of freedom, which `fixest` does not provide.
 - Multi-band CIs from a single fit (`conf = c(68, 95)`).
 :::
 

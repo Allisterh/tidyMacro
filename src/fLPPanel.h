@@ -17,12 +17,17 @@
 //   (cumulative: replaces y_{i,t+h} by sum_{r=0..h} y_{i,t+r})
 //
 // Inference:
-//   * small_sample = false → asymptotic cluster-robust sandwich SEs:
+//   * ssc_mode = 0 (none) → asymptotic cluster-robust sandwich SEs:
 //       cluster_mode = 0: time, 1: unit, 2: unit + time (two-way).
 //     Two-way clustering uses the Cameron-Gelbach-Miller inclusion-exclusion
-//     meat M_i + M_t - M_it.
-//     with df = Inf (normal critical values).
-//   * small_sample = true  → Imbens-Kolesar (2016, REStat) refinement,
+//     meat M_i + M_t - M_it, with df = Inf (normal critical values).
+//   * ssc_mode = 1 (CR1)  → the Stata / fixest finite-sample correction:
+//     each one-way component of the meat is scaled by
+//     G/(G-1) * (N-1)/(N-K) with its own cluster count, and inference uses
+//     t with min(G) - 1 degrees of freedom. K counts the regressors, the
+//     intercept, and L - 1 parameters for every absorbed factor with L
+//     levels that is not nested in a clustering dimension.
+//   * ssc_mode = 2 (IK)   → Imbens-Kolesar (2016, REStat) refinement,
 //     per s-component, using the within-period projection X_t and the
 //     hat-matrix P0 = I_T - X_t * (X_t'X_t)^{-1} * X_t'. This refinement
 //     is defined only for cluster_mode = 0 (time clustering).
@@ -53,7 +58,7 @@ LPPanelResult fLPPanel_internal(
     const arma::ivec& t_index,
     int  H,
     int  p_max,
-    bool small_sample,
+    int  ssc_mode,
     bool cumulative,
     int  cluster_mode,
     int  n_threads,
@@ -70,7 +75,7 @@ Rcpp::List fLPPanel_cpp(
     const arma::ivec& t_index,
     int  H,
     int  p_max,
-    bool small_sample,
+    int  ssc_mode,
     bool cumulative,
     int  cluster_mode,
     int  n_threads,

@@ -39,13 +39,11 @@ HQ  = log(det(Sigma)) + 2 * log(log(T)) * (p*N^2 + N + M) / T
 where M is the number of exogenous variables.
 }
 \examples{
-\dontrun{
 set.seed(123)
-y      <- matrix(rnorm(200), ncol = 2)
-result <- fAICBIC(y, pmax = 10, c = 1)
+y      <- matrix(rnorm(400), ncol = 2)
+result <- fAICBIC(y, pmax = 4, c = 1)
 result$aic
 result$bic
-}
 
 }
 \seealso{

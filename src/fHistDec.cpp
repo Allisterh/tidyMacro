@@ -111,19 +111,12 @@ HistDecResult fHistDec_cpp(const arma::mat& y,
 //' \deqn{HD(t,j) = \sum_{h=0}^{t} \Theta_h[i,j]\, \varepsilon_{t-h,j}}
 //'
 //' @examples
-//' \dontrun{
-//' # Cholesky identification
-//' var_result <- fVAR(y, p = 12, c = 1)
-//' K_chol <- t(chol(var_result$sigma))
-//' hd <- fHistDec(y, var_result, K_chol, series = 1)
-//'
-//' # BQ identification
-//' wold  <- fWoldIRF(var_result, horizon = 40)
-//' C1    <- apply(wold, c(1, 2), sum)
-//' D1    <- t(chol(C1 %*% var_result$sigma %*% t(C1)))
-//' K_bq  <- solve(C1, D1)
-//' hd_bq <- fHistDec(y, var_result, K_bq, series = 1)
-//' }
+//' set.seed(123)
+//' y      <- matrix(rnorm(400), ncol = 2)
+//' VAR    <- fVAR(y, p = 2, c = 1)
+//' K_chol <- t(chol(VAR$sigma))
+//' hd     <- fHistDec(y, VAR, K_chol, series = 1)
+//' dim(hd)
 //'
 //' @seealso \code{\link{fVAR}}, \code{\link{fCholeskyIRF}},
 //'   \code{\link{fWoldIRF}}, \code{\link{fPlotHistDec}}

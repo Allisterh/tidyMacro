@@ -99,7 +99,7 @@ The four engines share more arguments than differ. The list below shows what eve
 | `shock_size`   | ✓   | ✓     | —        | —      | `"unit"` (default) or `"sd"` impulse units |
 | `nw_lags`      | ✓   | *as `nw_lags_iv`* | — | — | Newey–West base bandwidth |
 | `nw_offset`    | ✓   | —     | —        | —      | NW bandwidth shift (`+1` MA&R, `0` classic Jordà) |
-| `small_sample` | —   | —     | ✓        | —      | Imbens–Kolesar small-sample refinement |
+| `ssc` | —   | —     | ✓        | —      | Small-sample correction of the clustered variance: `"none"`, `"CR1"`, `"IK"` |
 | `p_max`        | —   | —     | ✓        | —      | Max lags of the regressand and shock added as controls |
 | `nonabsorbing` | —   | —     | —        | ✓      | Non-absorbing treatment (with `L`, `ccc`) |
 | `L`, `ccc`     | —   | —     | —        | ✓      | Clean-control window and flavor |
@@ -206,7 +206,7 @@ The first-stage F reported in `Fstat_fs` uses `df2 = Th − kc − nz`, i.e. the
 At horizon $h$, for each interaction component $j$:
 $$y_{i, t+h} \;=\; \alpha^{(h)}_{\mathrm{FE}} + \beta_h^{(j)} (s_{it, j}\, x_t) + \gamma_h' w_{it} + \sum_{k=1}^{\min(h, p_{\max})} \delta_{hk}' v_{i,t-k} + u_{i,t+h}.$$
 
-Inference: asymptotic time-clustered (LAHR) by default; the @imbens2016 small-sample refinement is available via `small_sample = TRUE`, which reports a component-specific effective degrees of freedom.
+Inference: asymptotic time-clustered (LAHR) by default (`ssc = "none"`). `ssc = "CR1"` applies the finite-sample multiplier and $t$ degrees of freedom used by Stata and `fixest`; `ssc = "IK"` applies the @imbens2016 refinement, which reports a component-specific effective degrees of freedom. The predecessor argument `small_sample = TRUE` maps onto `ssc = "IK"` and is deprecated.
 
 ### `fLPDID()` — LP-DiD à la Dube–Girardi–Jordà–Taylor
 

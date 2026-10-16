@@ -25,10 +25,9 @@ distributed on the Stiefel manifold (Haar measure), as required for
 sign-restriction identification.
 }
 \examples{
-\dontrun{
+set.seed(123)
 Q <- fGenerateQ(3)
-round(t(Q) \%*\% Q, 10)  # should be identity
-}
+round(t(Q) \%*\% Q, 10)  # the identity matrix
 
 }
 \references{

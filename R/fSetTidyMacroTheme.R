@@ -24,11 +24,16 @@
 #' - Black (#231F20)
 #' - Light Blue (#009CDE)
 #'
-#' @examples
-#' \dontrun{
-#' # Display the color palette
-#' scales::show_col(tidyMacro_colors)
+#' @format A character vector of 13 hex colour codes.
 #'
+#' @return A character vector of hex colour codes, usable wherever
+#'   \pkg{ggplot2} takes colours.
+#'
+#' @examples
+#' # The first three colours are the ones the package's own plots use.
+#' tidyMacro_colors[1:3]
+#'
+#' \donttest{
 #' # Use with ggplot2
 #' library(ggplot2)
 #' ggplot(mtcars, aes(x = wt, y = mpg, color = factor(cyl))) +
@@ -121,25 +126,15 @@ tidyMacro_pal <- function(
 #' be recycled with a warning.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' library(ggplot2)
-#' library(tidyMacro)
 #'
-#' # IRF plot with multiple variables
-#' ggplot(irf_data, aes(x = horizon, y = response, color = variable)) +
-#'   geom_line(linewidth = 1) +
-#'   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
-#'   labs(title = "Impulse Response Functions",
-#'        x = "Horizon",
-#'        y = "Response") +
-#'   scale_color_tidyMacro() +
-#'   fThemeTidyMacro()
+#' # Use the tidyMacro theme for every plot in the session
+#' old <- ggplot2::theme_get()
+#' fSetTidyMacroTheme()
+#' ggplot(mtcars, aes(x = wt, y = mpg, color = factor(cyl))) + geom_point()
 #'
-#' # Reverse color order
-#' ggplot(fevd_data, aes(x = horizon, y = share, color = shock)) +
-#'   geom_line(linewidth = 1) +
-#'   scale_color_tidyMacro(reverse = TRUE) +
-#'   fThemeTidyMacro()
+#' ggplot2::theme_set(old)   # restore
 #' }
 #'
 #' @seealso
@@ -191,21 +186,16 @@ scale_colour_tidyMacro <- scale_color_tidyMacro
 #' be recycled with a warning.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' library(ggplot2)
-#' library(tidyMacro)
 #'
-#' # FEVD stacked area plot
-#' ggplot(fevd_data, aes(x = horizon, y = contribution, fill = shock)) +
-#'   geom_area(position = "stack", alpha = 0.8) +
-#'   labs(title = "Forecast Error Variance Decomposition",
-#'        x = "Horizon",
-#'        y = "Share of Variance") +
+#' ggplot(mtcars, aes(x = factor(cyl), fill = factor(gear))) +
+#'   geom_bar(position = "stack") +
+#'   labs(x = "Cylinders", y = "Count", fill = "Gears") +
 #'   scale_fill_tidyMacro() +
 #'   fThemeTidyMacro()
 #'
-#' # Bar chart with tidyMacro colors
-#' ggplot(var_summary, aes(x = variable, y = coefficient, fill = lag)) +
+#' ggplot(mtcars, aes(x = factor(cyl), y = mpg, fill = factor(gear))) +
 #'   geom_col(position = "dodge") +
 #'   scale_fill_tidyMacro(reverse = TRUE) +
 #'   fThemeTidyMacro()
@@ -255,7 +245,7 @@ scale_fill_tidyMacro <- function(
 #' and remove the scale defaults with \code{ggplot2::update_geom_defaults()}.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' library(ggplot2)
 #' library(tidyMacro)
 #'

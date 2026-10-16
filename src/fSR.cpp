@@ -616,15 +616,16 @@ Rcpp::List fSR_cpp(const arma::mat& y, int p, int c, const arma::mat& SIGN,
         Rcpp::Named("Bmed") = Bmed, Rcpp::Named("Bfp") = Ball.slice(sel),
         Rcpp::Named("IRfp") = IRfp, Rcpp::Named("VDfp") = VDfp,
         Rcpp::Named("fp_index") = sel + 1,
-        Rcpp::Named("weights") = weights,
-        Rcpp::Named("n_tried") = n_tried_v,
-        Rcpp::Named("accept_rate") = accept_rate,
-        Rcpp::Named("ndraws_tried") = total_rot,
-        Rcpp::Named("n_param_draws") = total_param,
-        Rcpp::Named("n_ruled_out") = total_ruled,
-        Rcpp::Named("n_failed") = n_failed,
-        Rcpp::Named("n_errors") = n_errors,
-        Rcpp::Named("first_error") = first_error);
+        Rcpp::Named("weights") = weights);
+    // Added one by one: older Rcpp versions cap List::create at 20 elements.
+    out["n_tried"]       = n_tried_v;
+    out["accept_rate"]   = accept_rate;
+    out["ndraws_tried"]  = total_rot;
+    out["n_param_draws"] = total_param;
+    out["n_ruled_out"]   = total_ruled;
+    out["n_failed"]      = n_failed;
+    out["n_errors"]      = n_errors;
+    out["first_error"]   = first_error;
 
     Rcpp::List bands(levels.n_elem);
     for (arma::uword l = 0; l < levels.n_elem; ++l) {

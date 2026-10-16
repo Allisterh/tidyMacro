@@ -116,10 +116,53 @@ test_that("fBootstrapIVMBB returns nested bands and preserves impact normalizati
   ))
 
   expect_nested_bands(b, 2L, 4L)
-  expect_equal(dim(b$meanirf), c(2L, 4L))
-  expect_equal(dim(b$medianirf), c(2L, 4L))
-  expect_equal(b$meanirf[1, 1], 1, tolerance = 1e-12)
-  expect_equal(b$medianirf[1, 1], 1, tolerance = 1e-12)
+  expect_equal(dim(b$point), c(2L, 4L))
+  expect_equal(b$point[1, 1], 1, tolerance = 1e-12)
+  expect_false(any(c("meanirf", "medianirf") %in% names(b)))
+})
+
+test_that("fBootstrapIVMBB reports the sample estimate, not a bootstrap summary", {
+  x <- proxy_fixture(T = 150L)
+  set.seed(7)
+  b <- suppressMessages(fBootstrapIVMBB(
+    x$y, x$fit, x$Z, nboot = 40L, blocksize = 5L,
+    adjustZ = x$adjust, adjustu = x$adjust, policyvar = 1L,
+    horizon = 4L, n_threads = NT))
+
+  # Same identification, computed directly: residuals on the instrument,
+  # then the Wold coefficients times that impact vector.
+  u <- x$fit$residuals
+  uhat <- stats::fitted(stats::lm(u[, 1] ~ x$Z - 1))
+  b1 <- c(1, stats::coef(stats::lm(u[, -1] ~ uhat - 1)))
+  wold <- fWoldIRF(x$fit, horizon = 4L)
+  ref <- vapply(seq_len(5L), function(h) as.vector(wold[, , h] %*% b1),
+                numeric(ncol(x$y)))
+
+  expect_equal(b$point, ref, tolerance = 1e-10, ignore_attr = TRUE)
+  # The point estimate must not be a function of the draws.
+  set.seed(99)
+  b2 <- suppressMessages(fBootstrapIVMBB(
+    x$y, x$fit, x$Z, nboot = 40L, blocksize = 5L,
+    adjustZ = x$adjust, adjustu = x$adjust, policyvar = 1L,
+    horizon = 4L, n_threads = NT))
+  expect_identical(b$point, b2$point)
+  expect_false(isTRUE(all.equal(b$upper, b2$upper)))
+})
+
+test_that("bootstrap entry points reject impossible arguments", {
+  x <- proxy_fixture(T = 120L)
+  expect_error(fBootstrapIVMBB(x$y, x$fit, x$Z, nboot = 0L, blocksize = 5L,
+                               adjustZ = x$adjust, adjustu = x$adjust,
+                               policyvar = 1L, horizon = 2L),
+               "'nboot' must be positive")
+  expect_error(fBootstrapIVMBB(x$y, x$fit, x$Z, nboot = 5L, blocksize = 5L,
+                               adjustZ = x$adjust, adjustu = x$adjust,
+                               policyvar = 99L, horizon = 2L),
+               "'policyvar' must be between")
+  expect_error(fBootstrapIVInvertible(x$y, x$instr[-1], x$fit, nboot = 5L,
+                                      p = 1L, c = 1L, hor = 2L,
+                                      cumu = integer()),
+               "one value per row")
 })
 
 test_that("fBootstrapIVInvertible returns coherent wild-bootstrap bands", {

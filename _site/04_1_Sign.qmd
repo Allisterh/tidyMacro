@@ -158,11 +158,7 @@ sr_uhlig <- fSignRestr(
 #| label: fig-uhlig
 #| fig-cap: "Responses to a contractionary monetary policy shock identified by sign restrictions. Element-wise median with 68% and 90% credible bands across 500 accepted draws. Six-variable VAR(12) with constant, monthly US data 1965m1-2003m12. Replicates Figure 6 of Uhlig (2005)."
 
-fPlotIRF(
-    fIRF(sr_uhlig, conf = c(68, 90)),
-    shock      = mp_shock,
-    facet_ncol = 2
-)
+fPlotIRF(sr_uhlig, conf = c(68, 90), shock = mp_shock, facet_ncol = 2)
 ```
 
 The key finding is that the output response is ambiguous. The restricted variables behave as assumed (the funds rate rises, prices and non-borrowed reserves fall), but the real GDP band spans both positive and negative values throughout. Under minimal identifying restrictions the data do not deliver a clear verdict on the output effects of monetary policy.

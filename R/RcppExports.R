@@ -30,13 +30,11 @@
 #' where M is the number of exogenous variables.
 #'
 #' @examples
-#' \dontrun{
 #' set.seed(123)
-#' y      <- matrix(rnorm(200), ncol = 2)
-#' result <- fAICBIC(y, pmax = 10, c = 1)
+#' y      <- matrix(rnorm(400), ncol = 2)
+#' result <- fAICBIC(y, pmax = 4, c = 1)
 #' result$aic
 #' result$bic
-#' }
 #'
 #' @seealso \code{\link{fVAR}}
 #'
@@ -79,20 +77,20 @@ fAICBIC <- function(y, pmax, c, exog = NULL) {
 #' 655--673.
 #'
 #' @examples
-#' \dontrun{
-#' # Estimate a VAR and compute Wold IRFs
+#' set.seed(123)
+#' y    <- matrix(rnorm(400), ncol = 2)
 #' VAR  <- fVAR(y, p = 2, c = 1)
 #' wold <- fWoldIRF(VAR, horizon = 20)
 #'
 #' # Map the long-run Cholesky factor to contemporaneous impacts
 #' C1 <- apply(wold, c(1, 2), sum)
 #' D1 <- t(chol(C1 %*% VAR$sigma %*% t(C1)))
-#' K <- solve(C1, D1)
+#' K  <- solve(C1, D1)
 #' bqirf <- fBQIRF(wold, K)
+#' bqirf[, 1, 1]
 #'
 #' # With normalisation: unit shock to variable 1
 #' bqirf_norm <- fBQIRF(wold, K, scaling = c(1, 1))
-#' }
 #'
 #' @export
 fBQIRF <- function(wold, K, scaling = NULL) {
@@ -117,6 +115,8 @@ fBQIRF <- function(wold, K, scaling = NULL) {
 #' @param exog Optional T x M matrix of exogenous variables. Must be provided
 #'   if the original VAR was estimated with exogenous variables; must be
 #'   omitted otherwise.
+#' @param verbose Logical. If \code{TRUE}, report the number of threads
+#'   used. Default \code{FALSE}, so the function is silent.
 #' @param n_threads Number of OpenMP threads. 0 = all cores minus one.
 #'   Default 0.
 #'
@@ -146,24 +146,23 @@ fBQIRF <- function(wold, K, scaling = NULL) {
 #' \emph{American Economic Review}, 89(1), 249--271.
 #'
 #' @examples
-#' \dontrun{
+#' set.seed(123)
+#' y          <- matrix(rnorm(400), ncol = 2)
 #' var_result <- fVAR(y, p = 2, c = 1)
-#' wold       <- fWoldIRF(var_result, horizon = 40)
-#' Sigma      <- var_result$sigma
+#' wold       <- fWoldIRF(var_result, horizon = 12)
 #' C1         <- apply(wold, c(1, 2), sum)
-#' D1         <- t(chol(C1 %*% Sigma %*% t(C1)))
-#' K          <- solve(C1, D1)
-#' point_irf  <- fBQIRF(wold, K)
+#' D1         <- t(chol(C1 %*% var_result$sigma %*% t(C1)))
+#' point_irf  <- fBQIRF(wold, solve(C1, D1))
 #'
-#' # Bootstrap with cumulation of both variables (VAR in first differences)
-#' boot <- fBootstrapBQ(y, var_result, nboot = 1000, horizon = 40,
+#' # Few draws here to keep the example quick; use 1000 or more in practice.
+#' boot <- fBootstrapBQ(y, var_result, nboot = 50, horizon = 12,
 #'                      conf = 68, bootscheme = "residual",
-#'                      cumulate = c(1L, 2L))
-#' }
+#'                      cumulate = c(1L, 2L), n_threads = 2)
+#' fPlotIRF(point_irf, bands = boot, shock = 1)
 #'
 #' @export
-fBootstrapBQ <- function(y, var_result, nboot, horizon, conf = 90.0, conf2 = 68.0, bootscheme = "residual", cumulate = as.integer( c()), scaling = NULL, exog = NULL, n_threads = 0L) {
-    .Call(`_tidyMacro_fBootstrapBQ`, y, var_result, nboot, horizon, conf, conf2, bootscheme, cumulate, scaling, exog, n_threads)
+fBootstrapBQ <- function(y, var_result, nboot, horizon, conf = 90.0, conf2 = 68.0, bootscheme = "residual", cumulate = as.integer( c()), scaling = NULL, exog = NULL, n_threads = 0L, verbose = FALSE) {
+    .Call(`_tidyMacro_fBootstrapBQ`, y, var_result, nboot, horizon, conf, conf2, bootscheme, cumulate, scaling, exog, n_threads, verbose)
 }
 
 #' Bootstrap Cholesky Identified Impulse Response Functions
@@ -178,6 +177,8 @@ fBootstrapBQ <- function(y, var_result, nboot, horizon, conf = 90.0, conf2 = 68.
 #' @param exog Optional T x M matrix of exogenous variables. Must be provided
 #'   if the original VAR was estimated with exogenous variables; must be
 #'   omitted otherwise.
+#' @param verbose Logical. If \code{TRUE}, report the number of threads
+#'   used. Default \code{FALSE}, so the function is silent.
 #' @param n_threads Number of OpenMP threads. 0 = all cores minus one.
 #'   Default 0.
 #'
@@ -193,8 +194,8 @@ fBootstrapBQ <- function(y, var_result, nboot, horizon, conf = 90.0, conf2 = 68.
 #'   }
 #'
 #' @export
-fBootstrapChol <- function(y, var_result, nboot, horizon, conf = 90.0, conf2 = 68.0, bootscheme = "residual", exog = NULL, n_threads = 0L) {
-    .Call(`_tidyMacro_fBootstrapChol`, y, var_result, nboot, horizon, conf, conf2, bootscheme, exog, n_threads)
+fBootstrapChol <- function(y, var_result, nboot, horizon, conf = 90.0, conf2 = 68.0, bootscheme = "residual", exog = NULL, n_threads = 0L, verbose = FALSE) {
+    .Call(`_tidyMacro_fBootstrapChol`, y, var_result, nboot, horizon, conf, conf2, bootscheme, exog, n_threads, verbose)
 }
 
 #' Bootstrap Bias-Corrected Cholesky Identified Impulse Response Functions
@@ -212,6 +213,8 @@ fBootstrapChol <- function(y, var_result, nboot, horizon, conf = 90.0, conf2 = 6
 #'   omitted otherwise.
 #' @param n_threads Number of OpenMP threads. 0 = all cores minus one.
 #'   Default 0.
+#' @param verbose Logical. If \code{TRUE}, report the number of threads used
+#'   and the bias-correction summary. Default \code{FALSE}.
 #'
 #' @return List with elements:
 #'   \describe{
@@ -225,8 +228,8 @@ fBootstrapChol <- function(y, var_result, nboot, horizon, conf = 90.0, conf2 = 6
 #'   }
 #'
 #' @export
-fBootstrapCholCorrected <- function(y, var_result, nboot1, nboot2, horizon, conf = 90.0, conf2 = 68.0, bootscheme = "residual", exog = NULL, n_threads = 0L) {
-    .Call(`_tidyMacro_fBootstrapCholCorrected`, y, var_result, nboot1, nboot2, horizon, conf, conf2, bootscheme, exog, n_threads)
+fBootstrapCholCorrected <- function(y, var_result, nboot1, nboot2, horizon, conf = 90.0, conf2 = 68.0, bootscheme = "residual", exog = NULL, n_threads = 0L, verbose = FALSE) {
+    .Call(`_tidyMacro_fBootstrapCholCorrected`, y, var_result, nboot1, nboot2, horizon, conf, conf2, bootscheme, exog, n_threads, verbose)
 }
 
 #' Bootstrap IRFs for the Invertible Case (Wild Bootstrap)
@@ -246,6 +249,7 @@ fBootstrapCholCorrected <- function(y, var_result, nboot1, nboot2, horizon, conf
 #' @param cumu 1-indexed integer vector of variable positions to cumulate.
 #' @param conf Primary confidence level (e.g. 90). Default 90.
 #' @param conf2 Secondary confidence level (e.g. 68). Default 68.
+#' @param n_threads OpenMP threads. 0 (default) uses all cores minus one.
 #'
 #' @return List with N x (hor+1) matrices: upper, lower (at \code{conf}),
 #'   upper2, lower2 (at \code{conf2}), median.
@@ -253,8 +257,8 @@ fBootstrapCholCorrected <- function(y, var_result, nboot1, nboot2, horizon, conf
 #' @seealso \code{\link{fBootstrapIVRecover}}, \code{\link{fGetBands}}
 #'
 #' @export
-fBootstrapIVInvertible <- function(y, instr, var_result, nboot, p, c, hor, cumu, conf = 90.0, conf2 = 68.0) {
-    .Call(`_tidyMacro_fBootstrapIVInvertible`, y, instr, var_result, nboot, p, c, hor, cumu, conf, conf2)
+fBootstrapIVInvertible <- function(y, instr, var_result, nboot, p, c, hor, cumu, conf = 90.0, conf2 = 68.0, n_threads = 0L) {
+    .Call(`_tidyMacro_fBootstrapIVInvertible`, y, instr, var_result, nboot, p, c, hor, cumu, conf, conf2, n_threads)
 }
 
 #' Bootstrap IV Impulse Response Functions using Moving Block Bootstrap
@@ -281,6 +285,8 @@ fBootstrapIVInvertible <- function(y, instr, var_result, nboot, p, c, hor, cumu,
 #'   Default is 0 (uses all available cores minus one, with a minimum of one).
 #'   Set to 1 for single-threaded execution. If OpenMP is not available,
 #'   automatically falls back to single-threaded execution.
+#' @param verbose Logical. If \code{TRUE}, report the number of threads used.
+#'   Default \code{FALSE}, so the function is silent.
 #'
 #' @return A list containing:
 #'   \itemize{
@@ -288,8 +294,11 @@ fBootstrapIVInvertible <- function(y, instr, var_result, nboot, p, c, hor, cumu,
 #'     \item lower: N x (horizon+1) matrix of lower confidence bands
 #'     \item upper2: N x (horizon+1) matrix of secondary upper bands
 #'     \item lower2: N x (horizon+1) matrix of secondary lower bands
-#'     \item meanirf: N x (horizon+1) matrix of mean impulse responses
-#'     \item medianirf: N x (horizon+1) matrix of median impulse responses
+#'     \item point: N x (horizon+1) matrix of impulse responses on the
+#'       original sample, computed as the Wold coefficients times the
+#'       proxy-SVAR impact vector, exactly as in \code{fHeteroIRF()} and
+#'       \code{fMSW()}. The bootstrap supplies the bands only, never the
+#'       point estimate.
 #'     \item conf: band levels in percent, \code{c(conf, conf2)}
 #'   }
 #'
@@ -305,24 +314,25 @@ fBootstrapIVInvertible <- function(y, instr, var_result, nboot, p, c, hor, cumu,
 #' available, the function automatically falls back to single-threaded execution.
 #'
 #' @examples
-#' \dontrun{
+#' set.seed(123)
+#' y <- matrix(rnorm(400), ncol = 2)
 #' var_result <- fVAR(y, p = 2, c = 1)
-#' result <- fBootstrapIVMBB(y, var_result, Z,
-#'                             nboot = 1000, blocksize = 10,
-#'                             adjustZ = c(1, 100), adjustu = c(1, 100),
-#'                             policyvar = 1, horizon = 20, conf = 68)
 #'
-#' # Use 4 threads for parallel computation
-#' result <- fBootstrapIVMBB(y, var_result, Z,
-#'                             nboot = 1000, blocksize = 10,
-#'                             adjustZ = c(1, 100), adjustu = c(1, 100),
-#'                             policyvar = 1, horizon = 20, conf = 68,
-#'                             n_threads = 4)
-#' }
+#' # An instrument correlated with the first reduced-form residual
+#' u <- var_result$residuals
+#' Z <- matrix(u[, 1] + rnorm(nrow(u), sd = 0.5), ncol = 1)
+#' rows <- c(1, nrow(u))
+#'
+#' # Few draws here to keep the example quick; use 1000 or more in practice.
+#' result <- fBootstrapIVMBB(y, var_result, Z, nboot = 50, blocksize = 10,
+#'                           adjustZ = rows, adjustu = rows,
+#'                           policyvar = 1, horizon = 12, conf = 68,
+#'                           n_threads = 2)
+#' fPlotIRF(result, varnames = c("y1", "y2"))
 #'
 #' @export
-fBootstrapIVMBB <- function(y, var_result, Z, nboot, blocksize, adjustZ, adjustu, policyvar, horizon, conf = 90.0, conf2 = 68.0, exog = NULL, n_threads = 0L) {
-    .Call(`_tidyMacro_fBootstrapIVMBB`, y, var_result, Z, nboot, blocksize, adjustZ, adjustu, policyvar, horizon, conf, conf2, exog, n_threads)
+fBootstrapIVMBB <- function(y, var_result, Z, nboot, blocksize, adjustZ, adjustu, policyvar, horizon, conf = 90.0, conf2 = 68.0, exog = NULL, n_threads = 0L, verbose = FALSE) {
+    .Call(`_tidyMacro_fBootstrapIVMBB`, y, var_result, Z, nboot, blocksize, adjustZ, adjustu, policyvar, horizon, conf, conf2, exog, n_threads, verbose)
 }
 
 #' Bootstrap IRFs for the Recoverable Non-Invertible Case
@@ -348,6 +358,7 @@ fBootstrapIVMBB <- function(y, var_result, Z, nboot, blocksize, adjustZ, adjustu
 #' @param cumu 1-indexed integer vector of variable positions to cumulate.
 #' @param conf Primary confidence level (e.g. 90). Default 90.
 #' @param conf2 Secondary confidence level (e.g. 68). Default 68.
+#' @param n_threads OpenMP threads. 0 (default) uses all cores minus one.
 #'
 #' @return List with N x (hor+1) matrices: upper, lower (at \code{conf}),
 #'   upper2, lower2 (at \code{conf2}), median.
@@ -355,8 +366,8 @@ fBootstrapIVMBB <- function(y, var_result, Z, nboot, blocksize, adjustZ, adjustu
 #' @seealso \code{\link{fBootstrapIVInvertible}}, \code{\link{fGetBands}}
 #'
 #' @export
-fBootstrapIVRecover <- function(y, instr, var_result, noise, delta, nboot, p, c, r, hor, cumu, conf = 90.0, conf2 = 68.0) {
-    .Call(`_tidyMacro_fBootstrapIVRecover`, y, instr, var_result, noise, delta, nboot, p, c, r, hor, cumu, conf, conf2)
+fBootstrapIVRecover <- function(y, instr, var_result, noise, delta, nboot, p, c, r, hor, cumu, conf = 90.0, conf2 = 68.0, n_threads = 0L) {
+    .Call(`_tidyMacro_fBootstrapIVRecover`, y, instr, var_result, noise, delta, nboot, p, c, r, hor, cumu, conf, conf2, n_threads)
 }
 
 #' Bootstrap Long-Run Maximum-Response Impulse Responses
@@ -381,6 +392,8 @@ fBootstrapIVRecover <- function(y, instr, var_result, noise, delta, nboot, p, c,
 #'   \code{scaling[2]}, when that product is nonzero. Default \code{NULL}.
 #' @param exog T x M matrix of exogenous variables, required when the
 #'   original VAR included them; otherwise \code{NULL}.
+#' @param verbose Logical. If \code{TRUE}, report the number of threads
+#'   used. Default \code{FALSE}, so the function is silent.
 #' @param n_threads Number of OpenMP threads. Zero uses all available
 #'   cores minus one, with a minimum of one. Without OpenMP, uses one.
 #' @return A list with \code{bootmax}, an N x (horizon+1) x nboot array;
@@ -390,16 +403,16 @@ fBootstrapIVRecover <- function(y, instr, var_result, noise, delta, nboot, p, c,
 #'   \code{conf}, the band levels \code{c(conf, conf2)}. The corrected
 #'   variant stores \code{nboot2} draws.
 #' @export
-fBootstrapMax <- function(y, var_result, nboot, horizon, var_idx, conf = 90.0, conf2 = 68.0, cumulate = as.integer( c()), scaling = NULL, exog = NULL, n_threads = 0L) {
-    .Call(`_tidyMacro_fBootstrapMax`, y, var_result, nboot, horizon, var_idx, conf, conf2, cumulate, scaling, exog, n_threads)
+fBootstrapMax <- function(y, var_result, nboot, horizon, var_idx, conf = 90.0, conf2 = 68.0, cumulate = as.integer( c()), scaling = NULL, exog = NULL, n_threads = 0L, verbose = FALSE) {
+    .Call(`_tidyMacro_fBootstrapMax`, y, var_result, nboot, horizon, var_idx, conf, conf2, cumulate, scaling, exog, n_threads, verbose)
 }
 
 #' @rdname fBootstrapMax
 #' @param nboot1 Number of first-pass replications used to estimate bias.
 #' @param nboot2 Number of second-pass replications used for the bands.
 #' @export
-fBootstrapMaxCorrected <- function(y, var_result, nboot1, nboot2, horizon, var_idx, conf = 90.0, conf2 = 68.0, cumulate = as.integer( c()), scaling = NULL, exog = NULL, n_threads = 0L) {
-    .Call(`_tidyMacro_fBootstrapMaxCorrected`, y, var_result, nboot1, nboot2, horizon, var_idx, conf, conf2, cumulate, scaling, exog, n_threads)
+fBootstrapMaxCorrected <- function(y, var_result, nboot1, nboot2, horizon, var_idx, conf = 90.0, conf2 = 68.0, cumulate = as.integer( c()), scaling = NULL, exog = NULL, n_threads = 0L, verbose = FALSE) {
+    .Call(`_tidyMacro_fBootstrapMaxCorrected`, y, var_result, nboot1, nboot2, horizon, var_idx, conf, conf2, cumulate, scaling, exog, n_threads, verbose)
 }
 
 #' Bootstrap Uhlig Maximum-Share Impulse Responses
@@ -419,15 +432,15 @@ fBootstrapMaxCorrected <- function(y, var_result, nboot1, nboot2, horizon, var_i
 #'   \code{conf}, the band levels \code{c(conf, conf2)}. The corrected
 #'   variant stores \code{nboot2} draws.
 #' @export
-fBootstrapUhlig <- function(y, var_result, nboot, horizon, idx, conf = 90.0, conf2 = 68.0, cumulate = as.integer( c()), exog = NULL, n_threads = 0L) {
-    .Call(`_tidyMacro_fBootstrapUhlig`, y, var_result, nboot, horizon, idx, conf, conf2, cumulate, exog, n_threads)
+fBootstrapUhlig <- function(y, var_result, nboot, horizon, idx, conf = 90.0, conf2 = 68.0, cumulate = as.integer( c()), exog = NULL, n_threads = 0L, verbose = FALSE) {
+    .Call(`_tidyMacro_fBootstrapUhlig`, y, var_result, nboot, horizon, idx, conf, conf2, cumulate, exog, n_threads, verbose)
 }
 
 #' @rdname fBootstrapUhlig
 #' @inheritParams fBootstrapMax
 #' @export
-fBootstrapUhligCorrected <- function(y, var_result, nboot1, nboot2, horizon, idx, conf = 90.0, conf2 = 68.0, cumulate = as.integer( c()), exog = NULL, n_threads = 0L) {
-    .Call(`_tidyMacro_fBootstrapUhligCorrected`, y, var_result, nboot1, nboot2, horizon, idx, conf, conf2, cumulate, exog, n_threads)
+fBootstrapUhligCorrected <- function(y, var_result, nboot1, nboot2, horizon, idx, conf = 90.0, conf2 = 68.0, cumulate = as.integer( c()), exog = NULL, n_threads = 0L, verbose = FALSE) {
+    .Call(`_tidyMacro_fBootstrapUhligCorrected`, y, var_result, nboot1, nboot2, horizon, idx, conf, conf2, cumulate, exog, n_threads, verbose)
 }
 
 #' Bootstrap VAR Model
@@ -538,17 +551,18 @@ fCheckNarrative_cpp <- function(B, resid, narr_sign_shock = NULL, narr_sign_peri
 #' "generic" (no restriction) and are ignored when counting satisfied constraints.
 #'
 #' @examples
-#' \dontrun{
-#' # After computing cholirf and drawing Q:
-#' Q   <- fGenerateQ(3)
-#' irf <- array(NA, dim = c(3,3,21))
-#' for (h in 1:21) irf[,,h] <- cholirf[,,h] %*% Q
+#' set.seed(123)
+#' y        <- matrix(rnorm(600), ncol = 3)
+#' VAR      <- fVAR(y, p = 2, c = 1)
+#' wold     <- fWoldIRF(VAR, horizon = 20)
+#' cholirf  <- fCholeskyIRF(wold, t(chol(VAR$sigma)))
 #'
-#' # Check monetary policy shock (col 3): FFR up, GDP and PCE down at impact
-#' restr   <- c(-1, -1, 1)
-#' hor_vec <- c(1L)
-#' fCheckRestrictions(irf, shock = 3, restr = restr, hor_vec = hor_vec)
-#' }
+#' Q   <- fGenerateQ(3)
+#' irf <- array(NA_real_, dim = dim(cholirf))
+#' for (h in seq_len(dim(irf)[3])) irf[, , h] <- cholirf[, , h] %*% Q
+#'
+#' # Shock 3 should lower variables 1 and 2 and raise variable 3 on impact
+#' fCheckRestrictions(irf, shock = 3, restr = c(-1, -1, 1), hor_vec = 1L)
 #'
 #' @seealso \code{\link{fGenerateQ}}, \code{\link{fSignRestr}}
 #'
@@ -596,21 +610,13 @@ fCheckStability <- function(var_model) {
 #' of variables determining the causal structure.
 #'
 #' @examples
-#' \dontrun{
-#' # Generate sample Wold representation
-#' N <- 3
-#' horizon <- 20
-#' wold <- array(rnorm(N * N * horizon), dim = c(N, N, horizon))
-#'
-#' # Compute Cholesky factor
-#' Sigma <- matrix(c(1, 0.5, 0.3,
-#'                   0.5, 1, 0.4,
-#'                   0.3, 0.4, 1), 3, 3)
-#' S <- t(chol(Sigma))  # Lower triangular
-#'
-#' # Compute Cholesky IRF
+#' set.seed(123)
+#' y     <- matrix(rnorm(400), ncol = 2)
+#' VAR   <- fVAR(y, p = 2, c = 1)
+#' wold  <- fWoldIRF(VAR, horizon = 10)
+#' S     <- t(chol(VAR$sigma))        # lower-triangular factor
 #' chol_irf <- fCholeskyIRF(wold, S)
-#' }
+#' chol_irf[, 1, 1]                   # impact responses to shock 1
 #'
 #' @export
 fCholeskyIRF <- function(wold, S) {
@@ -653,15 +659,15 @@ fCholeskyIRF <- function(wold, S) {
 #' }
 #'
 #' @examples
-#' \dontrun{
-#' # VAR(2) model with 3 variables, no intercept
-#' beta <- matrix(rnorm(18), 6, 3)  # 6 rows (2*3), 3 columns
-#' result <- fCompanionMatrix(beta, c = 0, p = 2)
+#' set.seed(123)
+#' # VAR(2) with 3 variables, no intercept
+#' beta <- matrix(rnorm(18), 6, 3)
+#' comp <- fCompanionMatrix(beta, c = 0, p = 2)
+#' dim(comp$comp)
 #'
-#' # VAR(2) model with 3 variables, with intercept and 2 exogenous variables
-#' beta_int <- matrix(rnorm(27), 9, 3)  # 9 rows (2*3+1+2), 3 columns
-#' result <- fCompanionMatrix(beta_int, c = 1, p = 2)
-#' }
+#' # VAR(2) with 3 variables, an intercept and 2 exogenous regressors
+#' beta_int <- matrix(rnorm(27), 9, 3)
+#' fCompanionMatrix(beta_int, c = 1, p = 2)$comp[1:3, 1:3]
 #'
 #' @export
 fCompanionMatrix <- function(beta, c, p) {
@@ -694,20 +700,16 @@ fCompanionMatrix <- function(beta, c, p) {
 #' \deqn{FEVD(i,j,h) = \frac{\sum_{s=0}^{h} [\Psi_s P]_{ij}^2}{\sum_{k=1}^{N} \sum_{s=0}^{h} [\Psi_s P]_{ik}^2}}
 #'
 #' @examples
-#' \dontrun{
-#' # Estimate VAR
-#' var_result <- fVAR(y, p = 2, c = 1)
-#' wold <- fWoldIRF(var_result, horizon = 20)
-#' S <- t(chol(var_result$sigma))
-#' chol_irf <- fCholeskyIRF(wold, S)
+#' set.seed(123)
+#' y        <- matrix(rnorm(400), ncol = 2)
+#' VAR      <- fVAR(y, p = 2, c = 1)
+#' wold     <- fWoldIRF(VAR, horizon = 20)
+#' chol_irf <- fCholeskyIRF(wold, t(chol(VAR$sigma)))
 #'
-#' # Full decomposition (all shocks) — returns 3D cube
-#' vardec <- fFEVDChol(chol_irf)
-#'
-#' # Single shock decomposition — returns N x horizon matrix
-#' shock <- match("UNCERT", colnames(y))
-#' vardec <- fFEVDChol(chol_irf, shock = shock)
-#' }
+#' # All shocks (a 3-D array), then one shock (an N x horizon matrix)
+#' vardec   <- fFEVDChol(chol_irf)$fevd
+#' vardec_1 <- fFEVDChol(chol_irf, shock = 1)$fevd
+#' colSums(vardec[1, , ])   # shares of variable 1 sum to one at every horizon
 #'
 #' @seealso \code{\link{fCholeskyIRF}}, \code{\link{fWoldIRF}},
 #'   \code{\link{fPlotVarDec}}, \code{\link{fFEVDIV}}
@@ -758,26 +760,18 @@ fFEVDChol <- function(chol_irf, shock = 0L) {
 #' that the identified shock explains a larger share of the forecast error variance.
 #'
 #' @examples
-#' \dontrun{
-#' # Estimate VAR and compute Wold IRF
-#' var_result <- fVAR(y, p = 2, c = 1)
-#' wold <- fWoldIRF(var_result, horizon = 20)
-#' 
-#' # IV identification
-#' s <- c(1, 0.5, 0.3)
-#' sigma <- var_result$sigma
-#' S <- t(chol(sigma))
-#' 
-#' # Compute FEVD
-#' result <- fFEVDIV(s, S, wold, N = 3, hor = 20,
-#'                   sigma = sigma, u = var_result$residuals,
-#'                   T1 = nrow(var_result$residuals), p = 2)
-#' 
-#' # Plot FEVD for first variable
-#' plot(result$fFEVDIV[1, ], type = "l", ylim = c(0, 1),
-#'      main = "FEVD: Share of Variance Explained by Shock",
-#'      xlab = "Horizon", ylab = "Share")
-#' }
+#' set.seed(123)
+#' y    <- matrix(rnorm(600), ncol = 3)
+#' VAR  <- fVAR(y, p = 2, c = 1)
+#' wold <- fWoldIRF(VAR, horizon = 20)
+#'
+#' # An impact vector from an external instrument, normalised on variable 1
+#' s     <- c(1, 0.5, 0.3)
+#' sigma <- VAR$sigma
+#' result <- fFEVDIV(s, t(chol(sigma)), wold, N = 3, hor = 20,
+#'                   sigma = sigma, u = VAR$residuals,
+#'                   T1 = nrow(VAR$residuals), p = 2)
+#' result$fFEVDIV[1, 1:5]
 #'
 #' @seealso \code{\link{fWoldIRF}} for computing Wold impulse responses,
 #'   \code{\link{fVAR}} for VAR estimation
@@ -810,10 +804,9 @@ fFEVDIV <- function(s, S, wold, N, hor, sigma, u, T1, p) {
 #' \emph{Review of Economic Studies}, 77(2), 665--696.
 #'
 #' @examples
-#' \dontrun{
+#' set.seed(123)
 #' Q <- fGenerateQ(3)
-#' round(t(Q) %*% Q, 10)  # should be identity
-#' }
+#' round(t(Q) %*% Q, 10)  # the identity matrix
 #'
 #' @export
 fGenerateQ <- function(N) {
@@ -839,12 +832,12 @@ fGenerateQ <- function(N) {
 #' \deqn{y_t = c + A_1 y_{t-1} + \cdots + A_p y_{t-p} + e_t}
 #'
 #' @examples
-#' \dontrun{
+#' set.seed(123)
 #' y_init    <- matrix(rnorm(200), ncol = 2)
 #' beta      <- matrix(rnorm(10), 5, 2)
-#' residuals <- matrix(rnorm(190), 95, 2)
+#' residuals <- matrix(rnorm(196), 98, 2)
 #' y_new     <- fGenerateVARData(y_init, p = 2, c = 1, beta, residuals)
-#' }
+#' dim(y_new)
 #'
 #' @export
 fGenerateVARData <- function(y, p, c, beta, residuals) {
@@ -936,6 +929,8 @@ fHDIV <- function(residuals, sigma, s, beta, c, p) {
 #' @param policyvar Integer (1-based) index of the IV policy variable. Default 1.
 #' @param conf Confidence level in percent (e.g. 90 for 90\% CI). Default 90.
 #' @param n_threads OpenMP threads. 0 = all cores minus one. Default 0.
+#' @param verbose Logical. If \code{TRUE}, report the number of threads used.
+#'   Default \code{FALSE}, so the function is silent.
 #'
 #' @return A list with elements:
 #'   \item{HDshock}{(T-p) x N point-estimate HD matrix.}
@@ -943,8 +938,8 @@ fHDIV <- function(residuals, sigma, s, beta, c, p) {
 #'   \item{lower}{(T-p) x N lower confidence bands.}
 #'
 #' @export
-fBootstrapHDIV <- function(y, var_result, Z, s, nboot, blocksize, adjustZ, adjustu, policyvar = 1L, conf = 90.0, n_threads = 0L) {
-    .Call(`_tidyMacro_fBootstrapHDIV`, y, var_result, Z, s, nboot, blocksize, adjustZ, adjustu, policyvar, conf, n_threads)
+fBootstrapHDIV <- function(y, var_result, Z, s, nboot, blocksize, adjustZ, adjustu, policyvar = 1L, conf = 90.0, n_threads = 0L, verbose = FALSE) {
+    .Call(`_tidyMacro_fBootstrapHDIV`, y, var_result, Z, s, nboot, blocksize, adjustZ, adjustu, policyvar, conf, n_threads, verbose)
 }
 
 #' Historical Decomposition for a Sign-Restricted SVAR
@@ -1027,13 +1022,16 @@ fHeteroIRF <- function(var_result, Z, adjustu, indsR1, hor, nvar, scale = 10.0) 
 #' @param conf        Primary confidence level (e.g. 90).
 #' @param conf2       Secondary confidence level (e.g. 68).
 #' @param n_threads  OpenMP threads (0 = all cores minus one).
+#' @param verbose    Logical. If \code{TRUE}, report the number of threads
+#'   used. Default \code{FALSE}, so the function is silent.
 #'
 #' @return A list with \code{upper}, \code{lower}, \code{upper2},
-#'   \code{lower2}, \code{meanirf}, \code{medianirf}, \code{point} (each
-#'   N x hor+1) and \code{conf}, the band levels \code{c(conf, conf2)}.
+#'   \code{lower2}, \code{point} (each N x hor+1) and \code{conf}, the band
+#'   levels \code{c(conf, conf2)}. \code{point} is the plug-in estimate on
+#'   the original sample; the bootstrap supplies the bands only.
 #' @export
-fBootstrapHetero <- function(y, var_result, Z, indsR1, adjustu, nboot = 1000L, blocksize = 0L, hor = 48L, nvar = 1L, scale = 10.0, conf = 90.0, conf2 = 68.0, n_threads = 0L) {
-    .Call(`_tidyMacro_fBootstrapHetero`, y, var_result, Z, indsR1, adjustu, nboot, blocksize, hor, nvar, scale, conf, conf2, n_threads)
+fBootstrapHetero <- function(y, var_result, Z, indsR1, adjustu, nboot = 1000L, blocksize = 0L, hor = 48L, nvar = 1L, scale = 10.0, conf = 90.0, conf2 = 68.0, n_threads = 0L, verbose = FALSE) {
+    .Call(`_tidyMacro_fBootstrapHetero`, y, var_result, Z, indsR1, adjustu, nboot, blocksize, hor, nvar, scale, conf, conf2, n_threads, verbose)
 }
 
 #' Historical Decomposition of a VAR Variable
@@ -1072,19 +1070,12 @@ fBootstrapHetero <- function(y, var_result, Z, indsR1, adjustu, nboot = 1000L, b
 #' \deqn{HD(t,j) = \sum_{h=0}^{t} \Theta_h[i,j]\, \varepsilon_{t-h,j}}
 #'
 #' @examples
-#' \dontrun{
-#' # Cholesky identification
-#' var_result <- fVAR(y, p = 12, c = 1)
-#' K_chol <- t(chol(var_result$sigma))
-#' hd <- fHistDec(y, var_result, K_chol, series = 1)
-#'
-#' # BQ identification
-#' wold  <- fWoldIRF(var_result, horizon = 40)
-#' C1    <- apply(wold, c(1, 2), sum)
-#' D1    <- t(chol(C1 %*% var_result$sigma %*% t(C1)))
-#' K_bq  <- solve(C1, D1)
-#' hd_bq <- fHistDec(y, var_result, K_bq, series = 1)
-#' }
+#' set.seed(123)
+#' y      <- matrix(rnorm(400), ncol = 2)
+#' VAR    <- fVAR(y, p = 2, c = 1)
+#' K_chol <- t(chol(VAR$sigma))
+#' hd     <- fHistDec(y, VAR, K_chol, series = 1)
+#' dim(hd)
 #'
 #' @seealso \code{\link{fVAR}}, \code{\link{fCholeskyIRF}},
 #'   \code{\link{fWoldIRF}}, \code{\link{fPlotHistDec}}
@@ -1197,8 +1188,8 @@ fLPIV_cpp <- function(Y, D, Z, C, H, conf_level, nw_lags_iv, cumulative = FALSE,
 #'
 #' @keywords internal
 #' @noRd
-fLPPanel_cpp <- function(y, s, X, W, FE, i_index, t_index, H, p_max, small_sample = FALSE, cumulative = FALSE, cluster_mode = 0L, n_threads = 0L, verbose = FALSE) {
-    .Call(`_tidyMacro_fLPPanel_cpp`, y, s, X, W, FE, i_index, t_index, H, p_max, small_sample, cumulative, cluster_mode, n_threads, verbose)
+fLPPanel_cpp <- function(y, s, X, W, FE, i_index, t_index, H, p_max, ssc_mode = 0L, cumulative = FALSE, cluster_mode = 0L, n_threads = 0L, verbose = FALSE) {
+    .Call(`_tidyMacro_fLPPanel_cpp`, y, s, X, W, FE, i_index, t_index, H, p_max, ssc_mode, cumulative, cluster_mode, n_threads, verbose)
 }
 
 #' Create Lagged Matrix
@@ -1207,7 +1198,7 @@ fLPPanel_cpp <- function(y, s, X, W, FE, i_index, t_index, H, p_max, small_sampl
 #' variable and each lag from 1 to p, this function creates a column containing
 #' the lagged values, removing the first p rows to align the lags properly.
 #'
-#' @param y A numeric matrix, data frame, or tibble of time series data with T
+#' @param y A numeric matrix of time series data with T
 #'   rows (time periods) and N columns (variables)
 #' @param p An integer specifying the number of lags to create
 #'
@@ -1221,18 +1212,13 @@ fLPPanel_cpp <- function(y, s, X, W, FE, i_index, t_index, H, p_max, small_sampl
 #'   the column order would be: var1_lag1, var2_lag1, var1_lag2, var2_lag2.
 #'
 #' @examples
-#' \dontrun{
-#' # Create sample data as data frame
-#' y <- data.frame(var1 = 1:10, var2 = 11:20)
+#' y <- cbind(var1 = 1:10, var2 = 11:20)
+#' x <- fLagMakerMatrix(y, 2)
+#' head(x)
 #'
-#' # Create 2 lags
-#' x <- lagmakerMatrix(y, 2)
-#'
-#' # Works with tibbles too
-#' library(tibble)
-#' y_tbl <- tibble(var1 = 1:10, var2 = 11:20)
-#' x <- lagmakerMatrix(y_tbl, 2)
-#' }
+#' # A data frame must be converted first
+#' df <- data.frame(var1 = 1:10, var2 = 11:20)
+#' head(fLagMakerMatrix(as.matrix(df), 2))
 #'
 #' @export
 fLagMakerMatrix <- function(y, p) {
@@ -1267,17 +1253,15 @@ fLagMakerMatrix <- function(y, p) {
 #' For instruments, only non-zero values are centered (to handle sparse instruments).
 #' 
 #' @examples
-#' \dontrun{
-#' # Bootstrap residuals only
-#' eps <- matrix(rnorm(200), 100, 2)
+#' set.seed(123)
+#' eps    <- matrix(rnorm(200), 100, 2)
 #' result <- fMBBVAR(eps, lags = 2, BlockSize = 0)
-#' eps_boot <- result$eps_boot
-#' 
-#' # Bootstrap residuals and instruments
-#' M <- matrix(rnorm(100), 100, 1)
+#' dim(result$eps_boot)
+#'
+#' # Bootstrap the residuals and an instrument jointly
+#' M      <- matrix(rnorm(100), 100, 1)
 #' result <- fMBBVAR(eps, lags = 2, BlockSize = 0, M)
-#' M_boot <- result$M_boot
-#' }
+#' dim(result$M_boot)
 #' 
 #' @export
 fMBBVAR <- function(eps, lags, BlockSize, M = NULL) {
@@ -1812,15 +1796,15 @@ fUhligMaxShare <- function(wold, S, idx) {
 #' \code{arma::solve} for numerical stability.
 #'
 #' @examples
-#' \dontrun{
-#' # VAR(2) without exogenous variables
-#' y      <- matrix(rnorm(200), ncol = 2)
+#' set.seed(123)
+#' y      <- matrix(rnorm(400), ncol = 2)
 #' result <- fVAR(y, p = 2, c = 1)
+#' result$beta
 #'
-#' # VAR(2) with one exogenous variable
-#' exog   <- matrix(rnorm(100), ncol = 1)
+#' # With one exogenous regressor
+#' exog   <- matrix(rnorm(200), ncol = 1)
 #' result <- fVAR(y, p = 2, c = 1, exog = exog)
-#' }
+#' dim(result$residuals)
 #'
 #' @seealso \code{\link{fWoldIRF}}, \code{\link{fBootstrapChol}},
 #'   \code{\link{fAICBIC}}
@@ -1894,13 +1878,11 @@ fVARPosterior_cpp <- function(y, p, c, ndraws, seed = 42L, exog = NULL) {
 #' Exogenous variables also enter contemporaneously at time t.
 #'
 #' @examples
-#' \dontrun{
-#' y  <- matrix(rnorm(200), ncol = 2)
-#' ex <- matrix(rnorm(100), ncol = 1)
-#' result    <- fVARX(y, ex, p = 2, c = 1)
-#' beta      <- result$beta
-#' residuals <- result$residuals
-#' }
+#' set.seed(123)
+#' y  <- matrix(rnorm(400), ncol = 2)
+#' ex <- matrix(rnorm(200), ncol = 1)
+#' result <- fVARX(y, ex, p = 2, c = 1)
+#' dim(result$beta)
 #'
 #' @export
 fVARX <- function(y, ex, p, c) {
@@ -1936,18 +1918,11 @@ fVARX <- function(y, ex, p, c) {
 #' where A is the companion matrix and h is the horizon.
 #'
 #' @examples
-#' \dontrun{
-#' # VAR(2) model with 3 variables and 1 exogenous variable
-#' y <- matrix(rnorm(200), ncol = 2)
-#' exog <- matrix(rnorm(100), ncol = 1)
-#' VAR <- fVAR(y, p = 2, c = 1, exog = exog)
+#' set.seed(123)
+#' y   <- matrix(rnorm(400), ncol = 2)
+#' VAR <- fVAR(y, p = 2, c = 1)
 #' irf <- fWoldIRF(VAR, horizon = 10)
-#' # irf is a 2x2x11 array
-#' 
-#' # Plot impulse response
-#' plot(irf[1, 2, ], type = "l", 
-#'      main = "Response of Variable 2 to Shock in Variable 1")
-#' }
+#' dim(irf)   # 2 x 2 x 11
 #'
 #' @export
 fWoldIRF <- function(fVAR, horizon) {

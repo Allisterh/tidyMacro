@@ -30,3 +30,5 @@
 ^src/.*\.(o|so|dll|dylib)$
 ^\.DS_Store$
 ^.*/\.DS_Store$
+^Rplots\.pdf$
+^cran-comments\.md$

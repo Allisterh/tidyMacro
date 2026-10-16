@@ -119,12 +119,12 @@ Level responses are recovered by accumulating the first-differenced IRFs. The fi
 #| fig-cap: "Impulse response functions to technology and non-technology shocks (68% and 90% confidence bands)"
 
 fPlotIRF(
-  fIRF(irf_bq,
-       bands      = boot_bq,
-       varnames   = c("LABPROD", "HOURS"),
-       shocknames = c("Shock:Technology", "Shock:Non-Technology"),
-       cumulate   = c(1, 2)),   # bands from fBootstrapBQ() are already cumulated
-  shock = c(1, 2)
+  irf_bq,
+  bands      = boot_bq,
+  varnames   = c("LABPROD", "HOURS"),
+  shocknames = c("Shock:Technology", "Shock:Non-Technology"),
+  cumulate   = c(1, 2),   # bands from fBootstrapBQ() are already cumulated
+  shock      = c(1, 2)
 ) +
   labs(x = NULL)
 ```

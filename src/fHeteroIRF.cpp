@@ -90,7 +90,7 @@ BootHeteroResult fBootstrapHetero_cpp(const arma::mat& y,
                                       int nboot, int blocksize,
                                       int hor, int nvar, double scale,
                                       double conf, double conf2,
-                                      int n_threads) {
+                                      int n_threads, bool verbose) {
     const arma::mat& residuals = var_result.residuals;
     const int p = var_result.p;
     const int c = var_result.c;
@@ -112,7 +112,8 @@ BootHeteroResult fBootstrapHetero_cpp(const arma::mat& y,
     const arma::imat index    = fmbb_draw_cpp(mbb, nboot);
 
     const int n_thr = fResolveThreads_cpp(n_threads);
-    Rprintf("Using %d thread(s) for heteroskedasticity bootstrap...\n", n_thr);
+    if (verbose)
+        Rprintf("Using %d thread(s) for heteroskedasticity bootstrap...\n", n_thr);
 
     // Draw b's N x H responses are column b of the flat (N*H) x nboot matrix
     arma::mat flat(N * H, nboot, arma::fill::zeros);
@@ -159,8 +160,6 @@ BootHeteroResult fBootstrapHetero_cpp(const arma::mat& y,
     res.lower     = arma::reshape(q.col(1), N, H) + shift;
     res.upper2    = arma::reshape(q.col(2), N, H) + shift;
     res.lower2    = arma::reshape(q.col(3), N, H) + shift;
-    res.medianirf = bmed;
-    res.meanirf   = arma::reshape(arma::mean(kept, 1), N, H);
     res.point     = irf_pt;
     return res;
 }
@@ -230,10 +229,13 @@ Rcpp::List fHeteroIRF(const Rcpp::List& var_result,
 //' @param conf        Primary confidence level (e.g. 90).
 //' @param conf2       Secondary confidence level (e.g. 68).
 //' @param n_threads  OpenMP threads (0 = all cores minus one).
+//' @param verbose    Logical. If \code{TRUE}, report the number of threads
+//'   used. Default \code{FALSE}, so the function is silent.
 //'
 //' @return A list with \code{upper}, \code{lower}, \code{upper2},
-//'   \code{lower2}, \code{meanirf}, \code{medianirf}, \code{point} (each
-//'   N x hor+1) and \code{conf}, the band levels \code{c(conf, conf2)}.
+//'   \code{lower2}, \code{point} (each N x hor+1) and \code{conf}, the band
+//'   levels \code{c(conf, conf2)}. \code{point} is the plug-in estimate on
+//'   the original sample; the bootstrap supplies the bands only.
 //' @export
 // [[Rcpp::export]]
 Rcpp::List fBootstrapHetero(const arma::mat& y,
@@ -248,24 +250,27 @@ Rcpp::List fBootstrapHetero(const arma::mat& y,
                              double scale   = 10.0,
                              double conf     = 90.0,
                              double conf2    = 68.0,
-                             int n_threads  = 0) {
+                             int n_threads  = 0,
+                             bool verbose   = false) {
 
     VARResult vr = fVARResultFromList_cpp(var_result);
     fRequireNoExog_cpp(vr.n_exog, "fBootstrapHetero");
+    fCheckDrawArgs_cpp(nboot, hor, conf, conf2);
+    if (nvar < 1 || nvar > static_cast<int>(y.n_cols))
+        Rcpp::stop("'nvar' must be between 1 and %d.",
+                   static_cast<int>(y.n_cols));
 
     BootHeteroResult res = fBootstrapHetero_cpp(y, vr, Z, indsR1, adjustu,
                                                  nboot, blocksize, hor,
                                                  nvar, scale, conf, conf2,
-                                                 n_threads);
+                                                 n_threads, verbose);
 
     return Rcpp::List::create(
-        Rcpp::Named("upper")     = res.upper,
-        Rcpp::Named("lower")     = res.lower,
-        Rcpp::Named("upper2")    = res.upper2,
-        Rcpp::Named("lower2")    = res.lower2,
-        Rcpp::Named("meanirf")   = res.meanirf,
-        Rcpp::Named("medianirf") = res.medianirf,
-        Rcpp::Named("point")     = res.point,
-        Rcpp::Named("conf")      = Rcpp::NumericVector::create(conf, conf2)
+        Rcpp::Named("upper")  = res.upper,
+        Rcpp::Named("lower")  = res.lower,
+        Rcpp::Named("upper2") = res.upper2,
+        Rcpp::Named("lower2") = res.lower2,
+        Rcpp::Named("point")  = res.point,
+        Rcpp::Named("conf")   = Rcpp::NumericVector::create(conf, conf2)
     );
 }

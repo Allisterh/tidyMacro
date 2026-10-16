@@ -94,18 +94,19 @@ The horizon loop runs in parallel C++ (OpenMP). Formula syntax mirrors
 panel-aware operators \code{l()}, \code{f()} and \code{d()}.
 }
 \examples{
-\dontrun{
 data("BankingDeregulation")
+
 m <- fLPDID(lshare ~ bank, data = BankingDeregulation,
             panel_id = c("id", "year"), treat = "bank",
-            post = 9, pre = 9)
+            post = 4, pre = 4, n_threads = 2)
+m
 fPlotLPDID(m)
 
-# with controls via panel-aware operators and macros
+\donttest{
+# Controls through the panel-aware operators and a macro
 ctrl <- c("grgsp", "corptax", "unionmem")
-m2 <- fLPDID(lshare ~ bank + l(lshare, 1:4) + l(d(lshare), 1:4) +
-               l(..ctrl, 1:4),
-             data = BankingDeregulation, panel_id = c("id", "year"),
-             treat = "bank", post = 9, pre = 9)
+fLPDID(lshare ~ bank + l(lshare, 1:4) + l(d(lshare), 1:4) + l(..ctrl, 1:4),
+       data = BankingDeregulation, panel_id = c("id", "year"),
+       treat = "bank", post = 9, pre = 9, n_threads = 2)
 }
 }

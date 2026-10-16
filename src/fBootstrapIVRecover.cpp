@@ -6,25 +6,12 @@
 #include "fLagMakerMatrix.h"
 #include "fWoldIRF.h"
 #include "fPolyConvolve.h"
+#include "fBootstrapVAR.h"
 #include "omp_threads.h"
 #include <RcppArmadillo.h>
 #include <cmath>
 // [[Rcpp::depends(RcppArmadillo)]]
 // [[Rcpp::plugins(openmp)]]
-
-static arma::vec clean_instr_rec(const arma::vec& instr_raw, int p,
-                                  const arma::mat& y) {
-    int T = static_cast<int>(y.n_rows);
-    arma::mat instr_mat(instr_raw.n_elem, 1);
-    instr_mat.col(0) = instr_raw;
-    arma::vec z0 = instr_raw.rows(p, T - 1);
-    arma::mat z0_mat(z0.n_elem, 1);
-    z0_mat.col(0) = z0;
-    arma::mat lag_i   = fLagMakerMatrix(instr_mat, p);
-    arma::mat lag_X   = fLagMakerMatrix(y, p);
-    arma::mat X_clean = arma::join_horiz(lag_i, lag_X);
-    return fOLS_cpp(z0_mat, X_clean, 1, 0, 0, 1).err.col(0);
-}
 
 arma::cube fBootstrapIVRecover_cpp(
     const arma::mat& y,
@@ -33,7 +20,8 @@ arma::cube fBootstrapIVRecover_cpp(
     const arma::vec& noise,
     const arma::vec& delta,
     int nboot, int p, int c, int r, int hor,
-    const arma::ivec& cumu)
+    const arma::ivec& cumu, int n_threads,
+    std::vector<unsigned char>& ok)
 {
     const arma::mat& beta = var_result.beta;
     const arma::mat& eps  = var_result.residuals;
@@ -45,6 +33,7 @@ arma::cube fBootstrapIVRecover_cpp(
     const int H       = hor + 1;
 
     arma::cube bootirf(N, H, nboot, arma::fill::zeros);
+    ok.assign(nboot, 0);   // per-draw success, recorded without the R API
 
     // Pre-generate all bootstrap indices sequentially (Armadillo RNG is not thread-safe)
     arma::imat all_idx(t_shock, nboot);
@@ -52,7 +41,7 @@ arma::cube fBootstrapIVRecover_cpp(
         all_idx.col(b) = arma::randi<arma::ivec>(
             t_shock, arma::distr_param(0, t_shock - 1));
 
-    const int n_thr = fResolveThreads_cpp(0);
+    const int n_thr = fResolveThreads_cpp(n_threads);
 #ifdef _OPENMP
 #pragma omp parallel for schedule(static) num_threads(n_thr)
 #endif
@@ -84,14 +73,17 @@ arma::cube fBootstrapIVRecover_cpp(
         z_new.rows(p, T - r - 1) = X_boot * delta + v_boot;
 
         // 4. Clean instrument
-        arma::vec z_b = clean_instr_rec(z_new, p, y_new);
+        arma::vec z_b = fCleanInstrument_cpp(z_new, p, y_new);
         const int m_b = static_cast<int>(z_b.n_elem);
 
-        // 5. Estimate VAR and Wold IRF
-        VARResult     vr_b = fVAR_cpp(y_new, p, c);
+        // 5. Estimate VAR and Wold IRF. Drop a rank-deficient or singular
+        //    resample instead of throwing from inside the parallel region.
+        VARResult vr_b = fVAR_cpp(y_new, p, c);
+        if (!vr_b.ok) continue;
+        arma::mat Sigma_inv;
+        if (!arma::inv_sympd(Sigma_inv, vr_b.sigma)) continue;
         WoldIRFResult wr_b = fWoldIRF_cpp(vr_b, hor);
-        const arma::mat& eps_b    = vr_b.residuals;
-        const arma::mat  Sigma_inv = arma::inv_sympd(vr_b.sigma);
+        const arma::mat& eps_b = vr_b.residuals;
 
         // 6. Re-estimate psi(L): regress eps on [1, z_b, lags(z_b)]
         arma::mat z_b_mat(z_b.n_elem, 1);
@@ -113,6 +105,8 @@ arma::cube fBootstrapIVRecover_cpp(
             a2_b += arma::dot(psi_temp, Sigma_inv * psi_temp);
         }
 
+        if (!std::isfinite(a2_b) || a2_b < 1e-24) continue;
+
         // 7. Compute IRF, cumulate, sign-normalise
         arma::cube irf_raw =
             fPolyConvolve_cpp(wr_b.irfwold, psiL_b, H) / std::sqrt(a2_b);
@@ -127,6 +121,7 @@ arma::cube fBootstrapIVRecover_cpp(
 
         double sgn = (irf_mb(0, 0) >= 0.0) ? 1.0 : -1.0;
         bootirf.slice(b) = irf_mb * sgn;
+        ok[b] = 1;
     }
 
     return bootirf;
@@ -155,6 +150,7 @@ arma::cube fBootstrapIVRecover_cpp(
 //' @param cumu 1-indexed integer vector of variable positions to cumulate.
 //' @param conf Primary confidence level (e.g. 90). Default 90.
 //' @param conf2 Secondary confidence level (e.g. 68). Default 68.
+//' @param n_threads OpenMP threads. 0 (default) uses all cores minus one.
 //'
 //' @return List with N x (hor+1) matrices: upper, lower (at \code{conf}),
 //'   upper2, lower2 (at \code{conf2}), median.
@@ -171,13 +167,31 @@ Rcpp::List fBootstrapIVRecover(
     const arma::vec& delta,
     int nboot, int p, int c, int r, int hor,
     const arma::ivec& cumu,
-    double conf = 90.0, double conf2 = 68.0)
+    double conf = 90.0, double conf2 = 68.0,
+    int n_threads = 0)
 {
     VARResult vr = fVARResultFromList_cpp(var_result);
     fRequireNoExog_cpp(vr.n_exog, "fBootstrapIVRecover");
+    fCheckDrawArgs_cpp(nboot, hor, conf, conf2);
+    if (static_cast<int>(instr.n_elem) != static_cast<int>(y.n_rows))
+        Rcpp::stop("'instr' must have one value per row of 'y' (%d vs %d).",
+                   static_cast<int>(instr.n_elem), static_cast<int>(y.n_rows));
+    const int m_full = static_cast<int>(vr.residuals.n_rows);
+    if (r < 1 || r >= m_full)
+        Rcpp::stop("'r' must be between 1 and %d (the number of future VAR "
+                   "residuals used in the invertibility regression).",
+                   m_full - 1);
+    if (static_cast<int>(noise.n_elem) != m_full - r)
+        Rcpp::stop("'noise' must have T-p-r = %d values, got %d.",
+                   m_full - r, static_cast<int>(noise.n_elem));
+    if (static_cast<int>(delta.n_elem) < r + 1)
+        Rcpp::stop("'delta' must have at least r+1 = %d values, got %d.",
+                   r + 1, static_cast<int>(delta.n_elem));
 
+    std::vector<unsigned char> ok;
     arma::cube bootirf = fBootstrapIVRecover_cpp(
-        y, instr, vr, noise, delta, nboot, p, c, r, hor, cumu);
+        y, instr, vr, noise, delta, nboot, p, c, r, hor, cumu, n_threads, ok);
+    bootirf = fKeepValidSlices_cpp(bootirf, ok, "fBootstrapIVRecover");
 
     // Sort once, extract both confidence bands in a single pass
     FGetBands2Result bands = fGetBands2_cpp(bootirf, conf, conf2);

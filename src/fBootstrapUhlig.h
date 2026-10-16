@@ -10,6 +10,6 @@ SVARBootResult fBootstrapUhlig_cpp(const arma::mat& y, const VARResult& var_resu
                                    int nboot, int horizon, int idx,
                                    double conf, double conf2,
                                    const arma::uvec& cumulate,
-                                   const arma::mat* exog_ptr, int n_threads);
+                                   const arma::mat* exog_ptr, int n_threads, bool verbose);
 
 #endif

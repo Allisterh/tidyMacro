@@ -10,7 +10,7 @@ using namespace arma;
 //' variable and each lag from 1 to p, this function creates a column containing
 //' the lagged values, removing the first p rows to align the lags properly.
 //'
-//' @param y A numeric matrix, data frame, or tibble of time series data with T
+//' @param y A numeric matrix of time series data with T
 //'   rows (time periods) and N columns (variables)
 //' @param p An integer specifying the number of lags to create
 //'
@@ -24,18 +24,13 @@ using namespace arma;
 //'   the column order would be: var1_lag1, var2_lag1, var1_lag2, var2_lag2.
 //'
 //' @examples
-//' \dontrun{
-//' # Create sample data as data frame
-//' y <- data.frame(var1 = 1:10, var2 = 11:20)
+//' y <- cbind(var1 = 1:10, var2 = 11:20)
+//' x <- fLagMakerMatrix(y, 2)
+//' head(x)
 //'
-//' # Create 2 lags
-//' x <- lagmakerMatrix(y, 2)
-//'
-//' # Works with tibbles too
-//' library(tibble)
-//' y_tbl <- tibble(var1 = 1:10, var2 = 11:20)
-//' x <- lagmakerMatrix(y_tbl, 2)
-//' }
+//' # A data frame must be converted first
+//' df <- data.frame(var1 = 1:10, var2 = 11:20)
+//' head(fLagMakerMatrix(as.matrix(df), 2))
 //'
 //' @export
 // [[Rcpp::export]]

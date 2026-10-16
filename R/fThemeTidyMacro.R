@@ -21,22 +21,17 @@
 #' after loading the extrafont package.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' library(ggplot2)
-#' library(tidyMacro)
 #'
-#' # Basic usage with default base size
 #' ggplot(mtcars, aes(x = wt, y = mpg)) +
 #'   geom_point() +
-#'   labs(title = "Miles per Gallon vs Weight") +
+#'   labs(title = "Miles per gallon vs weight") +
 #'   fThemeTidyMacro()
 #'
-#' # Customize base size
 #' ggplot(mtcars, aes(x = wt, y = mpg, color = factor(cyl))) +
 #'   geom_point(size = 3) +
-#'   labs(title = "MPG vs Weight by Cylinders",
-#'        x = "Weight (1000 lbs)",
-#'        y = "Miles per Gallon") +
+#'   labs(x = "Weight (1000 lbs)", y = "Miles per gallon") +
 #'   scale_color_tidyMacro() +
 #'   fThemeTidyMacro(base_size = 16)
 #' }

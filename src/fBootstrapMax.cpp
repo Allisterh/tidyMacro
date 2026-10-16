@@ -34,7 +34,7 @@ SVARBootResult fBootstrapMax_cpp(const arma::mat& y, const VARResult& var_result
                                  double conf, double conf2,
                                  const arma::uvec& cumulate,
                                  bool has_scaling, int scale_idx, double scale_size,
-                                 const arma::mat* exog_ptr, int n_threads) {
+                                 const arma::mat* exog_ptr, int n_threads, bool verbose) {
     fCheckBootArgs_cpp(y, var_result, nboot, horizon, conf, conf2);
     const int N = static_cast<int>(y.n_cols);
     const int H = horizon + 1;
@@ -43,7 +43,9 @@ SVARBootResult fBootstrapMax_cpp(const arma::mat& y, const VARResult& var_result
         y, var_result, nboot, horizon, "residual", exog_ptr, n_threads,
         N * H, "LR-Max",
         [&](const VARResult& var_b, const arma::cube& wold_b, arma::vec& out) {
-            arma::mat S = fLowerChol_cpp(var_b.sigma);
+            bool chol_ok = true;
+            const arma::mat S = fLowerChol_cpp(var_b.sigma, &chol_ok);
+            if (!chol_ok) return false;
             arma::vec impact = S * lr_max_solve(wold_b, S, var_idx);
 
             // Orient the shock so the selected variable's maximised response
@@ -61,8 +63,9 @@ SVARBootResult fBootstrapMax_cpp(const arma::mat& y, const VARResult& var_result
             for (arma::uword ci = 0; ci < cumulate.n_elem; ++ci)
                 irf.row(cumulate(ci)) = arma::cumsum(irf.row(cumulate(ci)));
             out = arma::vectorise(irf);
-        });
-    fSVARBootBands_cpp(r, conf, conf2, n_threads);
+            return true;
+        }, verbose);
+    fSVARBootBands_cpp(r, conf, conf2, n_threads, "fBootstrapMax");
     return r;
 }
 
@@ -117,6 +120,8 @@ static void max_args(int N, int var_idx, Rcpp::IntegerVector cumulate,
 //'   \code{scaling[2]}, when that product is nonzero. Default \code{NULL}.
 //' @param exog T x M matrix of exogenous variables, required when the
 //'   original VAR included them; otherwise \code{NULL}.
+//' @param verbose Logical. If \code{TRUE}, report the number of threads
+//'   used. Default \code{FALSE}, so the function is silent.
 //' @param n_threads Number of OpenMP threads. Zero uses all available
 //'   cores minus one, with a minimum of one. Without OpenMP, uses one.
 //' @return A list with \code{bootmax}, an N x (horizon+1) x nboot array;
@@ -133,7 +138,7 @@ Rcpp::List fBootstrapMax(const arma::mat& y, const Rcpp::List& var_result,
                          Rcpp::IntegerVector cumulate = Rcpp::IntegerVector::create(),
                          Rcpp::Nullable<arma::vec> scaling = R_NilValue,
                          Rcpp::Nullable<arma::mat> exog    = R_NilValue,
-                         int n_threads = 0) {
+                         int n_threads = 0, bool verbose = false) {
   VARResult vr = fVARResultFromList_cpp(var_result);
   fCheckExogArg_cpp(vr.n_exog, exog.isNotNull());
   arma::mat exog_mat;
@@ -146,7 +151,7 @@ Rcpp::List fBootstrapMax(const arma::mat& y, const Rcpp::List& var_result,
 
   SVARBootResult r = fBootstrapMax_cpp(y, vr, nboot, horizon, var_idx - 1,
                                        conf, conf2, cumulate_cpp, has_scaling,
-                                       scale_idx, scale_size, exog_ptr, n_threads);
+                                       scale_idx, scale_size, exog_ptr, n_threads, verbose);
   return fSVARBootList_cpp(r, "bootmax", {N, horizon + 1});
 }
 
@@ -161,7 +166,7 @@ Rcpp::List fBootstrapMaxCorrected(const arma::mat& y, const Rcpp::List& var_resu
                                    Rcpp::IntegerVector cumulate = Rcpp::IntegerVector::create(),
                                    Rcpp::Nullable<arma::vec> scaling = R_NilValue,
                                    Rcpp::Nullable<arma::mat> exog    = R_NilValue,
-                                   int n_threads = 0) {
+                                   int n_threads = 0, bool verbose = false) {
   VARResult vr = fVARResultFromList_cpp(var_result);
   fCheckExogArg_cpp(vr.n_exog, exog.isNotNull());
   arma::mat exog_mat;
@@ -174,9 +179,9 @@ Rcpp::List fBootstrapMaxCorrected(const arma::mat& y, const Rcpp::List& var_resu
   fCheckBootArgs_cpp(y, vr, nboot2, horizon, conf, conf2);
 
   VARResult corrected = fBiasCorrectedVAR_cpp(y, vr, nboot1, "residual",
-                                              exog_ptr, n_threads);
+                                              exog_ptr, n_threads, verbose);
   SVARBootResult r = fBootstrapMax_cpp(y, corrected, nboot2, horizon, var_idx - 1,
                                        conf, conf2, cumulate_cpp, has_scaling,
-                                       scale_idx, scale_size, exog_ptr, n_threads);
+                                       scale_idx, scale_size, exog_ptr, n_threads, verbose);
   return fSVARBootList_cpp(r, "bootmax", {N, horizon + 1});
 }

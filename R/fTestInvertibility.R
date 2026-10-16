@@ -39,12 +39,15 @@
 #' from non-invertible structural VARs. \emph{Review of Economics and Statistics}.
 #'
 #' @examples
-#' \dontrun{
-#' var_result <- fVAR(X, p = 7, c = 1)
-#' z   <- clean_instrument(instr, p = 7, X)
-#' inv <- fTestInvertibility(z, var_result$residuals, r = 3)
+#' set.seed(123)
+#' X   <- matrix(rnorm(600), ncol = 3)
+#' fit <- fVAR(X, p = 2, c = 1)
+#'
+#' # An instrument correlated with the first structural shock
+#' u   <- fit$residuals
+#' z   <- u[, 1] + rnorm(nrow(u), sd = 0.5)
+#' inv <- fTestInvertibility(z, u, r = 3)
 #' cat(sprintf("F = %.3f  p = %.4f\n", inv$F_stat, inv$pval))
-#' }
 #'
 #' @export
 fTestInvertibility <- function(z, eps, r) {

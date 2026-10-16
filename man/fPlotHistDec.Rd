@@ -84,27 +84,25 @@ named stacked area — useful for the BQ case where the second shock has a
 meaningful label (e.g. "Non-Technology").
 }
 \examples{
-\dontrun{
-# BQ case — name both shocks
-fPlotHistDec(
-    histdec_list = histdec_all,
-    shock        = 1,
-    shockname    = "Technology",
-    shocknames   = c("Technology", "Non-Technology"),
-    dates        = dates,
-    p            = p,
-    facet_ncol   = 1
-)
+set.seed(123)
+y   <- matrix(rnorm(400), ncol = 2,
+              dimnames = list(NULL, c("Output", "Prices")))
+fit <- fVAR(y, p = 2, c = 1)
 
-# Cholesky case — collapse others into "Residual" (default)
+# One (T-p) x N contribution matrix per series, Cholesky-identified
+K  <- t(chol(fit$sigma))
+hd <- lapply(seq_len(ncol(y)),
+             function(i) fHistDec(y, fit, K, series = i)$histdec)
+names(hd) <- colnames(y)
+
 fPlotHistDec(
-    histdec_list = histdec_list,
-    shock        = shock,
-    shockname    = "Uncertainty",
-    dates        = dates_vec,
-    p            = 12
+    histdec_list = hd,
+    shock        = 1,
+    shockname    = "Supply",
+    shocknames   = c("Supply", "Demand"),
+    dates        = seq_len(nrow(y) - fit$p),
+    p            = fit$p
 )
-}
 
 }
 \seealso{

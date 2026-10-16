@@ -9,6 +9,10 @@
 #include "omp_threads.h"
 #include "fGetBands.h"
 #include "fRemoveBias.h"
+#include "fLagMakerMatrix.h"
+#include "fOLS.h"
+#include <cstdio>
+#include <string>
 
 BootstrapPlan fBootstrapPlan_cpp(const std::string& bootscheme,
                                  int T_iter, int T_resid, int nboot) {
@@ -130,18 +134,22 @@ arma::mat fBootstrapMeanBeta_cpp(const arma::mat& y,
 VARResult fBiasCorrectedVAR_cpp(const arma::mat& y,
                                 const VARResult& var_result,
                                 int nboot1, const std::string& bootscheme,
-                                const arma::mat* exog_ptr, int n_threads) {
+                                const arma::mat* exog_ptr, int n_threads,
+                                bool verbose) {
     if (nboot1 <= 0) Rcpp::stop("'nboot1' must be positive.");
-    Rprintf("[Pass 1] Bias estimation: %d reps, %d thread(s)\n",
-            nboot1, fResolveThreads_cpp(n_threads));
+    if (verbose)
+        Rprintf("[Pass 1] Bias estimation: %d reps, %d thread(s)\n",
+                nboot1, fResolveThreads_cpp(n_threads));
     arma::mat boot_mean = fBootstrapMeanBeta_cpp(y, var_result, nboot1,
                                                  bootscheme, exog_ptr, n_threads);
     RemoveBiasResult rb = fRemoveBias_cpp(var_result.beta, var_result.c,
                                           var_result.p, boot_mean);
-    if (rb.corrections > 1)
-        Rprintf("[Bias correction] %d shrinkage iteration(s)\n", rb.corrections);
-    else
-        Rprintf("[Bias correction] Full correction applied\n");
+    if (verbose) {
+        if (rb.corrections > 1)
+            Rprintf("[Bias correction] %d shrinkage iteration(s)\n", rb.corrections);
+        else
+            Rprintf("[Bias correction] Full correction applied\n");
+    }
 
     VARResult corrected = var_result;
     corrected.beta = rb.Beta.t();
@@ -156,16 +164,106 @@ void fCheckBootArgs_cpp(const arma::mat& y, const VARResult& var_result,
         Rcpp::stop("'horizon' must be non-negative.");
     if (conf <= 0.0 || conf > 100.0 || conf2 <= 0.0 || conf2 > 100.0)
         Rcpp::stop("'conf' and 'conf2' must be in (0, 100].");
+    if (!y.is_finite())
+        Rcpp::stop("'y' contains NA, NaN or Inf values.");
+
+    const int T = static_cast<int>(y.n_rows);
     const int N = static_cast<int>(y.n_cols);
     const int p = var_result.p;
-    const double df = static_cast<double>(static_cast<int>(y.n_rows) - 1 - p - N * p);
-    if (df <= 0.0)
-        Rcpp::stop("Degrees of freedom T-1-p-N*p = %.0f <= 0.", df);
+    if (T <= p)
+        Rcpp::stop("'y' has %d rows, which is not more than p = %d.", T, p);
+
+    // Degrees of freedom from the actual design width, which includes the
+    // intercept and any exogenous regressors.
+    const int k  = var_result.c + N * p + var_result.n_exog;
+    const int df = (T - p) - k;
+    if (df <= 0)
+        Rcpp::stop("%d usable observations for %d regressors: no residual "
+                   "degrees of freedom left.", T - p, k);
+    if (static_cast<int>(var_result.beta.n_rows) != k)
+        Rcpp::stop("'var_result' does not match 'y': beta has %d rows but the "
+                   "design needs %d (c + N*p + n_exog).",
+                   static_cast<int>(var_result.beta.n_rows), k);
+}
+
+void fCheckDrawArgs_cpp(int nboot, int horizon, double conf, double conf2) {
+    if (nboot <= 0)
+        Rcpp::stop("'nboot' must be positive, got %d.", nboot);
+    if (horizon < 0)
+        Rcpp::stop("'horizon' must be non-negative, got %d.", horizon);
+    if (conf <= 0.0 || conf > 100.0 || conf2 <= 0.0 || conf2 > 100.0)
+        Rcpp::stop("'conf' and 'conf2' must be in (0, 100].");
+}
+
+arma::mat fKeepValidDraws_cpp(const arma::mat& flat,
+                              const std::vector<unsigned char>& ok,
+                              const char* label) {
+    const arma::uword nboot = ok.size();
+    arma::uvec keep(nboot);
+    arma::uword n_keep = 0;
+    for (arma::uword b = 0; b < nboot; ++b)
+        if (ok[b] && flat.col(b).is_finite()) keep(n_keep++) = b;
+
+    if (n_keep == 0)
+        Rcpp::stop("%s: every bootstrap draw failed. The instrument is "
+                   "probably too weak, or the VAR is near-singular on "
+                   "resampled data.", label);
+    if (n_keep == nboot) return flat;
+
+    char msg[256];
+    std::snprintf(msg, sizeof(msg),
+                  "%s: %d of %d bootstrap draws failed and were dropped "
+                  "before computing the bands.", label,
+                  static_cast<int>(nboot - n_keep), static_cast<int>(nboot));
+    Rcpp::warning(std::string(msg));
+    return flat.cols(keep.head(n_keep));
+}
+
+arma::cube fKeepValidSlices_cpp(const arma::cube& draws,
+                                const std::vector<unsigned char>& ok,
+                                const char* label) {
+    const arma::uword nboot = ok.size();
+    arma::uvec keep(nboot);
+    arma::uword n_keep = 0;
+    for (arma::uword b = 0; b < nboot; ++b)
+        if (ok[b] && draws.slice(b).is_finite()) keep(n_keep++) = b;
+
+    if (n_keep == 0)
+        Rcpp::stop("%s: every bootstrap draw failed. The instrument is "
+                   "probably too weak, or the VAR is near-singular on "
+                   "resampled data.", label);
+    if (n_keep == nboot) return draws;
+
+    char msg[256];
+    std::snprintf(msg, sizeof(msg),
+                  "%s: %d of %d bootstrap draws failed and were dropped "
+                  "before computing the bands.", label,
+                  static_cast<int>(nboot - n_keep), static_cast<int>(nboot));
+    Rcpp::warning(std::string(msg));
+
+    arma::cube kept(draws.n_rows, draws.n_cols, n_keep, arma::fill::none);
+    for (arma::uword j = 0; j < n_keep; ++j) kept.slice(j) = draws.slice(keep(j));
+    return kept;
+}
+
+arma::vec fCleanInstrument_cpp(const arma::vec& instr_raw, int p,
+                               const arma::mat& y) {
+    const int T = static_cast<int>(y.n_rows);
+    arma::mat instr_mat(instr_raw.n_elem, 1);
+    instr_mat.col(0) = instr_raw;
+    arma::vec z0 = instr_raw.rows(p, T - 1);
+    arma::mat z0_mat(z0.n_elem, 1);
+    z0_mat.col(0) = z0;
+    arma::mat lag_i   = fLagMakerMatrix(instr_mat, p);
+    arma::mat lag_X   = fLagMakerMatrix(y, p);
+    arma::mat X_clean = arma::join_horiz(lag_i, lag_X);
+    return fOLS_cpp(z0_mat, X_clean, 1, 0, 0, 1).err.col(0);
 }
 
 void fSVARBootBands_cpp(SVARBootResult& r, double conf, double conf2,
-                        int n_threads) {
-    r.bands = fRowPercentiles_cpp(r.flat, fBandLevels_cpp(conf, conf2), n_threads);
+                        int n_threads, const char* label) {
+    const arma::mat kept = fKeepValidDraws_cpp(r.flat, r.ok, label);
+    r.bands = fRowPercentiles_cpp(kept, fBandLevels_cpp(conf, conf2), n_threads);
     r.conf  = {conf, conf2};
 }
 

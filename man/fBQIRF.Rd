@@ -40,20 +40,20 @@ normalising the impact response of the selected variable to
 \code{scaling[2]}.
 }
 \examples{
-\dontrun{
-# Estimate a VAR and compute Wold IRFs
+set.seed(123)
+y    <- matrix(rnorm(400), ncol = 2)
 VAR  <- fVAR(y, p = 2, c = 1)
 wold <- fWoldIRF(VAR, horizon = 20)
 
 # Map the long-run Cholesky factor to contemporaneous impacts
 C1 <- apply(wold, c(1, 2), sum)
 D1 <- t(chol(C1 \%*\% VAR$sigma \%*\% t(C1)))
-K <- solve(C1, D1)
+K  <- solve(C1, D1)
 bqirf <- fBQIRF(wold, K)
+bqirf[, 1, 1]
 
 # With normalisation: unit shock to variable 1
 bqirf_norm <- fBQIRF(wold, K, scaling = c(1, 1))
-}
 
 }
 \references{

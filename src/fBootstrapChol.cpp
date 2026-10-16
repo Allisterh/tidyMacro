@@ -11,7 +11,7 @@
 SVARBootResult fBootstrapChol_cpp(const arma::mat& y, const VARResult& var_result,
                                   int nboot, int horizon, double conf, double conf2,
                                   const std::string& bootscheme,
-                                  const arma::mat* exog_ptr, int n_threads) {
+                                  const arma::mat* exog_ptr, int n_threads, bool verbose) {
   fCheckBootArgs_cpp(y, var_result, nboot, horizon, conf, conf2);
   const int N = static_cast<int>(y.n_cols);
 
@@ -19,9 +19,13 @@ SVARBootResult fBootstrapChol_cpp(const arma::mat& y, const VARResult& var_resul
       y, var_result, nboot, horizon, bootscheme, exog_ptr, n_threads,
       N * N * (horizon + 1), "Cholesky",
       [](const VARResult& var_b, const arma::cube& wold_b, arma::vec& out) {
-        out = arma::vectorise(fCholeskyIRF(wold_b, fLowerChol_cpp(var_b.sigma)));
-      });
-  fSVARBootBands_cpp(r, conf, conf2, n_threads);
+        bool chol_ok = true;
+        const arma::mat S = fLowerChol_cpp(var_b.sigma, &chol_ok);
+        if (!chol_ok) return false;
+        out = arma::vectorise(fCholeskyIRF(wold_b, S));
+        return true;
+      }, verbose);
+  fSVARBootBands_cpp(r, conf, conf2, n_threads, "fBootstrapChol");
   return r;
 }
 
@@ -41,6 +45,8 @@ static Rcpp::List chol_boot_list(const SVARBootResult& r, int N, int horizon) {
 //' @param exog Optional T x M matrix of exogenous variables. Must be provided
 //'   if the original VAR was estimated with exogenous variables; must be
 //'   omitted otherwise.
+//' @param verbose Logical. If \code{TRUE}, report the number of threads
+//'   used. Default \code{FALSE}, so the function is silent.
 //' @param n_threads Number of OpenMP threads. 0 = all cores minus one.
 //'   Default 0.
 //'
@@ -62,7 +68,7 @@ Rcpp::List fBootstrapChol(const arma::mat &y, const Rcpp::List &var_result,
                           double conf2 = 68.0,
                           const std::string &bootscheme = "residual",
                           Rcpp::Nullable<arma::mat> exog = R_NilValue,
-                          int n_threads = 0) {
+                          int n_threads = 0, bool verbose = false) {
   VARResult vr = fVARResultFromList_cpp(var_result);
   fCheckExogArg_cpp(vr.n_exog, exog.isNotNull());
   arma::mat exog_mat;
@@ -71,7 +77,7 @@ Rcpp::List fBootstrapChol(const arma::mat &y, const Rcpp::List &var_result,
   SVARBootResult r = fBootstrapChol_cpp(y, vr, nboot, horizon, conf, conf2,
                                         bootscheme,
                                         exog.isNotNull() ? &exog_mat : nullptr,
-                                        n_threads);
+                                        n_threads, verbose);
   return chol_boot_list(r, y.n_cols, horizon);
 }
 
@@ -90,6 +96,8 @@ Rcpp::List fBootstrapChol(const arma::mat &y, const Rcpp::List &var_result,
 //'   omitted otherwise.
 //' @param n_threads Number of OpenMP threads. 0 = all cores minus one.
 //'   Default 0.
+//' @param verbose Logical. If \code{TRUE}, report the number of threads used
+//'   and the bias-correction summary. Default \code{FALSE}.
 //'
 //' @return List with elements:
 //'   \describe{
@@ -109,7 +117,7 @@ Rcpp::List fBootstrapCholCorrected(const arma::mat &y, const Rcpp::List &var_res
                                     double conf = 90.0, double conf2 = 68.0,
                                     const std::string &bootscheme = "residual",
                                     Rcpp::Nullable<arma::mat> exog = R_NilValue,
-                                    int n_threads = 0) {
+                                    int n_threads = 0, bool verbose = false) {
   VARResult vr = fVARResultFromList_cpp(var_result);
   fCheckExogArg_cpp(vr.n_exog, exog.isNotNull());
   arma::mat exog_mat;
@@ -117,8 +125,8 @@ Rcpp::List fBootstrapCholCorrected(const arma::mat &y, const Rcpp::List &var_res
   const arma::mat* exog_ptr = exog.isNotNull() ? &exog_mat : nullptr;
 
   VARResult corrected = fBiasCorrectedVAR_cpp(y, vr, nboot1, bootscheme,
-                                              exog_ptr, n_threads);
+                                              exog_ptr, n_threads, verbose);
   SVARBootResult r = fBootstrapChol_cpp(y, corrected, nboot2, horizon, conf,
-                                        conf2, bootscheme, exog_ptr, n_threads);
+                                        conf2, bootscheme, exog_ptr, n_threads, verbose);
   return chol_boot_list(r, y.n_cols, horizon);
 }

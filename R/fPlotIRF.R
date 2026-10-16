@@ -20,13 +20,26 @@
 #' colour, which makes it easy to compare identification schemes, bootstrap
 #' variants or specifications in one figure.
 #'
-#' Every argument in \code{...} is converted with \code{\link{fIRF}}. Results
-#' that \code{fIRF()} cannot interpret on its own (a point estimate with
-#' separate bootstrap bands) are converted first:
-#' \code{fPlotIRF(fIRF(point, bands = boot, varnames = vn))}.
+#' Every argument in \code{...} is converted with \code{\link{fIRF}}, and the
+#' \code{fIRF()} arguments below can be given directly, so plotting one
+#' result never needs a nested call:
+#' \code{fPlotIRF(point, bands = boot, varnames = vn)}. Comparing several
+#' results is the one case that still needs \code{fIRF()}, because each
+#' result carries its own bands.
 #'
 #' @param ... One or more results. Argument names become the legend labels,
 #'   e.g. \code{fPlotIRF(Standard = a, Corrected = b)}.
+#' @param bands Bootstrap result supplying the confidence bands for a point
+#'   estimate, e.g. \code{fPlotIRF(point_irf, bands = boot_chol)}. Only
+#'   meaningful with a single result: when several are compared, each one
+#'   carries its own bands, so build them with \code{\link{fIRF}} first.
+#' @param varnames,shocknames Labels for the variables and shocks, applied to
+#'   every result given. They are passed to \code{\link{fIRF}} when a result
+#'   still has to be converted, and rename a result that \code{fIRF()}
+#'   already built, so one set of labels can serve several results.
+#' @param cumulate,conf Passed to \code{\link{fIRF}} when a result still has
+#'   to be converted. They change how the table is built, so they are refused
+#'   for a result that \code{fIRF()} already built.
 #' @param shock Shocks to plot, by position or name (within each result).
 #'   \code{NULL} plots every shock. With one shock per result the panels are
 #'   indexed by variable; with several, by shock and variable.
@@ -55,21 +68,31 @@
 #' @seealso \code{\link{fIRF}}
 #'
 #' @examples
-#' \dontrun{
-#' # Local projection: plot directly
-#' fPlotIRF(lp_fit)
+#' set.seed(123)
+#' y     <- matrix(rnorm(400), ncol = 2, dimnames = list(NULL, c("y1", "y2")))
+#' fit   <- fVAR(y, p = 2, c = 1)
+#' wold  <- fWoldIRF(fit, horizon = 12)
+#' point <- fCholeskyIRF(wold, t(chol(fit$sigma)))
+#' boot  <- fBootstrapChol(y, fit, nboot = 50, horizon = 12, n_threads = 2)
 #'
-#' # VAR + bootstrap: attach the bands to the point estimate first
-#' chol <- fIRF(point_irf, bands = boot_chol, varnames = vn)
-#' corr <- fIRF(point_irf, bands = boot_corrected, varnames = vn)
-#' fPlotIRF(Standard = chol, `Bias-corrected` = corr, shock = 1)
+#' # A point estimate and its bands, in one call
+#' fPlotIRF(point, bands = boot, varnames = colnames(y), shock = 1)
 #'
-#' # Compare identification schemes
-#' fPlotIRF(Cholesky = chol, `External IV` = fIRF(boot_iv, varnames = vn),
-#'       shock = 1)
+#' \donttest{
+#' # Comparing results: each one carries its own bands, so build them first
+#' corrected <- fBootstrapCholCorrected(y, fit, nboot1 = 50, nboot2 = 50,
+#'                                      horizon = 12, n_threads = 2)
+#' fPlotIRF(Standard    = fIRF(point, bands = boot),
+#'          `Corrected` = fIRF(point, bands = corrected),
+#'          varnames = colnames(y), shock = 1)
 #' }
 #' @export
 fPlotIRF <- function(...,
+                  bands           = NULL,
+                  varnames        = NULL,
+                  shocknames      = NULL,
+                  cumulate        = NULL,
+                  conf            = NULL,
                   shock           = NULL,
                   variables       = NULL,
                   scale           = 1,
@@ -85,10 +108,38 @@ fPlotIRF <- function(...,
     if (!length(objs)) stop("fPlotIRF: supply at least one result.", call. = FALSE)
     labs <- names(objs)
     if (is.null(labs)) labs <- character(length(objs))
+    .fPlotIRF_check_names(labs)
+
+    # Arguments of fIRF() passed straight through, so a single result needs
+    # no fIRF() call. `bands` belongs to one specific result, so it is only
+    # meaningful when exactly one is supplied.
+    conv <- list(varnames = varnames, shocknames = shocknames,
+                 cumulate = cumulate, conf = conf)
+    conv <- conv[!vapply(conv, is.null, logical(1))]
+    # varnames and shocknames are labels, so they can also rename a result
+    # that fIRF() already built; the others change how it is built.
+    rebuild_only <- setdiff(names(conv), c("varnames", "shocknames"))
+    if (!is.null(bands)) {
+        if (length(objs) > 1L)
+            stop("fPlotIRF: `bands` applies to one result only. With several ",
+                 "results attach the bands to each one first, e.g.\n",
+                 "  fPlotIRF(Standard = fIRF(point, bands = boot_a),\n",
+                 "           Corrected = fIRF(point, bands = boot_b))",
+                 call. = FALSE)
+        conv$bands <- bands
+    }
 
     d <- lapply(seq_along(objs), function(k) {
         x <- objs[[k]]
-        x <- if (inherits(x, "fIRF")) x else fIRF(x)
+        if (inherits(x, "fIRF")) {
+            if (length(rebuild_only))
+                stop("fPlotIRF: ", paste(rebuild_only, collapse = ", "),
+                     " cannot be applied to a result that fIRF() already ",
+                     "built; pass them to fIRF() instead.", call. = FALSE)
+            x <- .fPlotIRF_relabel(x, varnames, shocknames)
+        } else {
+            x <- do.call(fIRF, c(list(x), conv))
+        }
         if (nzchar(labs[k])) {
             x$model <- labs[k]
         } else if (anyNA(x$model)) {
@@ -253,4 +304,44 @@ fPlotIRF <- function(...,
         ggplot2::scale_x_continuous(
             breaks = function(lim) unique(round(pretty(lim)))) +
         ggplot2::labs(x = "Horizon", y = NULL)
+}
+
+# Rename the variables or shocks of an existing fIRF table, in the order in
+# which they appear. Used when one set of labels applies to several results.
+.fPlotIRF_relabel <- function(x, varnames, shocknames) {
+    swap <- function(col, new, what) {
+        old <- unique(col)
+        if (length(new) != length(old))
+            stop(sprintf("fPlotIRF: `%s` must have length %d, to match the %s in the result.",
+                         what, length(old), what), call. = FALSE)
+        new[match(col, old)]
+    }
+    if (!is.null(varnames))
+        x$variable <- swap(x$variable, as.character(varnames), "varnames")
+    if (!is.null(shocknames))
+        x$shock <- swap(x$shock, as.character(shocknames), "shocknames")
+    x
+}
+
+# A misspelled argument name would otherwise be taken as a model label and
+# silently drawn as an extra model, so reject anything close to a real one.
+.fPlotIRF_check_names <- function(labs) {
+    known <- c("bands", "varnames", "shocknames", "cumulate", "conf", "shock",
+               "variables", "scale", "colors", "ribbon_fill", "line_color",
+               "ribbon_alpha", "zero_line_color", "facet_scales",
+               "facet_ncol", "return_data")
+    for (nm in labs[nzchar(labs)]) {
+        hit <- known[tolower(known) == tolower(nm)]
+        if (!length(hit)) {
+            d <- utils::adist(tolower(nm), tolower(known))[1, ]
+            hit <- known[d <= 2 & d > 0]
+        }
+        if (length(hit))
+            stop(sprintf(
+                "fPlotIRF: '%s' is not an argument of fPlotIRF(); did you mean '%s'? %s",
+                nm, hit[1],
+                "Named arguments that are not options become model labels."),
+                call. = FALSE)
+    }
+    invisible(TRUE)
 }

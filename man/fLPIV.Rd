@@ -87,18 +87,26 @@ Cesa-Bianchi's VAR Toolbox \code{LPmodel.m} in LP-IV mode when
 \code{nw_lags_iv} is set to the toolbox's \code{nlag_iv}.
 }
 \examples{
-\dontrun{
+data("JordaTaylor2025IV")
+
+fLPIV(Unemployment ~ FFRates + l(Unemployment, 1:3),
+      instruments = ~ l(RRShock, 0:3),
+      data        = JordaTaylor2025IV,
+      endog       = "FFRates",
+      horizons    = 6,
+      n_threads   = 2)
+
+\donttest{
 controls <- c("Unemployment", "Inflation", "FFRates")
-fLPIV(
-  Unemployment ~ FFRates + l(..controls, 1:6),
-  instruments = ~ l(RRShock, 0:6),
-  data        = jt_iv,
-  endog       = "FFRates",
-  horizons    = 48,
-  conf        = c(68, 95),
-  nw_lags_iv  = 6,
-  cumulative  = TRUE
-)
+fLPIV(Unemployment ~ FFRates + l(..controls, 1:6),
+      instruments = ~ l(RRShock, 0:6),
+      data        = JordaTaylor2025IV,
+      endog       = "FFRates",
+      horizons    = 48,
+      conf        = c(68, 95),
+      nw_lags_iv  = 6,
+      cumulative  = TRUE,
+      n_threads   = 2)
 }
 
 }

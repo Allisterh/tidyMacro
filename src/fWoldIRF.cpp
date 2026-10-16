@@ -70,18 +70,11 @@ WoldIRFResult fWoldIRF_cpp(const VARResult& var_result, int horizon) {
 //' where A is the companion matrix and h is the horizon.
 //'
 //' @examples
-//' \dontrun{
-//' # VAR(2) model with 3 variables and 1 exogenous variable
-//' y <- matrix(rnorm(200), ncol = 2)
-//' exog <- matrix(rnorm(100), ncol = 1)
-//' VAR <- fVAR(y, p = 2, c = 1, exog = exog)
+//' set.seed(123)
+//' y   <- matrix(rnorm(400), ncol = 2)
+//' VAR <- fVAR(y, p = 2, c = 1)
 //' irf <- fWoldIRF(VAR, horizon = 10)
-//' # irf is a 2x2x11 array
-//' 
-//' # Plot impulse response
-//' plot(irf[1, 2, ], type = "l", 
-//'      main = "Response of Variable 2 to Shock in Variable 1")
-//' }
+//' dim(irf)   # 2 x 2 x 11
 //'
 //' @export
 // [[Rcpp::export]]

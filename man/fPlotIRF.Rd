@@ -6,6 +6,11 @@
 \usage{
 fPlotIRF(
   ...,
+  bands = NULL,
+  varnames = NULL,
+  shocknames = NULL,
+  cumulate = NULL,
+  conf = NULL,
   shock = NULL,
   variables = NULL,
   scale = 1,
@@ -22,6 +27,20 @@ fPlotIRF(
 \arguments{
 \item{...}{One or more results. Argument names become the legend labels,
 e.g. \code{fPlotIRF(Standard = a, Corrected = b)}.}
+
+\item{bands}{Bootstrap result supplying the confidence bands for a point
+estimate, e.g. \code{fPlotIRF(point_irf, bands = boot_chol)}. Only
+meaningful with a single result: when several are compared, each one
+carries its own bands, so build them with \code{\link{fIRF}} first.}
+
+\item{varnames, shocknames}{Labels for the variables and shocks, applied to
+every result given. They are passed to \code{\link{fIRF}} when a result
+still has to be converted, and rename a result that \code{fIRF()}
+already built, so one set of labels can serve several results.}
+
+\item{cumulate, conf}{Passed to \code{\link{fIRF}} when a result still has
+to be converted. They change how the table is built, so they are refused
+for a result that \code{fIRF()} already built.}
 
 \item{shock}{Shocks to plot, by position or name (within each result).
 \code{NULL} plots every shock. With one shock per result the panels are
@@ -65,24 +84,31 @@ colour, which makes it easy to compare identification schemes, bootstrap
 variants or specifications in one figure.
 }
 \details{
-Every argument in \code{...} is converted with \code{\link{fIRF}}. Results
-that \code{fIRF()} cannot interpret on its own (a point estimate with
-separate bootstrap bands) are converted first:
-\code{fPlotIRF(fIRF(point, bands = boot, varnames = vn))}.
+Every argument in \code{...} is converted with \code{\link{fIRF}}, and the
+\code{fIRF()} arguments below can be given directly, so plotting one
+result never needs a nested call:
+\code{fPlotIRF(point, bands = boot, varnames = vn)}. Comparing several
+results is the one case that still needs \code{fIRF()}, because each
+result carries its own bands.
 }
 \examples{
-\dontrun{
-# Local projection: plot directly
-fPlotIRF(lp_fit)
+set.seed(123)
+y     <- matrix(rnorm(400), ncol = 2, dimnames = list(NULL, c("y1", "y2")))
+fit   <- fVAR(y, p = 2, c = 1)
+wold  <- fWoldIRF(fit, horizon = 12)
+point <- fCholeskyIRF(wold, t(chol(fit$sigma)))
+boot  <- fBootstrapChol(y, fit, nboot = 50, horizon = 12, n_threads = 2)
 
-# VAR + bootstrap: attach the bands to the point estimate first
-chol <- fIRF(point_irf, bands = boot_chol, varnames = vn)
-corr <- fIRF(point_irf, bands = boot_corrected, varnames = vn)
-fPlotIRF(Standard = chol, `Bias-corrected` = corr, shock = 1)
+# A point estimate and its bands, in one call
+fPlotIRF(point, bands = boot, varnames = colnames(y), shock = 1)
 
-# Compare identification schemes
-fPlotIRF(Cholesky = chol, `External IV` = fIRF(boot_iv, varnames = vn),
-      shock = 1)
+\donttest{
+# Comparing results: each one carries its own bands, so build them first
+corrected <- fBootstrapCholCorrected(y, fit, nboot1 = 50, nboot2 = 50,
+                                     horizon = 12, n_threads = 2)
+fPlotIRF(Standard    = fIRF(point, bands = boot),
+         `Corrected` = fIRF(point, bands = corrected),
+         varnames = colnames(y), shock = 1)
 }
 }
 \seealso{

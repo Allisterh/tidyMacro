@@ -112,7 +112,7 @@ boot_hetero <- fBootstrapHetero(
     hor        = hor,
     nvar       = 1,
     scale      = 1,
-    n_threads  = 3
+    n_threads  = 2
 )
 toc()
 ```
@@ -124,8 +124,10 @@ toc()
 #| fig-cap: "IRFs identified via heteroskedasticity — OPEC-announcement months as the high-variance regime (68% and 90% confidence bands)"
 
 fPlotIRF(
-    fIRF(boot_hetero, varnames = varnames, shocknames = "Oil Shock (Hetero)",
-         scale = 10),
+    boot_hetero,
+    varnames   = varnames,
+    shocknames = "Oil Shock (Hetero)",
+    scale      = 10,
     facet_ncol = 3
 ) +
   labs(x = NULL, y = NULL)

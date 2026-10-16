@@ -4,9 +4,9 @@
 \name{tidyMacro-package}
 \alias{tidyMacro}
 \alias{tidyMacro-package}
-\title{tidyMacro: Fast Vector Autoregression Models and Local Projections via C++}
+\title{tidyMacro: Structural Vector Autoregressions and Local Projections via 'C++'}
 \description{
-Implements Vector Autoregression (VAR) models and local projections using a fast and efficient compiled C++ backend. Provides tools for estimation, forecasting, and impulse response analysis.
+Estimation and identification of structural vector autoregressions and local projections, with a compiled 'C++' backend. Shocks can be identified by short-run (recursive) restrictions, long-run restrictions following Blanchard and Quah (1989) \url{https://www.jstor.org/stable/1827924}, maximum forecast error variance share following Uhlig (2005) \doi{10.1016/j.jmoneco.2005.09.011}, external instruments (proxy SVAR) following Mertens and Ravn (2013) \doi{10.1257/aer.103.4.1212} and Kaenzig (2021) \doi{10.1257/aer.20190964}, heteroskedasticity across regimes, and sign or narrative sign restrictions. Local projections follow Jorda (2005) \doi{10.1257/0002828053828518} and cover instrumental variables, state-dependent and nonlinear specifications, panel data following Almuzara and Sancibrian (2024) \url{https://www.newyorkfed.org/research/staff_reports/sr1090}, and the difference-in-differences estimator of Dube, Girardi, Jorda and Taylor (2025) \doi{10.1002/jae.70000}. Inference uses residual, wild and moving-block bootstraps, heteroskedasticity and autocorrelation consistent standard errors, and one-way or two-way cluster-robust standard errors.
 }
 \seealso{
 Useful links:
@@ -17,11 +17,6 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Muhsin Ciftci \email{farmer.muhsin@gmail.com}
-
-Authors:
-\itemize{
-  \item Muhsin Ciftci \email{farmer.muhsin@gmail.com}
-}
+\strong{Maintainer}: Muhsin Ciftci \email{farmer.muhsin@gmail.com} [copyright holder]
 
 }

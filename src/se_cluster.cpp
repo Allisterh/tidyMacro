@@ -62,6 +62,13 @@ static arma::mat se_cluster_pair_sums(
   return sums;
 }
 
+arma::mat se_cluster_pair_cpp(const arma::mat& scores,
+                              const arma::ivec& cluster_a,
+                              const arma::ivec& cluster_b) {
+  const arma::mat Sab = se_cluster_pair_sums(scores, cluster_a, cluster_b);
+  return Sab.t() * Sab;
+}
+
 arma::mat se_cluster_twoway_cpp(const arma::mat& scores,
                                 const arma::ivec& cluster_a,
                                 const arma::ivec& cluster_b) {
@@ -70,4 +77,32 @@ arma::mat se_cluster_twoway_cpp(const arma::mat& scores,
   const arma::mat Sab = se_cluster_pair_sums(scores, cluster_a, cluster_b);
   const arma::mat Ma  = Sa.t() * Sa;
   return Ma + Sb.t() * Sb - Sab.t() * Sab;
+}
+
+arma::uword se_n_clusters_cpp(const arma::ivec& cluster) {
+  return arma::unique(cluster).eval().n_elem;
+}
+
+arma::uword se_n_levels_cpp(const arma::ivec& fe) {
+  return arma::unique(fe).eval().n_elem;
+}
+
+double se_cr1_factor_cpp(arma::uword G, arma::uword N, arma::uword K) {
+  if (G < 2 || N < 2 || K >= N) return 1.0;
+  const double g = static_cast<double>(G);
+  const double n = static_cast<double>(N);
+  const double k = static_cast<double>(K);
+  return (g / (g - 1.0)) * ((n - 1.0) / (n - k));
+}
+
+bool se_fe_nested_cpp(const arma::ivec& fe, const arma::ivec& cluster) {
+  if (fe.n_elem != cluster.n_elem) return false;
+  std::unordered_map<int, int> seen;
+  seen.reserve(fe.n_elem * 2);
+  for (arma::uword r = 0; r < fe.n_elem; ++r) {
+    auto it = seen.find(fe(r));
+    if (it == seen.end())            seen.emplace(fe(r), cluster(r));
+    else if (it->second != cluster(r)) return false;   // level spans clusters
+  }
+  return true;
 }

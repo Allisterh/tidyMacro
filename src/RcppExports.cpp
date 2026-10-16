@@ -39,8 +39,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // fBootstrapBQ
-Rcpp::List fBootstrapBQ(const arma::mat& y, const Rcpp::List& var_result, int nboot, int horizon, double conf, double conf2, const std::string& bootscheme, Rcpp::IntegerVector cumulate, Rcpp::Nullable<arma::vec> scaling, Rcpp::Nullable<arma::mat> exog, int n_threads);
-RcppExport SEXP _tidyMacro_fBootstrapBQ(SEXP ySEXP, SEXP var_resultSEXP, SEXP nbootSEXP, SEXP horizonSEXP, SEXP confSEXP, SEXP conf2SEXP, SEXP bootschemeSEXP, SEXP cumulateSEXP, SEXP scalingSEXP, SEXP exogSEXP, SEXP n_threadsSEXP) {
+Rcpp::List fBootstrapBQ(const arma::mat& y, const Rcpp::List& var_result, int nboot, int horizon, double conf, double conf2, const std::string& bootscheme, Rcpp::IntegerVector cumulate, Rcpp::Nullable<arma::vec> scaling, Rcpp::Nullable<arma::mat> exog, int n_threads, bool verbose);
+RcppExport SEXP _tidyMacro_fBootstrapBQ(SEXP ySEXP, SEXP var_resultSEXP, SEXP nbootSEXP, SEXP horizonSEXP, SEXP confSEXP, SEXP conf2SEXP, SEXP bootschemeSEXP, SEXP cumulateSEXP, SEXP scalingSEXP, SEXP exogSEXP, SEXP n_threadsSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -55,13 +55,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::Nullable<arma::vec> >::type scaling(scalingSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<arma::mat> >::type exog(exogSEXP);
     Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(fBootstrapBQ(y, var_result, nboot, horizon, conf, conf2, bootscheme, cumulate, scaling, exog, n_threads));
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(fBootstrapBQ(y, var_result, nboot, horizon, conf, conf2, bootscheme, cumulate, scaling, exog, n_threads, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
 // fBootstrapChol
-Rcpp::List fBootstrapChol(const arma::mat& y, const Rcpp::List& var_result, int nboot, int horizon, double conf, double conf2, const std::string& bootscheme, Rcpp::Nullable<arma::mat> exog, int n_threads);
-RcppExport SEXP _tidyMacro_fBootstrapChol(SEXP ySEXP, SEXP var_resultSEXP, SEXP nbootSEXP, SEXP horizonSEXP, SEXP confSEXP, SEXP conf2SEXP, SEXP bootschemeSEXP, SEXP exogSEXP, SEXP n_threadsSEXP) {
+Rcpp::List fBootstrapChol(const arma::mat& y, const Rcpp::List& var_result, int nboot, int horizon, double conf, double conf2, const std::string& bootscheme, Rcpp::Nullable<arma::mat> exog, int n_threads, bool verbose);
+RcppExport SEXP _tidyMacro_fBootstrapChol(SEXP ySEXP, SEXP var_resultSEXP, SEXP nbootSEXP, SEXP horizonSEXP, SEXP confSEXP, SEXP conf2SEXP, SEXP bootschemeSEXP, SEXP exogSEXP, SEXP n_threadsSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -74,13 +75,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const std::string& >::type bootscheme(bootschemeSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<arma::mat> >::type exog(exogSEXP);
     Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(fBootstrapChol(y, var_result, nboot, horizon, conf, conf2, bootscheme, exog, n_threads));
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(fBootstrapChol(y, var_result, nboot, horizon, conf, conf2, bootscheme, exog, n_threads, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
 // fBootstrapCholCorrected
-Rcpp::List fBootstrapCholCorrected(const arma::mat& y, const Rcpp::List& var_result, int nboot1, int nboot2, int horizon, double conf, double conf2, const std::string& bootscheme, Rcpp::Nullable<arma::mat> exog, int n_threads);
-RcppExport SEXP _tidyMacro_fBootstrapCholCorrected(SEXP ySEXP, SEXP var_resultSEXP, SEXP nboot1SEXP, SEXP nboot2SEXP, SEXP horizonSEXP, SEXP confSEXP, SEXP conf2SEXP, SEXP bootschemeSEXP, SEXP exogSEXP, SEXP n_threadsSEXP) {
+Rcpp::List fBootstrapCholCorrected(const arma::mat& y, const Rcpp::List& var_result, int nboot1, int nboot2, int horizon, double conf, double conf2, const std::string& bootscheme, Rcpp::Nullable<arma::mat> exog, int n_threads, bool verbose);
+RcppExport SEXP _tidyMacro_fBootstrapCholCorrected(SEXP ySEXP, SEXP var_resultSEXP, SEXP nboot1SEXP, SEXP nboot2SEXP, SEXP horizonSEXP, SEXP confSEXP, SEXP conf2SEXP, SEXP bootschemeSEXP, SEXP exogSEXP, SEXP n_threadsSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -94,13 +96,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const std::string& >::type bootscheme(bootschemeSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<arma::mat> >::type exog(exogSEXP);
     Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(fBootstrapCholCorrected(y, var_result, nboot1, nboot2, horizon, conf, conf2, bootscheme, exog, n_threads));
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(fBootstrapCholCorrected(y, var_result, nboot1, nboot2, horizon, conf, conf2, bootscheme, exog, n_threads, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
 // fBootstrapIVInvertible
-Rcpp::List fBootstrapIVInvertible(const arma::mat& y, const arma::vec& instr, const Rcpp::List& var_result, int nboot, int p, int c, int hor, const arma::ivec& cumu, double conf, double conf2);
-RcppExport SEXP _tidyMacro_fBootstrapIVInvertible(SEXP ySEXP, SEXP instrSEXP, SEXP var_resultSEXP, SEXP nbootSEXP, SEXP pSEXP, SEXP cSEXP, SEXP horSEXP, SEXP cumuSEXP, SEXP confSEXP, SEXP conf2SEXP) {
+Rcpp::List fBootstrapIVInvertible(const arma::mat& y, const arma::vec& instr, const Rcpp::List& var_result, int nboot, int p, int c, int hor, const arma::ivec& cumu, double conf, double conf2, int n_threads);
+RcppExport SEXP _tidyMacro_fBootstrapIVInvertible(SEXP ySEXP, SEXP instrSEXP, SEXP var_resultSEXP, SEXP nbootSEXP, SEXP pSEXP, SEXP cSEXP, SEXP horSEXP, SEXP cumuSEXP, SEXP confSEXP, SEXP conf2SEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -114,13 +117,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::ivec& >::type cumu(cumuSEXP);
     Rcpp::traits::input_parameter< double >::type conf(confSEXP);
     Rcpp::traits::input_parameter< double >::type conf2(conf2SEXP);
-    rcpp_result_gen = Rcpp::wrap(fBootstrapIVInvertible(y, instr, var_result, nboot, p, c, hor, cumu, conf, conf2));
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(fBootstrapIVInvertible(y, instr, var_result, nboot, p, c, hor, cumu, conf, conf2, n_threads));
     return rcpp_result_gen;
 END_RCPP
 }
 // fBootstrapIVMBB
-Rcpp::List fBootstrapIVMBB(const arma::mat& y, const Rcpp::List& var_result, const arma::mat& Z, int nboot, int blocksize, const arma::ivec& adjustZ, const arma::ivec& adjustu, int policyvar, int horizon, double conf, double conf2, Rcpp::Nullable<arma::mat> exog, int n_threads);
-RcppExport SEXP _tidyMacro_fBootstrapIVMBB(SEXP ySEXP, SEXP var_resultSEXP, SEXP ZSEXP, SEXP nbootSEXP, SEXP blocksizeSEXP, SEXP adjustZSEXP, SEXP adjustuSEXP, SEXP policyvarSEXP, SEXP horizonSEXP, SEXP confSEXP, SEXP conf2SEXP, SEXP exogSEXP, SEXP n_threadsSEXP) {
+Rcpp::List fBootstrapIVMBB(const arma::mat& y, const Rcpp::List& var_result, const arma::mat& Z, int nboot, int blocksize, const arma::ivec& adjustZ, const arma::ivec& adjustu, int policyvar, int horizon, double conf, double conf2, Rcpp::Nullable<arma::mat> exog, int n_threads, bool verbose);
+RcppExport SEXP _tidyMacro_fBootstrapIVMBB(SEXP ySEXP, SEXP var_resultSEXP, SEXP ZSEXP, SEXP nbootSEXP, SEXP blocksizeSEXP, SEXP adjustZSEXP, SEXP adjustuSEXP, SEXP policyvarSEXP, SEXP horizonSEXP, SEXP confSEXP, SEXP conf2SEXP, SEXP exogSEXP, SEXP n_threadsSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -137,13 +141,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type conf2(conf2SEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<arma::mat> >::type exog(exogSEXP);
     Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(fBootstrapIVMBB(y, var_result, Z, nboot, blocksize, adjustZ, adjustu, policyvar, horizon, conf, conf2, exog, n_threads));
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(fBootstrapIVMBB(y, var_result, Z, nboot, blocksize, adjustZ, adjustu, policyvar, horizon, conf, conf2, exog, n_threads, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
 // fBootstrapIVRecover
-Rcpp::List fBootstrapIVRecover(const arma::mat& y, const arma::vec& instr, const Rcpp::List& var_result, const arma::vec& noise, const arma::vec& delta, int nboot, int p, int c, int r, int hor, const arma::ivec& cumu, double conf, double conf2);
-RcppExport SEXP _tidyMacro_fBootstrapIVRecover(SEXP ySEXP, SEXP instrSEXP, SEXP var_resultSEXP, SEXP noiseSEXP, SEXP deltaSEXP, SEXP nbootSEXP, SEXP pSEXP, SEXP cSEXP, SEXP rSEXP, SEXP horSEXP, SEXP cumuSEXP, SEXP confSEXP, SEXP conf2SEXP) {
+Rcpp::List fBootstrapIVRecover(const arma::mat& y, const arma::vec& instr, const Rcpp::List& var_result, const arma::vec& noise, const arma::vec& delta, int nboot, int p, int c, int r, int hor, const arma::ivec& cumu, double conf, double conf2, int n_threads);
+RcppExport SEXP _tidyMacro_fBootstrapIVRecover(SEXP ySEXP, SEXP instrSEXP, SEXP var_resultSEXP, SEXP noiseSEXP, SEXP deltaSEXP, SEXP nbootSEXP, SEXP pSEXP, SEXP cSEXP, SEXP rSEXP, SEXP horSEXP, SEXP cumuSEXP, SEXP confSEXP, SEXP conf2SEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -160,13 +165,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::ivec& >::type cumu(cumuSEXP);
     Rcpp::traits::input_parameter< double >::type conf(confSEXP);
     Rcpp::traits::input_parameter< double >::type conf2(conf2SEXP);
-    rcpp_result_gen = Rcpp::wrap(fBootstrapIVRecover(y, instr, var_result, noise, delta, nboot, p, c, r, hor, cumu, conf, conf2));
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(fBootstrapIVRecover(y, instr, var_result, noise, delta, nboot, p, c, r, hor, cumu, conf, conf2, n_threads));
     return rcpp_result_gen;
 END_RCPP
 }
 // fBootstrapMax
-Rcpp::List fBootstrapMax(const arma::mat& y, const Rcpp::List& var_result, int nboot, int horizon, int var_idx, double conf, double conf2, Rcpp::IntegerVector cumulate, Rcpp::Nullable<arma::vec> scaling, Rcpp::Nullable<arma::mat> exog, int n_threads);
-RcppExport SEXP _tidyMacro_fBootstrapMax(SEXP ySEXP, SEXP var_resultSEXP, SEXP nbootSEXP, SEXP horizonSEXP, SEXP var_idxSEXP, SEXP confSEXP, SEXP conf2SEXP, SEXP cumulateSEXP, SEXP scalingSEXP, SEXP exogSEXP, SEXP n_threadsSEXP) {
+Rcpp::List fBootstrapMax(const arma::mat& y, const Rcpp::List& var_result, int nboot, int horizon, int var_idx, double conf, double conf2, Rcpp::IntegerVector cumulate, Rcpp::Nullable<arma::vec> scaling, Rcpp::Nullable<arma::mat> exog, int n_threads, bool verbose);
+RcppExport SEXP _tidyMacro_fBootstrapMax(SEXP ySEXP, SEXP var_resultSEXP, SEXP nbootSEXP, SEXP horizonSEXP, SEXP var_idxSEXP, SEXP confSEXP, SEXP conf2SEXP, SEXP cumulateSEXP, SEXP scalingSEXP, SEXP exogSEXP, SEXP n_threadsSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -181,13 +187,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::Nullable<arma::vec> >::type scaling(scalingSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<arma::mat> >::type exog(exogSEXP);
     Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(fBootstrapMax(y, var_result, nboot, horizon, var_idx, conf, conf2, cumulate, scaling, exog, n_threads));
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(fBootstrapMax(y, var_result, nboot, horizon, var_idx, conf, conf2, cumulate, scaling, exog, n_threads, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
 // fBootstrapMaxCorrected
-Rcpp::List fBootstrapMaxCorrected(const arma::mat& y, const Rcpp::List& var_result, int nboot1, int nboot2, int horizon, int var_idx, double conf, double conf2, Rcpp::IntegerVector cumulate, Rcpp::Nullable<arma::vec> scaling, Rcpp::Nullable<arma::mat> exog, int n_threads);
-RcppExport SEXP _tidyMacro_fBootstrapMaxCorrected(SEXP ySEXP, SEXP var_resultSEXP, SEXP nboot1SEXP, SEXP nboot2SEXP, SEXP horizonSEXP, SEXP var_idxSEXP, SEXP confSEXP, SEXP conf2SEXP, SEXP cumulateSEXP, SEXP scalingSEXP, SEXP exogSEXP, SEXP n_threadsSEXP) {
+Rcpp::List fBootstrapMaxCorrected(const arma::mat& y, const Rcpp::List& var_result, int nboot1, int nboot2, int horizon, int var_idx, double conf, double conf2, Rcpp::IntegerVector cumulate, Rcpp::Nullable<arma::vec> scaling, Rcpp::Nullable<arma::mat> exog, int n_threads, bool verbose);
+RcppExport SEXP _tidyMacro_fBootstrapMaxCorrected(SEXP ySEXP, SEXP var_resultSEXP, SEXP nboot1SEXP, SEXP nboot2SEXP, SEXP horizonSEXP, SEXP var_idxSEXP, SEXP confSEXP, SEXP conf2SEXP, SEXP cumulateSEXP, SEXP scalingSEXP, SEXP exogSEXP, SEXP n_threadsSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -203,13 +210,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::Nullable<arma::vec> >::type scaling(scalingSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<arma::mat> >::type exog(exogSEXP);
     Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(fBootstrapMaxCorrected(y, var_result, nboot1, nboot2, horizon, var_idx, conf, conf2, cumulate, scaling, exog, n_threads));
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(fBootstrapMaxCorrected(y, var_result, nboot1, nboot2, horizon, var_idx, conf, conf2, cumulate, scaling, exog, n_threads, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
 // fBootstrapUhlig
-Rcpp::List fBootstrapUhlig(const arma::mat& y, const Rcpp::List& var_result, int nboot, int horizon, int idx, double conf, double conf2, Rcpp::IntegerVector cumulate, Rcpp::Nullable<arma::mat> exog, int n_threads);
-RcppExport SEXP _tidyMacro_fBootstrapUhlig(SEXP ySEXP, SEXP var_resultSEXP, SEXP nbootSEXP, SEXP horizonSEXP, SEXP idxSEXP, SEXP confSEXP, SEXP conf2SEXP, SEXP cumulateSEXP, SEXP exogSEXP, SEXP n_threadsSEXP) {
+Rcpp::List fBootstrapUhlig(const arma::mat& y, const Rcpp::List& var_result, int nboot, int horizon, int idx, double conf, double conf2, Rcpp::IntegerVector cumulate, Rcpp::Nullable<arma::mat> exog, int n_threads, bool verbose);
+RcppExport SEXP _tidyMacro_fBootstrapUhlig(SEXP ySEXP, SEXP var_resultSEXP, SEXP nbootSEXP, SEXP horizonSEXP, SEXP idxSEXP, SEXP confSEXP, SEXP conf2SEXP, SEXP cumulateSEXP, SEXP exogSEXP, SEXP n_threadsSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -223,13 +231,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type cumulate(cumulateSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<arma::mat> >::type exog(exogSEXP);
     Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(fBootstrapUhlig(y, var_result, nboot, horizon, idx, conf, conf2, cumulate, exog, n_threads));
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(fBootstrapUhlig(y, var_result, nboot, horizon, idx, conf, conf2, cumulate, exog, n_threads, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
 // fBootstrapUhligCorrected
-Rcpp::List fBootstrapUhligCorrected(const arma::mat& y, const Rcpp::List& var_result, int nboot1, int nboot2, int horizon, int idx, double conf, double conf2, Rcpp::IntegerVector cumulate, Rcpp::Nullable<arma::mat> exog, int n_threads);
-RcppExport SEXP _tidyMacro_fBootstrapUhligCorrected(SEXP ySEXP, SEXP var_resultSEXP, SEXP nboot1SEXP, SEXP nboot2SEXP, SEXP horizonSEXP, SEXP idxSEXP, SEXP confSEXP, SEXP conf2SEXP, SEXP cumulateSEXP, SEXP exogSEXP, SEXP n_threadsSEXP) {
+Rcpp::List fBootstrapUhligCorrected(const arma::mat& y, const Rcpp::List& var_result, int nboot1, int nboot2, int horizon, int idx, double conf, double conf2, Rcpp::IntegerVector cumulate, Rcpp::Nullable<arma::mat> exog, int n_threads, bool verbose);
+RcppExport SEXP _tidyMacro_fBootstrapUhligCorrected(SEXP ySEXP, SEXP var_resultSEXP, SEXP nboot1SEXP, SEXP nboot2SEXP, SEXP horizonSEXP, SEXP idxSEXP, SEXP confSEXP, SEXP conf2SEXP, SEXP cumulateSEXP, SEXP exogSEXP, SEXP n_threadsSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -244,7 +253,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type cumulate(cumulateSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<arma::mat> >::type exog(exogSEXP);
     Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(fBootstrapUhligCorrected(y, var_result, nboot1, nboot2, horizon, idx, conf, conf2, cumulate, exog, n_threads));
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(fBootstrapUhligCorrected(y, var_result, nboot1, nboot2, horizon, idx, conf, conf2, cumulate, exog, n_threads, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -431,8 +441,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // fBootstrapHDIV
-Rcpp::List fBootstrapHDIV(const arma::mat& y, const Rcpp::List& var_result, const arma::mat& Z, const arma::vec& s, int nboot, int blocksize, const arma::ivec& adjustZ, const arma::ivec& adjustu, int policyvar, double conf, int n_threads);
-RcppExport SEXP _tidyMacro_fBootstrapHDIV(SEXP ySEXP, SEXP var_resultSEXP, SEXP ZSEXP, SEXP sSEXP, SEXP nbootSEXP, SEXP blocksizeSEXP, SEXP adjustZSEXP, SEXP adjustuSEXP, SEXP policyvarSEXP, SEXP confSEXP, SEXP n_threadsSEXP) {
+Rcpp::List fBootstrapHDIV(const arma::mat& y, const Rcpp::List& var_result, const arma::mat& Z, const arma::vec& s, int nboot, int blocksize, const arma::ivec& adjustZ, const arma::ivec& adjustu, int policyvar, double conf, int n_threads, bool verbose);
+RcppExport SEXP _tidyMacro_fBootstrapHDIV(SEXP ySEXP, SEXP var_resultSEXP, SEXP ZSEXP, SEXP sSEXP, SEXP nbootSEXP, SEXP blocksizeSEXP, SEXP adjustZSEXP, SEXP adjustuSEXP, SEXP policyvarSEXP, SEXP confSEXP, SEXP n_threadsSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -447,7 +457,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type policyvar(policyvarSEXP);
     Rcpp::traits::input_parameter< double >::type conf(confSEXP);
     Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(fBootstrapHDIV(y, var_result, Z, s, nboot, blocksize, adjustZ, adjustu, policyvar, conf, n_threads));
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(fBootstrapHDIV(y, var_result, Z, s, nboot, blocksize, adjustZ, adjustu, policyvar, conf, n_threads, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -485,8 +496,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // fBootstrapHetero
-Rcpp::List fBootstrapHetero(const arma::mat& y, const Rcpp::List& var_result, const arma::mat& Z, const arma::ivec& indsR1, const arma::ivec& adjustu, int nboot, int blocksize, int hor, int nvar, double scale, double conf, double conf2, int n_threads);
-RcppExport SEXP _tidyMacro_fBootstrapHetero(SEXP ySEXP, SEXP var_resultSEXP, SEXP ZSEXP, SEXP indsR1SEXP, SEXP adjustuSEXP, SEXP nbootSEXP, SEXP blocksizeSEXP, SEXP horSEXP, SEXP nvarSEXP, SEXP scaleSEXP, SEXP confSEXP, SEXP conf2SEXP, SEXP n_threadsSEXP) {
+Rcpp::List fBootstrapHetero(const arma::mat& y, const Rcpp::List& var_result, const arma::mat& Z, const arma::ivec& indsR1, const arma::ivec& adjustu, int nboot, int blocksize, int hor, int nvar, double scale, double conf, double conf2, int n_threads, bool verbose);
+RcppExport SEXP _tidyMacro_fBootstrapHetero(SEXP ySEXP, SEXP var_resultSEXP, SEXP ZSEXP, SEXP indsR1SEXP, SEXP adjustuSEXP, SEXP nbootSEXP, SEXP blocksizeSEXP, SEXP horSEXP, SEXP nvarSEXP, SEXP scaleSEXP, SEXP confSEXP, SEXP conf2SEXP, SEXP n_threadsSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -503,7 +514,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type conf(confSEXP);
     Rcpp::traits::input_parameter< double >::type conf2(conf2SEXP);
     Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(fBootstrapHetero(y, var_result, Z, indsR1, adjustu, nboot, blocksize, hor, nvar, scale, conf, conf2, n_threads));
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(fBootstrapHetero(y, var_result, Z, indsR1, adjustu, nboot, blocksize, hor, nvar, scale, conf, conf2, n_threads, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -592,8 +604,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // fLPPanel_cpp
-Rcpp::List fLPPanel_cpp(const arma::mat& y, const arma::mat& s, const arma::mat& X, const arma::mat& W, const arma::imat& FE, const arma::ivec& i_index, const arma::ivec& t_index, int H, int p_max, bool small_sample, bool cumulative, int cluster_mode, int n_threads, bool verbose);
-RcppExport SEXP _tidyMacro_fLPPanel_cpp(SEXP ySEXP, SEXP sSEXP, SEXP XSEXP, SEXP WSEXP, SEXP FESEXP, SEXP i_indexSEXP, SEXP t_indexSEXP, SEXP HSEXP, SEXP p_maxSEXP, SEXP small_sampleSEXP, SEXP cumulativeSEXP, SEXP cluster_modeSEXP, SEXP n_threadsSEXP, SEXP verboseSEXP) {
+Rcpp::List fLPPanel_cpp(const arma::mat& y, const arma::mat& s, const arma::mat& X, const arma::mat& W, const arma::imat& FE, const arma::ivec& i_index, const arma::ivec& t_index, int H, int p_max, int ssc_mode, bool cumulative, int cluster_mode, int n_threads, bool verbose);
+RcppExport SEXP _tidyMacro_fLPPanel_cpp(SEXP ySEXP, SEXP sSEXP, SEXP XSEXP, SEXP WSEXP, SEXP FESEXP, SEXP i_indexSEXP, SEXP t_indexSEXP, SEXP HSEXP, SEXP p_maxSEXP, SEXP ssc_modeSEXP, SEXP cumulativeSEXP, SEXP cluster_modeSEXP, SEXP n_threadsSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -606,12 +618,12 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::ivec& >::type t_index(t_indexSEXP);
     Rcpp::traits::input_parameter< int >::type H(HSEXP);
     Rcpp::traits::input_parameter< int >::type p_max(p_maxSEXP);
-    Rcpp::traits::input_parameter< bool >::type small_sample(small_sampleSEXP);
+    Rcpp::traits::input_parameter< int >::type ssc_mode(ssc_modeSEXP);
     Rcpp::traits::input_parameter< bool >::type cumulative(cumulativeSEXP);
     Rcpp::traits::input_parameter< int >::type cluster_mode(cluster_modeSEXP);
     Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(fLPPanel_cpp(y, s, X, W, FE, i_index, t_index, H, p_max, small_sample, cumulative, cluster_mode, n_threads, verbose));
+    rcpp_result_gen = Rcpp::wrap(fLPPanel_cpp(y, s, X, W, FE, i_index, t_index, H, p_max, ssc_mode, cumulative, cluster_mode, n_threads, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -936,60 +948,60 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_tidyMacro_fAICBIC", (DL_FUNC) &_tidyMacro_fAICBIC, 4},
-    {"_tidyMacro_fBQIRF", (DL_FUNC) &_tidyMacro_fBQIRF, 3},
-    {"_tidyMacro_fBootstrapBQ", (DL_FUNC) &_tidyMacro_fBootstrapBQ, 11},
-    {"_tidyMacro_fBootstrapChol", (DL_FUNC) &_tidyMacro_fBootstrapChol, 9},
-    {"_tidyMacro_fBootstrapCholCorrected", (DL_FUNC) &_tidyMacro_fBootstrapCholCorrected, 10},
-    {"_tidyMacro_fBootstrapIVInvertible", (DL_FUNC) &_tidyMacro_fBootstrapIVInvertible, 10},
-    {"_tidyMacro_fBootstrapIVMBB", (DL_FUNC) &_tidyMacro_fBootstrapIVMBB, 13},
-    {"_tidyMacro_fBootstrapIVRecover", (DL_FUNC) &_tidyMacro_fBootstrapIVRecover, 13},
-    {"_tidyMacro_fBootstrapMax", (DL_FUNC) &_tidyMacro_fBootstrapMax, 11},
-    {"_tidyMacro_fBootstrapMaxCorrected", (DL_FUNC) &_tidyMacro_fBootstrapMaxCorrected, 12},
-    {"_tidyMacro_fBootstrapUhlig", (DL_FUNC) &_tidyMacro_fBootstrapUhlig, 10},
-    {"_tidyMacro_fBootstrapUhligCorrected", (DL_FUNC) &_tidyMacro_fBootstrapUhligCorrected, 11},
-    {"_tidyMacro_fBootstrapVAR", (DL_FUNC) &_tidyMacro_fBootstrapVAR, 3},
-    {"_tidyMacro_fCheckNarrative_cpp", (DL_FUNC) &_tidyMacro_fCheckNarrative_cpp, 10},
-    {"_tidyMacro_fCheckRestrictions", (DL_FUNC) &_tidyMacro_fCheckRestrictions, 4},
-    {"_tidyMacro_fCheckStability", (DL_FUNC) &_tidyMacro_fCheckStability, 1},
-    {"_tidyMacro_fCholeskyIRF", (DL_FUNC) &_tidyMacro_fCholeskyIRF, 2},
-    {"_tidyMacro_fCompanionMatrix", (DL_FUNC) &_tidyMacro_fCompanionMatrix, 3},
-    {"_tidyMacro_fFEVDChol", (DL_FUNC) &_tidyMacro_fFEVDChol, 2},
-    {"_tidyMacro_fFEVDIV", (DL_FUNC) &_tidyMacro_fFEVDIV, 9},
-    {"_tidyMacro_fGenerateQ", (DL_FUNC) &_tidyMacro_fGenerateQ, 1},
-    {"_tidyMacro_fGenerateVARData", (DL_FUNC) &_tidyMacro_fGenerateVARData, 5},
-    {"_tidyMacro_fGetBands", (DL_FUNC) &_tidyMacro_fGetBands, 2},
-    {"_tidyMacro_fGetShock", (DL_FUNC) &_tidyMacro_fGetShock, 5},
-    {"_tidyMacro_fHDIV", (DL_FUNC) &_tidyMacro_fHDIV, 6},
-    {"_tidyMacro_fBootstrapHDIV", (DL_FUNC) &_tidyMacro_fBootstrapHDIV, 11},
-    {"_tidyMacro_fHDShock_cpp", (DL_FUNC) &_tidyMacro_fHDShock_cpp, 6},
-    {"_tidyMacro_fHeteroIRF", (DL_FUNC) &_tidyMacro_fHeteroIRF, 7},
-    {"_tidyMacro_fBootstrapHetero", (DL_FUNC) &_tidyMacro_fBootstrapHetero, 13},
-    {"_tidyMacro_fHistDec", (DL_FUNC) &_tidyMacro_fHistDec, 4},
-    {"_tidyMacro_fLP_cpp", (DL_FUNC) &_tidyMacro_fLP_cpp, 13},
-    {"_tidyMacro_fLPDID_cpp", (DL_FUNC) &_tidyMacro_fLPDID_cpp, 15},
-    {"_tidyMacro_fLPIV_cpp", (DL_FUNC) &_tidyMacro_fLPIV_cpp, 12},
-    {"_tidyMacro_fLPPanel_cpp", (DL_FUNC) &_tidyMacro_fLPPanel_cpp, 14},
-    {"_tidyMacro_fLagMakerMatrix", (DL_FUNC) &_tidyMacro_fLagMakerMatrix, 2},
-    {"_tidyMacro_fMBBVAR", (DL_FUNC) &_tidyMacro_fMBBVAR, 4},
-    {"_tidyMacro_fMSW", (DL_FUNC) &_tidyMacro_fMSW, 9},
-    {"_tidyMacro_fMaxIRF", (DL_FUNC) &_tidyMacro_fMaxIRF, 3},
-    {"_tidyMacro_fNLLP_cpp", (DL_FUNC) &_tidyMacro_fNLLP_cpp, 16},
-    {"_tidyMacro_fOLS", (DL_FUNC) &_tidyMacro_fOLS, 4},
-    {"_tidyMacro_fPolyConvolve", (DL_FUNC) &_tidyMacro_fPolyConvolve, 3},
-    {"_tidyMacro_fRecoverBIV_cpp", (DL_FUNC) &_tidyMacro_fRecoverBIV_cpp, 4},
-    {"_tidyMacro_fRecoverBIVMulti_cpp", (DL_FUNC) &_tidyMacro_fRecoverBIVMulti_cpp, 3},
-    {"_tidyMacro_fSR_cpp", (DL_FUNC) &_tidyMacro_fSR_cpp, 27},
-    {"_tidyMacro_fSVARSteps", (DL_FUNC) &_tidyMacro_fSVARSteps, 0},
-    {"_tidyMacro_fSignRestrictions_cpp", (DL_FUNC) &_tidyMacro_fSignRestrictions_cpp, 9},
-    {"_tidyMacro_fSignRestrictionsAll_cpp", (DL_FUNC) &_tidyMacro_fSignRestrictionsAll_cpp, 9},
-    {"_tidyMacro_fSpectralFEVD", (DL_FUNC) &_tidyMacro_fSpectralFEVD, 5},
-    {"_tidyMacro_fUhligIRF", (DL_FUNC) &_tidyMacro_fUhligIRF, 3},
-    {"_tidyMacro_fUhligMaxShare", (DL_FUNC) &_tidyMacro_fUhligMaxShare, 3},
-    {"_tidyMacro_fVAR", (DL_FUNC) &_tidyMacro_fVAR, 4},
-    {"_tidyMacro_fVARPosterior_cpp", (DL_FUNC) &_tidyMacro_fVARPosterior_cpp, 6},
-    {"_tidyMacro_fVARX", (DL_FUNC) &_tidyMacro_fVARX, 4},
-    {"_tidyMacro_fWoldIRF", (DL_FUNC) &_tidyMacro_fWoldIRF, 2},
+    {"_tidyMacro_fAICBIC", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fAICBIC, 4},
+    {"_tidyMacro_fBQIRF", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fBQIRF, 3},
+    {"_tidyMacro_fBootstrapBQ", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fBootstrapBQ, 12},
+    {"_tidyMacro_fBootstrapChol", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fBootstrapChol, 10},
+    {"_tidyMacro_fBootstrapCholCorrected", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fBootstrapCholCorrected, 11},
+    {"_tidyMacro_fBootstrapIVInvertible", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fBootstrapIVInvertible, 11},
+    {"_tidyMacro_fBootstrapIVMBB", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fBootstrapIVMBB, 14},
+    {"_tidyMacro_fBootstrapIVRecover", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fBootstrapIVRecover, 14},
+    {"_tidyMacro_fBootstrapMax", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fBootstrapMax, 12},
+    {"_tidyMacro_fBootstrapMaxCorrected", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fBootstrapMaxCorrected, 13},
+    {"_tidyMacro_fBootstrapUhlig", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fBootstrapUhlig, 11},
+    {"_tidyMacro_fBootstrapUhligCorrected", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fBootstrapUhligCorrected, 12},
+    {"_tidyMacro_fBootstrapVAR", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fBootstrapVAR, 3},
+    {"_tidyMacro_fCheckNarrative_cpp", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fCheckNarrative_cpp, 10},
+    {"_tidyMacro_fCheckRestrictions", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fCheckRestrictions, 4},
+    {"_tidyMacro_fCheckStability", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fCheckStability, 1},
+    {"_tidyMacro_fCholeskyIRF", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fCholeskyIRF, 2},
+    {"_tidyMacro_fCompanionMatrix", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fCompanionMatrix, 3},
+    {"_tidyMacro_fFEVDChol", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fFEVDChol, 2},
+    {"_tidyMacro_fFEVDIV", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fFEVDIV, 9},
+    {"_tidyMacro_fGenerateQ", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fGenerateQ, 1},
+    {"_tidyMacro_fGenerateVARData", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fGenerateVARData, 5},
+    {"_tidyMacro_fGetBands", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fGetBands, 2},
+    {"_tidyMacro_fGetShock", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fGetShock, 5},
+    {"_tidyMacro_fHDIV", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fHDIV, 6},
+    {"_tidyMacro_fBootstrapHDIV", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fBootstrapHDIV, 12},
+    {"_tidyMacro_fHDShock_cpp", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fHDShock_cpp, 6},
+    {"_tidyMacro_fHeteroIRF", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fHeteroIRF, 7},
+    {"_tidyMacro_fBootstrapHetero", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fBootstrapHetero, 14},
+    {"_tidyMacro_fHistDec", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fHistDec, 4},
+    {"_tidyMacro_fLP_cpp", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fLP_cpp, 13},
+    {"_tidyMacro_fLPDID_cpp", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fLPDID_cpp, 15},
+    {"_tidyMacro_fLPIV_cpp", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fLPIV_cpp, 12},
+    {"_tidyMacro_fLPPanel_cpp", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fLPPanel_cpp, 14},
+    {"_tidyMacro_fLagMakerMatrix", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fLagMakerMatrix, 2},
+    {"_tidyMacro_fMBBVAR", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fMBBVAR, 4},
+    {"_tidyMacro_fMSW", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fMSW, 9},
+    {"_tidyMacro_fMaxIRF", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fMaxIRF, 3},
+    {"_tidyMacro_fNLLP_cpp", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fNLLP_cpp, 16},
+    {"_tidyMacro_fOLS", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fOLS, 4},
+    {"_tidyMacro_fPolyConvolve", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fPolyConvolve, 3},
+    {"_tidyMacro_fRecoverBIV_cpp", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fRecoverBIV_cpp, 4},
+    {"_tidyMacro_fRecoverBIVMulti_cpp", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fRecoverBIVMulti_cpp, 3},
+    {"_tidyMacro_fSR_cpp", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fSR_cpp, 27},
+    {"_tidyMacro_fSVARSteps", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fSVARSteps, 0},
+    {"_tidyMacro_fSignRestrictions_cpp", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fSignRestrictions_cpp, 9},
+    {"_tidyMacro_fSignRestrictionsAll_cpp", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fSignRestrictionsAll_cpp, 9},
+    {"_tidyMacro_fSpectralFEVD", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fSpectralFEVD, 5},
+    {"_tidyMacro_fUhligIRF", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fUhligIRF, 3},
+    {"_tidyMacro_fUhligMaxShare", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fUhligMaxShare, 3},
+    {"_tidyMacro_fVAR", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fVAR, 4},
+    {"_tidyMacro_fVARPosterior_cpp", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fVARPosterior_cpp, 6},
+    {"_tidyMacro_fVARX", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fVARX, 4},
+    {"_tidyMacro_fWoldIRF", (DL_FUNC) (RCPP_FUNC) &_tidyMacro_fWoldIRF, 2},
     {NULL, NULL, 0}
 };
 

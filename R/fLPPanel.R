@@ -212,8 +212,31 @@
 #' @param conf Numeric in (0, 100), in percent. One or more confidence levels,
 #'   e.g. \code{90} or \code{c(68, 95)}. Bands are rebuilt from the raw
 #'   SEs, so multi-level fits cost the same as single-level fits.
-#' @param small_sample Logical. If \code{TRUE}, apply the Imbens-Kolesar
-#'   (2016, REStat) small-sample refinement. Default \code{FALSE}.
+#' @param ssc Character. Small-sample correction applied to the
+#'   cluster-robust variance:
+#'   \describe{
+#'     \item{\code{"none"}}{(default) the asymptotic sandwich with normal
+#'       critical values (\code{df = Inf}). This is the convention of the
+#'       Almuzara-Sancibrian panel LP theory, which is asymptotic in both
+#'       the cross-section and the time dimension.}
+#'     \item{\code{"CR1"}}{the correction used by Stata and \pkg{fixest}:
+#'       every one-way component of the meat is multiplied by
+#'       \eqn{G/(G-1) \cdot (N-1)/(N-K)} with its own number of clusters
+#'       \eqn{G}, and inference uses \eqn{t} with \eqn{\min(G) - 1}
+#'       degrees of freedom. \eqn{K} counts the regressors plus the
+#'       absorbed fixed effects that are not nested in a clustering
+#'       dimension. Standard errors are slightly wider than
+#'       \code{"none"}; the difference is negligible with many clusters
+#'       and matters when there are few. Available for every clustering
+#'       dimension.}
+#'     \item{\code{"IK"}}{the Imbens-Kolesar (2016, REStat) refinement, a
+#'       bias-reduced (CR2-type) variance with Satterthwaite degrees of
+#'       freedom. Defined only for time clustering.}
+#'   }
+#'   Point estimates are identical under all three; only the standard
+#'   errors and the critical values change.
+#' @param small_sample Deprecated. \code{TRUE} is equivalent to
+#'   \code{ssc = "IK"}; use \code{ssc} instead.
 #' @param cumulative Logical. If \code{TRUE}, project
 #'   \eqn{\sum_{k=0}^h y_{i,t+k}} instead of \eqn{y_{i,t+h}}. Default
 #'   \code{FALSE}.
@@ -228,30 +251,32 @@
 #'   \code{~unit + tt}. Two-way clustering uses the
 #'   Cameron-Gelbach-Miller inclusion-exclusion estimator. The default
 #'   \code{NULL} is equivalent to clustering on the time variable. The
-#'   \code{small_sample = TRUE} refinement is available only with time
-#'   clustering.
+#'   \code{ssc = "IK"} refinement is available only with time clustering.
 #'
 #' @return An object of class \code{c("fLPPanel", "fLP")} that plugs into
 #'   \code{\link{fPlotIRF}} and \code{\link{tidy.fLP}}.
 #'
 #' @examples
-#' \dontrun{
-#' # Homogeneous shock
-#' fLPPanel(y ~ shock + l(y, 1:2) | unit + tt,
-#'          data = df, panel_id = c("unit", "tt"),
-#'          shock = "shock", horizons = 12,
-#'          cluster = ~unit + tt)
+#' data("DemocracyGrowth")
 #'
-#' # Heterogeneous shock via explicit interaction (Almuzara-Sancibrián)
-#' fLPPanel(y ~ shock:size | unit + tt,
-#'          data = df, panel_id = c("unit", "tt"),
-#'          shock = "shock:size", horizons = 12,
-#'          small_sample = TRUE, cumulative = TRUE)
+#' # Response of log GDP to a democratisation event, unit and year fixed
+#' # effects, clustered on countries.
+#' fLPPanel(lgdp ~ dem | id + year,
+#'          data = DemocracyGrowth, panel_id = c("id", "year"),
+#'          shock = "dem", horizons = 4, cluster = ~id, n_threads = 2)
 #'
-#' # Multiple heterogeneity margins → multiple IRFs
-#' fLPPanel(y ~ shock:size + shock:leverage | unit + tt,
-#'          data = df, panel_id = c("unit", "tt"),
-#'          shock = c("shock:size", "shock:leverage"), horizons = 12)
+#' \donttest{
+#' # The Stata / fixest finite-sample correction
+#' fLPPanel(lgdp ~ dem | id + year,
+#'          data = DemocracyGrowth, panel_id = c("id", "year"),
+#'          shock = "dem", horizons = 12, cluster = ~id,
+#'          ssc = "CR1", n_threads = 2)
+#'
+#' # Cumulative response with lags of the outcome as controls
+#' fLPPanel(lgdp ~ dem + l(lgdp, 1:2) | id + year,
+#'          data = DemocracyGrowth, panel_id = c("id", "year"),
+#'          shock = "dem", horizons = 12, cumulative = TRUE,
+#'          cluster = ~id + year, n_threads = 2)
 #' }
 #'
 #' @export
@@ -260,6 +285,7 @@ fLPPanel <- function(formula, data,
                      horizons     = 12L,
                      shock,
                      conf         = 90,
+                     ssc          = c("none", "CR1", "IK"),
                      small_sample = FALSE,
                      cumulative   = FALSE,
                      p_max        = 0L,
@@ -283,8 +309,20 @@ fLPPanel <- function(formula, data,
   H    <- .fLP_validate_horizon_max(horizons)
   conf <- .fLP_validate_conf_vector(conf)
 
-  if (!is.logical(small_sample) || length(small_sample) != 1L)
+  if (!is.logical(small_sample) || length(small_sample) != 1L || is.na(small_sample))
     stop("fLPPanel: 'small_sample' must be TRUE or FALSE.")
+  ssc_given <- !missing(ssc)          # before match.arg(), which assigns ssc
+  ssc <- match.arg(ssc)
+  if (isTRUE(small_sample)) {
+    if (ssc_given && !identical(ssc, "IK"))
+      stop("fLPPanel: 'small_sample' and 'ssc' disagree; set 'ssc' only.",
+           call. = FALSE)
+    .Deprecated(msg = paste(
+      "fLPPanel: 'small_sample = TRUE' is deprecated and will be removed in",
+      "the next release.\nUse ssc = \"IK\" instead."))
+    ssc <- "IK"
+  }
+  ssc_mode <- match(ssc, c("none", "CR1", "IK")) - 1L
   if (!is.logical(cumulative)   || length(cumulative)   != 1L)
     stop("fLPPanel: 'cumulative' must be TRUE or FALSE.")
 
@@ -299,11 +337,12 @@ fLPPanel <- function(formula, data,
     stop(sprintf("fLPPanel: time column '%s' not found in data.", time_var))
 
   cluster_spec <- .fLPPanel_parse_cluster(cluster, panel_id, env)
-  if (isTRUE(small_sample) && cluster_spec$mode != 0L) {
+  if (identical(ssc, "IK") && cluster_spec$mode != 0L) {
     stop(
       paste0(
-        "fLPPanel: small_sample = TRUE is defined only for time clustering; ",
-        "use cluster = ~", time_var, " or set small_sample = FALSE."
+        "fLPPanel: ssc = \"IK\" is defined only for time clustering; ",
+        "use cluster = ~", time_var, ", or ssc = \"CR1\" for the ",
+        "Stata / fixest correction with this clustering dimension."
       ),
       call. = FALSE
     )
@@ -490,7 +529,7 @@ fLPPanel <- function(formula, data,
     t_index      = t_index,
     H            = H,
     p_max        = p_max,
-    small_sample = isTRUE(small_sample),
+    ssc_mode     = ssc_mode,
     cumulative   = isTRUE(cumulative),
     cluster_mode = cluster_spec$mode,
     n_threads    = n_threads,
@@ -555,7 +594,8 @@ fLPPanel <- function(formula, data,
     cluster_type = cluster_spec$label,
     horizons     = h_seq,
     conf         = conf,
-    small_sample = isTRUE(small_sample),
+    ssc          = ssc,
+    small_sample = identical(ssc, "IK"),   # kept for backward compatibility
     cumulative   = isTRUE(cumulative),
     p_max        = p_max,
     n_threads    = as.integer(n_threads),
@@ -591,8 +631,10 @@ print.fLPPanel <- function(x, digits = 4L, ...) {
   cat("Clustering       : ", paste(x$cluster_vars, collapse = " + "), "\n")
   cat(
     "SE               : ",
-    if (x$small_sample) {
+    if (identical(x$ssc, "IK")) {
       "Imbens-Kolesar (2016) time-clustered small-sample"
+    } else if (identical(x$ssc, "CR1")) {
+      paste0("CR1 (Stata / fixest) ", x$cluster_type, " cluster-robust")
     } else if (identical(x$cluster_type, "time")) {
       "asymptotic time-clustered (LAHR)"
     } else {

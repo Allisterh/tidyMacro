@@ -16,7 +16,8 @@ fBootstrapMax(
   cumulate = as.integer(c()),
   scaling = NULL,
   exog = NULL,
-  n_threads = 0L
+  n_threads = 0L,
+  verbose = FALSE
 )
 
 fBootstrapMaxCorrected(
@@ -31,7 +32,8 @@ fBootstrapMaxCorrected(
   cumulate = as.integer(c()),
   scaling = NULL,
   exog = NULL,
-  n_threads = 0L
+  n_threads = 0L,
+  verbose = FALSE
 )
 }
 \arguments{
@@ -62,6 +64,9 @@ original VAR included them; otherwise \code{NULL}.}
 
 \item{n_threads}{Number of OpenMP threads. Zero uses all available
 cores minus one, with a minimum of one. Without OpenMP, uses one.}
+
+\item{verbose}{Logical. If \code{TRUE}, report the number of threads
+used. Default \code{FALSE}, so the function is silent.}
 
 \item{nboot1}{Number of first-pass replications used to estimate bias.}
 

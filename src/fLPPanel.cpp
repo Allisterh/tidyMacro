@@ -144,7 +144,7 @@ LPPanelResult fLPPanel_internal(
     const arma::ivec& t_index,
     int  H,
     int  p_max,
-    bool small_sample,
+    int  ssc_mode,          // 0 = none, 1 = CR1, 2 = Imbens-Kolesar
     bool cumulative,
     int  cluster_mode,
     int  n_threads,
@@ -168,8 +168,8 @@ LPPanelResult fLPPanel_internal(
   if (cluster_mode < 0 || cluster_mode > 2) {
     Rcpp::stop("fLPPanel: cluster_mode must be 0 (time), 1 (unit), or 2 (unit + time).");
   }
-  if (small_sample && cluster_mode != 0) {
-    Rcpp::stop("fLPPanel: small_sample = TRUE is available only with time clustering.");
+  if (ssc_mode == 2 && cluster_mode != 0) {
+    Rcpp::stop("fLPPanel: ssc = \"IK\" is available only with time clustering.");
   }
 
   const arma::vec y = y_in.col(0);
@@ -318,7 +318,7 @@ LPPanelResult fLPPanel_internal(
     const arma::mat XX      = X_LP.t() * X_LP;
     const arma::mat XX_pinv = arma::pinv(XX);
 
-    if (small_sample) {
+    if (ssc_mode == 2) {
 
       // Time-cluster score sums; row tt follows the ascending times t_sorted.
       const arma::mat Xv_t = se_cluster_sums_cpp(Xv_it, t_LP);
@@ -382,14 +382,73 @@ LPPanelResult fLPPanel_internal(
     } else {
 
       // Time, unit, or Cameron-Gelbach-Miller two-way (unit + time).
-      const arma::mat Xv_var =
-          cluster_mode == 0 ? se_cluster_cpp(Xv_it, t_LP) :
-          cluster_mode == 1 ? se_cluster_cpp(Xv_it, i_LP) :
-                              se_cluster_twoway_cpp(Xv_it, i_LP, t_LP);
-      const arma::mat b_var  = XX_pinv * Xv_var * XX_pinv;
+      //
+      // ssc_mode 0 keeps the asymptotic sandwich and normal critical values,
+      // which is the convention of the Almuzara-Sancibrian panel LP theory.
+      // ssc_mode 1 reproduces Stata and fixest: every one-way component of
+      // the meat is scaled by G/(G-1)*(N-1)/(N-K) with its own cluster count,
+      // and inference uses t with min(G) - 1 degrees of freedom. K counts the
+      // regressors plus the absorbed fixed effects that are not nested in a
+      // clustering dimension.
+      const arma::uword n_keep = static_cast<arma::uword>(keep_idx.n_elem);
+      arma::uword G_i = 0, G_t = 0, G_min = 0;
+      double f_i = 1.0, f_t = 1.0, f_c = 1.0;
+
+      if (ssc_mode == 1) {
+        arma::uword K = n_X;                       // slope coefficients
+        for (arma::uword j = 0; j < FE_LP0.n_cols; ++j) {
+          const arma::ivec fe_j = FE_LP0.col(j);
+          bool nested = false;
+          if (cluster_mode == 0 || cluster_mode == 2)
+            nested = nested || se_fe_nested_cpp(fe_j, t_LP);
+          if (cluster_mode == 1 || cluster_mode == 2)
+            nested = nested || se_fe_nested_cpp(fe_j, i_LP);
+          // Each fixed effect enters as deviations from the intercept, so a
+          // factor with L levels costs L - 1 parameters. Factors nested in a
+          // clustering dimension cost nothing (fixest's fixef.K = "nested").
+          if (!nested) K += se_n_levels_cpp(fe_j) - 1;
+        }
+        K += 1;                                    // absorbed intercept
+
+        if (cluster_mode == 0 || cluster_mode == 2) {
+          G_t = se_n_clusters_cpp(t_LP);
+          f_t = se_cr1_factor_cpp(G_t, n_keep, K);
+        }
+        if (cluster_mode == 1 || cluster_mode == 2) {
+          G_i = se_n_clusters_cpp(i_LP);
+          f_i = se_cr1_factor_cpp(G_i, n_keep, K);
+        }
+        if (cluster_mode == 2) {
+          // The intersection meat is subtracted, so it carries the factor of
+          // the finer dimension, matching Cameron-Gelbach-Miller as applied
+          // by fixest.
+          const arma::uword G_c = std::max(G_i, G_t);
+          f_c   = se_cr1_factor_cpp(G_c, n_keep, K);
+          G_min = std::min(G_i, G_t);
+        } else {
+          G_min = (cluster_mode == 0) ? G_t : G_i;
+        }
+      }
+
+      arma::mat Xv_var;
+      if (cluster_mode == 0) {
+        Xv_var = f_t * se_cluster_cpp(Xv_it, t_LP);
+      } else if (cluster_mode == 1) {
+        Xv_var = f_i * se_cluster_cpp(Xv_it, i_LP);
+      } else if (ssc_mode == 1) {
+        Xv_var = f_i * se_cluster_cpp(Xv_it, i_LP)
+               + f_t * se_cluster_cpp(Xv_it, t_LP)
+               - f_c * se_cluster_pair_cpp(Xv_it, i_LP, t_LP);
+      } else {
+        Xv_var = se_cluster_twoway_cpp(Xv_it, i_LP, t_LP);
+      }
+
+      const arma::mat b_var = XX_pinv * Xv_var * XX_pinv;
+      const double df_h = (ssc_mode == 1 && G_min > 1)
+          ? static_cast<double>(G_min - 1) : arma::datum::inf;
       for (arma::uword is = 0; is < n_s; ++is) {
         out.SE(h, is) = std::sqrt(std::max(0.0, b_var(is, is)));
-        out.df(h, is) = arma::datum::inf;
+        out.df(h, is) = df_h;
       }
     }
 
@@ -423,7 +482,7 @@ Rcpp::List fLPPanel_cpp(
     const arma::ivec& t_index,
     int  H,
     int  p_max,
-    bool small_sample = false,
+    int  ssc_mode     = 0,
     bool cumulative   = false,
     int  cluster_mode = 0,
     int  n_threads    = 0,
@@ -444,11 +503,13 @@ Rcpp::List fLPPanel_cpp(
     Rcpp::stop("fLPPanel_cpp: H and p_max must be non-negative.");
   if (cluster_mode < 0 || cluster_mode > 2)
     Rcpp::stop("fLPPanel_cpp: cluster_mode must be 0 (time), 1 (unit), or 2 (unit + time).");
-  if (small_sample && cluster_mode != 0)
-    Rcpp::stop("fLPPanel_cpp: small_sample = TRUE is available only with time clustering.");
+  if (ssc_mode < 0 || ssc_mode > 2)
+    Rcpp::stop("fLPPanel_cpp: ssc_mode must be 0 (none), 1 (CR1) or 2 (IK).");
+  if (ssc_mode == 2 && cluster_mode != 0)
+    Rcpp::stop("fLPPanel_cpp: ssc_mode = 2 (IK) is available only with time clustering.");
 
   LPPanelResult r = fLPPanel_internal(y, s, X, W, FE, i_index, t_index,
-                                      H, p_max, small_sample, cumulative,
+                                      H, p_max, ssc_mode, cumulative,
                                       cluster_mode, n_threads, verbose);
 
   // Surface per-horizon issues collected during the parallel region.

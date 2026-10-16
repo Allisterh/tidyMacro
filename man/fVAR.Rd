@@ -42,15 +42,15 @@ variables the model reduces to a standard VAR(p). Estimation uses
 \code{arma::solve} for numerical stability.
 }
 \examples{
-\dontrun{
-# VAR(2) without exogenous variables
-y      <- matrix(rnorm(200), ncol = 2)
+set.seed(123)
+y      <- matrix(rnorm(400), ncol = 2)
 result <- fVAR(y, p = 2, c = 1)
+result$beta
 
-# VAR(2) with one exogenous variable
-exog   <- matrix(rnorm(100), ncol = 1)
+# With one exogenous regressor
+exog   <- matrix(rnorm(200), ncol = 1)
 result <- fVAR(y, p = 2, c = 1, exog = exog)
-}
+dim(result$residuals)
 
 }
 \seealso{

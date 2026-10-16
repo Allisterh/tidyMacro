@@ -71,13 +71,11 @@ AICBICResult fAICBIC_cpp(const arma::mat& y, int pmax, int c,
 //' where M is the number of exogenous variables.
 //'
 //' @examples
-//' \dontrun{
 //' set.seed(123)
-//' y      <- matrix(rnorm(200), ncol = 2)
-//' result <- fAICBIC(y, pmax = 10, c = 1)
+//' y      <- matrix(rnorm(400), ncol = 2)
+//' result <- fAICBIC(y, pmax = 4, c = 1)
 //' result$aic
 //' result$bic
-//' }
 //'
 //' @seealso \code{\link{fVAR}}
 //'

@@ -78,15 +78,15 @@ CompanionMatrixResult fCompanionMatrix_cpp(arma::mat beta, int c, int p) {
 //' }
 //'
 //' @examples
-//' \dontrun{
-//' # VAR(2) model with 3 variables, no intercept
-//' beta <- matrix(rnorm(18), 6, 3)  # 6 rows (2*3), 3 columns
-//' result <- fCompanionMatrix(beta, c = 0, p = 2)
+//' set.seed(123)
+//' # VAR(2) with 3 variables, no intercept
+//' beta <- matrix(rnorm(18), 6, 3)
+//' comp <- fCompanionMatrix(beta, c = 0, p = 2)
+//' dim(comp$comp)
 //'
-//' # VAR(2) model with 3 variables, with intercept and 2 exogenous variables
-//' beta_int <- matrix(rnorm(27), 9, 3)  # 9 rows (2*3+1+2), 3 columns
-//' result <- fCompanionMatrix(beta_int, c = 1, p = 2)
-//' }
+//' # VAR(2) with 3 variables, an intercept and 2 exogenous regressors
+//' beta_int <- matrix(rnorm(27), 9, 3)
+//' fCompanionMatrix(beta_int, c = 1, p = 2)$comp[1:3, 1:3]
 //'
 //' @export
 // [[Rcpp::export]]

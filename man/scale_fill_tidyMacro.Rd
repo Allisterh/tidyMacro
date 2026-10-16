@@ -34,21 +34,16 @@ If the number of groups exceeds the 14 available colors, the palette will
 be recycled with a warning.
 }
 \examples{
-\dontrun{
+\donttest{
 library(ggplot2)
-library(tidyMacro)
 
-# FEVD stacked area plot
-ggplot(fevd_data, aes(x = horizon, y = contribution, fill = shock)) +
-  geom_area(position = "stack", alpha = 0.8) +
-  labs(title = "Forecast Error Variance Decomposition",
-       x = "Horizon",
-       y = "Share of Variance") +
+ggplot(mtcars, aes(x = factor(cyl), fill = factor(gear))) +
+  geom_bar(position = "stack") +
+  labs(x = "Cylinders", y = "Count", fill = "Gears") +
   scale_fill_tidyMacro() +
   fThemeTidyMacro()
 
-# Bar chart with tidyMacro colors
-ggplot(var_summary, aes(x = variable, y = coefficient, fill = lag)) +
+ggplot(mtcars, aes(x = factor(cyl), y = mpg, fill = factor(gear))) +
   geom_col(position = "dodge") +
   scale_fill_tidyMacro(reverse = TRUE) +
   fThemeTidyMacro()

@@ -32,3 +32,9 @@ AGENTS.md
 # Quarto renders here; sync-docs.sh mirrors it to docs/ (which IS tracked)
 _site/_output/
 _site/.quarto/
+Rplots.pdf
+
+# Quarto execution cache: stale results silently survive a package rebuild,
+# so the site is always rendered from scratch.
+_site/_freeze/
+_site/*_cache/

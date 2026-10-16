@@ -3,6 +3,7 @@
 
 #include <RcppArmadillo.h>
 #include "fVAR.h"
+#include <vector>
 
 arma::cube fBootstrapIVRecover_cpp(
     const arma::mat& y,
@@ -11,6 +12,7 @@ arma::cube fBootstrapIVRecover_cpp(
     const arma::vec& noise,
     const arma::vec& delta,
     int nboot, int p, int c, int r, int hor,
-    const arma::ivec& cumu);
+    const arma::ivec& cumu, int n_threads,
+    std::vector<unsigned char>& ok);
 
 #endif

@@ -11,6 +11,6 @@ SVARBootResult fBootstrapBQ_cpp(const arma::mat& y, const VARResult& var_result,
                                 const std::string& bootscheme,
                                 const arma::uvec& cumulate,
                                 bool has_scaling, int scale_idx, double scale_size,
-                                const arma::mat* exog_ptr, int n_threads);
+                                const arma::mat* exog_ptr, int n_threads, bool verbose);
 
 #endif

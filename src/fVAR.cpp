@@ -30,12 +30,25 @@ static VARResult fVAR_cpp_impl(const arma::mat &y, int p, int c,
 
   arma::mat XtX = X.t() * X;
   arma::mat Xty = X.t() * yfinal;
-  arma::mat beta = arma::solve(XtX, Xty, arma::solve_opts::fast);
+
+  // A rank-deficient design must not throw: this runs inside OpenMP workers.
+  // Fall back to a pseudo-inverse and flag the draw instead.
+  arma::mat beta;
+  bool ok = arma::solve(beta, XtX, Xty, arma::solve_opts::fast);
+  if (!ok) {
+    arma::mat XtX_pinv;
+    if (arma::pinv(XtX_pinv, XtX)) beta = XtX_pinv * Xty;
+    else                           beta.zeros(X.n_cols, y.n_cols);
+  }
 
   arma::mat residuals = yfinal - X * beta;
   int n_obs = residuals.n_rows;   // T_full - p (residual sample)
   int N     = y.n_cols;
-  arma::mat sigma = (residuals.t() * residuals) / (n_obs - c - N * p - n_exog);
+  const int df = n_obs - c - N * p - n_exog;   // residual degrees of freedom
+  arma::mat sigma = (df > 0)
+      ? arma::mat(residuals.t() * residuals / df)
+      : arma::mat(N, N, arma::fill::value(arma::datum::nan));
+  if (df <= 0) ok = false;
 
   VARResult result;
   result.beta = beta;
@@ -44,7 +57,42 @@ static VARResult fVAR_cpp_impl(const arma::mat &y, int p, int c,
   result.p = p;
   result.c = c;
   result.n_exog = n_exog;
+  result.ok = ok;
   return result;
+}
+
+void fCheckVARArgs_cpp(const arma::mat &y, int p, int c,
+                       const arma::mat *exog_ptr) {
+  if (y.n_rows == 0 || y.n_cols == 0)
+    Rcpp::stop("fVAR: 'y' must be a non-empty T x N matrix.");
+  if (p < 1)
+    Rcpp::stop("fVAR: 'p' must be at least 1, got %d.", p);
+  if (c != 0 && c != 1)
+    Rcpp::stop("fVAR: 'c' must be 0 (no intercept) or 1 (intercept), got %d.", c);
+  if (!y.is_finite())
+    Rcpp::stop("fVAR: 'y' contains NA, NaN or Inf values.");
+
+  const int T = static_cast<int>(y.n_rows);
+  const int N = static_cast<int>(y.n_cols);
+  if (T <= p)
+    Rcpp::stop("fVAR: 'y' has %d rows, which is not more than p = %d.", T, p);
+
+  int n_exog = 0;
+  if (exog_ptr != nullptr) {
+    if (static_cast<int>(exog_ptr->n_rows) != T)
+      Rcpp::stop("fVAR: 'exog' has %d rows but 'y' has %d; they must match.",
+                 static_cast<int>(exog_ptr->n_rows), T);
+    if (!exog_ptr->is_finite())
+      Rcpp::stop("fVAR: 'exog' contains NA, NaN or Inf values.");
+    n_exog = static_cast<int>(exog_ptr->n_cols);
+  }
+
+  const int n_obs = T - p;                 // rows of the regression
+  const int k     = c + N * p + n_exog;    // columns of the design matrix
+  if (n_obs <= k)
+    Rcpp::stop("fVAR: %d usable observations for %d regressors "
+               "(c + N*p + n_exog); no residual degrees of freedom left. "
+               "Reduce 'p' or use a longer sample.", n_obs, k);
 }
 
 // No-exog overload for C++ callers, including OpenMP worker threads.
@@ -133,15 +181,15 @@ void fRequireNoExog_cpp(int n_exog, const char *fun) {
 //' \code{arma::solve} for numerical stability.
 //'
 //' @examples
-//' \dontrun{
-//' # VAR(2) without exogenous variables
-//' y      <- matrix(rnorm(200), ncol = 2)
+//' set.seed(123)
+//' y      <- matrix(rnorm(400), ncol = 2)
 //' result <- fVAR(y, p = 2, c = 1)
+//' result$beta
 //'
-//' # VAR(2) with one exogenous variable
-//' exog   <- matrix(rnorm(100), ncol = 1)
+//' # With one exogenous regressor
+//' exog   <- matrix(rnorm(200), ncol = 1)
 //' result <- fVAR(y, p = 2, c = 1, exog = exog)
-//' }
+//' dim(result$residuals)
 //'
 //' @seealso \code{\link{fWoldIRF}}, \code{\link{fBootstrapChol}},
 //'   \code{\link{fAICBIC}}
@@ -150,7 +198,15 @@ void fRequireNoExog_cpp(int n_exog, const char *fun) {
 // [[Rcpp::export]]
 Rcpp::List fVAR(const arma::mat &y, int p, int c,
                 Rcpp::Nullable<arma::mat> exog = R_NilValue) {
-  VARResult result = fVAR_cpp(y, p, c, exog);
+  arma::mat exog_mat;
+  if (exog.isNotNull()) exog_mat = Rcpp::as<arma::mat>(exog);
+  const arma::mat *exog_ptr = exog.isNotNull() ? &exog_mat : nullptr;
+  fCheckVARArgs_cpp(y, p, c, exog_ptr);
+
+  VARResult result = fVAR_cpp(y, p, c, exog_ptr);
+  if (!result.ok)
+    Rcpp::stop("fVAR: the regressor matrix is rank deficient (collinear "
+               "variables, or a constant series with c = 1).");
 
   return Rcpp::List::create(Rcpp::Named("beta") = result.beta,
                             Rcpp::Named("residuals") = result.residuals,

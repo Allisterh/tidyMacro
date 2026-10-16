@@ -16,8 +16,6 @@ struct BootHeteroResult {
     arma::mat lower;     // N x (hor+1)
     arma::mat upper2;    // N x (hor+1)
     arma::mat lower2;    // N x (hor+1)
-    arma::mat meanirf;   // N x (hor+1)
-    arma::mat medianirf; // N x (hor+1)
     arma::mat point;     // N x (hor+1) plug-in point estimate (center of Hall bands)
 };
 
@@ -43,7 +41,7 @@ BootHeteroResult fBootstrapHetero_cpp(const arma::mat& y,
                                       int nboot, int blocksize,
                                       int hor, int nvar, double scale,
                                       double conf, double conf2,
-                                      int n_threads);
+                                      int n_threads, bool verbose);
 
 // R wrapper: point estimate
 Rcpp::List fHeteroIRF(const Rcpp::List& var_result,
@@ -60,6 +58,7 @@ Rcpp::List fBootstrapHetero(const arma::mat& y,
                              const arma::ivec& adjustu,
                              int nboot, int blocksize,
                              int hor, int nvar, double scale,
-                             double conf, double conf2, int n_threads);
+                             double conf, double conf2, int n_threads,
+                             bool verbose);
 
 #endif // FHETERORF_H

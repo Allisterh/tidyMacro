@@ -47,7 +47,8 @@ horizon is returned as the IRF.}
 for bands, e.g. \code{90} or \code{c(68, 95)}. When more than one is supplied,
 \code{irfs_upper} and \code{irfs_lower} become named lists of matrices
 (one per level, keyed by the level as a string) and the plot functions
-(\code{fPlotIRF()}, \code{fPlotNLLP()}) draw one ribbon per level. Bands are always rebuilt in R from \code{irfs_se},
+(\code{fPlotIRF()} for LP fits, \code{fPlotNLLP()} for nonlinear fits)
+draw one ribbon per level. Bands are always rebuilt in R from \code{irfs_se},
 so multi-level fits cost the same as single-level fits. Default: 90.}
 
 \item{nw_lags}{Integer or \code{NULL}. Base Newey-West bandwidth.
@@ -103,32 +104,40 @@ The syntax mirrors \pkg{fixest}: use a formula for the model,
 \code{l()} / \code{f()} operators to create lags and leads on-the-fly.
 }
 \examples{
-\dontrun{
-## 1. Basic usage — explicit shock, explicit controls
-fLP(ip ~ mp_shock + ip_l1 + ip_l2 + cpi_l1,
-    data = df, horizons = 24, shock = "mp_shock")
+data("JordaTaylor2025")
 
-## 2. Macro expansion
-controls <- c("ip_l1", "ip_l2", "cpi_l1", "rate_l1")
-fLP(ip ~ mp_shock + ..controls,
-    data = df, horizons = 24, shock = "mp_shock")
+## 1. Explicit shock and controls
+fLP(dLogCPI ~ RRShock + dSTIR + dLogGDP,
+    data = JordaTaylor2025, horizons = 6, shock = "RRShock",
+    n_threads = 2)
 
-## 3. Lag operator — auto-creates ip_l1, ip_l2, ip_l3 from data
-fLP(ip ~ mp_shock + l(ip, 1:3) + l(cpi, 1:2),
-    data = df, horizons = 24, shock = "mp_shock")
+## 2. Lag operator — creates the lags from the data
+fLP(dLogCPI ~ RRShock + l(dLogCPI, 1:3),
+    data = JordaTaylor2025, horizons = 6, shock = "RRShock",
+    n_threads = 2)
 
-## 4. Macro + lag operator
-vars <- c("ip", "cpi", "rate")
-fLP(ip ~ mp_shock + l(..vars, 1:3),
-    data = df, horizons = 24, shock = "mp_shock")
+\donttest{
+## 3. Macro expansion
+controls <- c("dSTIR", "dLogGDP")
+fLP(dLogCPI ~ RRShock + ..controls,
+    data = JordaTaylor2025, horizons = 24, shock = "RRShock",
+    n_threads = 2)
 
-## 5. Multi-equation (ip, cpi, rate as LHS — separate regressions)
-fLP(c(ip, cpi, rate) ~ mp_shock + l(..vars, 1:3),
-    data = df, horizons = 24, shock = "mp_shock")
+## 4. Macro inside the lag operator
+vars <- c("dLogCPI", "dSTIR", "dLogGDP")
+fLP(dLogCPI ~ RRShock + l(..vars, 1:3),
+    data = JordaTaylor2025, horizons = 24, shock = "RRShock",
+    n_threads = 2)
+
+## 5. Several outcomes at once (one regression each)
+fLP(c(dLogCPI, dLogGDP, dSTIR) ~ RRShock + l(..vars, 1:3),
+    data = JordaTaylor2025, horizons = 24, shock = "RRShock",
+    n_threads = 2)
 
 ## 6. Lead operator
-fLP(ip ~ mp_shock + l(ip, 1:12) + f(sentiment, 1),
-    data = df, horizons = 24, shock = "mp_shock")
+fLP(dLogCPI ~ RRShock + l(dLogCPI, 1:12) + f(dSTIR, 1),
+    data = JordaTaylor2025, horizons = 24, shock = "RRShock",
+    n_threads = 2)
 }
 
 }

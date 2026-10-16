@@ -63,13 +63,11 @@ VARXResult fVARX_cpp(const arma::mat& y, const arma::mat& ex, int p, int c) {
 //' Exogenous variables also enter contemporaneously at time t.
 //'
 //' @examples
-//' \dontrun{
-//' y  <- matrix(rnorm(200), ncol = 2)
-//' ex <- matrix(rnorm(100), ncol = 1)
-//' result    <- fVARX(y, ex, p = 2, c = 1)
-//' beta      <- result$beta
-//' residuals <- result$residuals
-//' }
+//' set.seed(123)
+//' y  <- matrix(rnorm(400), ncol = 2)
+//' ex <- matrix(rnorm(200), ncol = 1)
+//' result <- fVARX(y, ex, p = 2, c = 1)
+//' dim(result$beta)
 //'
 //' @export
 // [[Rcpp::export]]
