@@ -21,10 +21,14 @@ implemented methods with references.
     sub-directories of 1Mb or more:
       libs  46.1Mb
 
-  The package is compiled against RcppArmadillo with OpenMP, and the shared
-  object carries debug symbols on the check machine. There are no data or
-  documentation files of any size; the libs directory is the compiled code
-  alone.
+  Almost all of this is debug information, not code. The shared object is
+  46.9Mb as built, of which 45.0Mb sits in the .debug_* sections that the
+  check machine's default `-g` adds; `strip --strip-debug` leaves 1.9Mb.
+  The size comes from templated RcppArmadillo headers instantiated across
+  the identification and bootstrap routines, which produces a large amount
+  of debug information for a small amount of machine code. There are no
+  data or documentation files of any size, and the libs directory holds the
+  compiled code alone.
 
 ## Parallelism
 
