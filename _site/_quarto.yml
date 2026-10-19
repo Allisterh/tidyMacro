@@ -35,7 +35,7 @@ website:
   repo-url: https://github.com/muhsinciftci/tidyMacro
   repo-subdir: _site
   repo-actions: [edit, issue]
-  favicon: logo.jpeg
+  favicon: logo.png
 
   open-graph:
     title: "tidyMacro"
@@ -53,7 +53,7 @@ website:
         text: FAQ
 
   sidebar:
-    logo: "logo.jpeg"
+    logo: "logo.png"
     pinned: true
     align: center
     tools:
@@ -140,6 +140,6 @@ execute:
   # the package underneath it does, so a figure could survive a rebuild that
   # changed the numbers behind it. The site documents the installed package,
   # so every render executes every page.
-  freeze: false
+  freeze: true
   warning: false
   message: false
