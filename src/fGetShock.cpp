@@ -52,6 +52,17 @@ arma::vec fGetShock_cpp(const arma::mat& residuals, const arma::mat& sigma_full,
 //'
 //' @return A T x 1 numeric vector of recovered structural shocks.
 //'
+//' @examples
+//' set.seed(123)
+//' y          <- matrix(rnorm(400), ncol = 2)
+//' var_result <- fVAR(y, p = 2, c = 1)
+//'
+//' # Impact vector normalised so the shock moves variable 1 by one unit
+//' S     <- t(chol(var_result$sigma))
+//' s     <- S[, 1] / S[1, 1]
+//' shock <- fGetShock(var_result$residuals, var_result$sigma, s)
+//' head(shock)
+//'
 //' @export
 // [[Rcpp::export]]
 arma::vec fGetShock(const arma::mat& residuals, const arma::mat& sigma_full,

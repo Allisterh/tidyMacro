@@ -27,3 +27,13 @@ summed over the supplied horizons. For H slices, horizon h receives
 weight H-h, with h starting at zero. The sign of the direction is not
 normalised; \code{\link{fUhligIRF}} applies the IRF sign convention.
 }
+\examples{
+set.seed(123)
+y          <- matrix(rnorm(400), ncol = 2)
+var_result <- fVAR(y, p = 2, c = 1)
+wold       <- fWoldIRF(var_result, horizon = 12)
+
+q <- fUhligMaxShare(wold, t(chol(var_result$sigma)), idx = 1)
+sum(q^2)   # a unit-length rotation vector
+
+}

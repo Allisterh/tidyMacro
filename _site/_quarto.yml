@@ -53,7 +53,7 @@ website:
         text: FAQ
 
   sidebar:
-    logo: "logo.png"
+    logo: "logo.jpeg"
     pinned: true
     align: center
     tools:

@@ -33,7 +33,7 @@ Dube, Girardi, Jordà and Taylor (LP-DiD). Treatment is absorbing.
 data("BankingDeregulation")
 m <- fLPDID(lshare ~ bank, data = BankingDeregulation,
             panel_id = c("id", "year"), treat = "bank",
-            post = 9, pre = 9)
+            post = 9, pre = 9, n_threads = 2)
 }
 \references{
 Dube, A., Girardi, D., Jordà, Ò., & Taylor, A. M. (2025). A Local

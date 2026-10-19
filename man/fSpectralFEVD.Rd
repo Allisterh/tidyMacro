@@ -32,6 +32,17 @@ Numeric vector of length \eqn{N}: share of spectral variance
 Computes the fraction of spectral variance attributable to a single
 structural shock within a given frequency band.
 }
+\examples{
+set.seed(123)
+y          <- matrix(rnorm(400), ncol = 2)
+var_result <- fVAR(y, p = 2, c = 1)
+wold       <- fWoldIRF(var_result, horizon = 40)
+D          <- fCholeskyIRF(wold, t(chol(var_result$sigma)))
+
+# Share of business-cycle variance (6 to 32 periods) due to shock 1
+fSpectralFEVD(D, D[, 1, ], band = c(6, 32), J = 256)
+
+}
 \seealso{
 \code{\link{fCholeskyIRF}}, \code{\link{fPolyConvolve}}
 }

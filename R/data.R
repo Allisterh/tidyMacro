@@ -201,8 +201,7 @@
 #'
 #' @details
 #' Data sourced from the replication package of Beaudry and Portier (2014),
-#' available at
-#' \url{https://www.openicpsr.org/openicpsr/project/113916/version/V1/view}.
+#' available at \doi{10.3886/E113916V1}.
 #' The VAR is estimated with \eqn{p = 2} lags and a constant. The news shock
 #' is ordered second (after TFP) and identified via the max-share criterion
 #' over a 40-quarter horizon.
@@ -256,7 +255,7 @@
 #' data("BankingDeregulation")
 #' m <- fLPDID(lshare ~ bank, data = BankingDeregulation,
 #'             panel_id = c("id", "year"), treat = "bank",
-#'             post = 9, pre = 9)
+#'             post = 9, pre = 9, n_threads = 2)
 "BankingDeregulation"
 
 
@@ -290,7 +289,8 @@
 #' data("DemocracyGrowth")
 #' m <- fLPDID(lgdp ~ dem + l(lgdp, 1:4), data = DemocracyGrowth,
 #'             panel_id = c("id", "year"), treat = "dem",
-#'             post = 30, pre = 20, nonabsorbing = TRUE, L = 20, ccc = 1)
+#'             post = 30, pre = 20, nonabsorbing = TRUE, L = 20, ccc = 1,
+#'             n_threads = 2)
 "DemocracyGrowth"
 
 
@@ -346,7 +346,7 @@
 #' SIGN[, 1] <- c(0, -1, -1, 0, -1, 1)
 #'
 #' fit <- fSignRestr(y, p = 12, c = 1, sign = SIGN, nsteps = 60,
-#'                   ndraws = 100, sr_hor = 6, seed = 42)
+#'                   ndraws = 100, sr_hor = 6, seed = 42, n_threads = 2)
 "Uhlig2005"
 
 
@@ -407,7 +407,7 @@
 #'
 #' fit <- fSignRestr(y, p = 12, c = 0, sign = SIGN, nsteps = 60, ndraws = 100,
 #'                   sr_hor = 6, narrative = narr, dates = ADRR2018$Date,
-#'                   seed = 42)
+#'                   seed = 42, n_threads = 2)
 "ADRR2018"
 
 
@@ -477,7 +477,7 @@
 #'
 #' fit <- fSignRestr(endo, p = 12, c = 1, sign = SIGN, nsteps = 48,
 #'                   ndraws = 100, sr_hor = 3, instrument = list(Z = iv),
-#'                   seed = 42)
+#'                   seed = 42, n_threads = 2)
 "GK2015_2"
 
 
@@ -603,7 +603,8 @@
 #'
 #' fit <- fSignRestr(y, p = 12, c = 0, sign = SIGN, nsteps = 48,
 #'                   ndraws = 100, sr_hor = 6,
-#'                   instrument = list(Z = as.matrix(ACR2019$RR)), seed = 42)
+#'                   instrument = list(Z = as.matrix(ACR2019$RR)), seed = 42,
+#'                   n_threads = 2)
 "ACR2019"
 
 
@@ -646,3 +647,106 @@
 #' data("TenreyroThwaites2016")
 #' head(TenreyroThwaites2016[!is.na(TenreyroThwaites2016$RRShock), ])
 "TenreyroThwaites2016"
+
+
+#' Mian, Sufi and Verner (2017) Data
+#'
+#' Annual country panel from the replication files of Mian, Sufi and Verner
+#' (2017), restricted to the GDP and debt series behind Table II and the
+#' local projections of Figure 2 of the paper. Used with
+#' \code{\link{fLPPanel}}.
+#'
+#' @format A tibble with 2,254 rows (30 countries, 1940-2015) and 10 columns:
+#' \describe{
+#'   \item{country}{Country name, as in the replication files}
+#'   \item{year}{Year}
+#'   \item{lnGDP}{Log real GDP, constant prices, local currency units}
+#'   \item{lnGDP_d3}{Three-year growth of real GDP, \eqn{100 \times}
+#'     (\code{lnGDP} in \eqn{t} minus \code{lnGDP} in \eqn{t-3})}
+#'   \item{HHD_L1GDP}{Nominal household debt in \eqn{t} over nominal GDP in
+#'     \eqn{t-1}, in percent}
+#'   \item{NFD_L1GDP}{Nominal nonfinancial firm debt in \eqn{t} over nominal
+#'     GDP in \eqn{t-1}, in percent}
+#'   \item{L1D3HHD_GDP}{Change in the household debt to GDP ratio from
+#'     \eqn{t-4} to \eqn{t-1}, in percentage points}
+#'   \item{L1D3NFD_GDP}{Change in the nonfinancial firm debt to GDP ratio
+#'     from \eqn{t-4} to \eqn{t-1}, in percentage points}
+#'   \item{mainsmp1}{1 for the rows of the paper's main regression sample
+#'     (1962-2012), \code{NA} otherwise}
+#'   \item{c_mainsmp}{1 on every row. After a merge with
+#'     \code{\link{MianSufiVerner2018}} it marks the rows that come from this
+#'     file, the \code{if c_mainsmp == 1} sample of the 2018 update}
+#' }
+#'
+#' @details Missing observations are stored as \code{NA}. Table II of the
+#'   paper regresses \code{lnGDP_d3} led \eqn{k = -1, \dots, 5} years on
+#'   \code{L1D3HHD_GDP} and \code{L1D3NFD_GDP} with country fixed effects
+#'   and standard errors clustered on country and year. Figure 2 uses
+#'   \code{lnGDP}, \code{HHD_L1GDP} and \code{NFD_L1GDP} with five lags.
+#'   Built by \code{inst/MianVerner2018/make_MianSufiVerner.R} from
+#'   \code{masterdata_annual.dta}.
+#'
+#' @references
+#' Mian, A., Sufi, A., & Verner, E. (2017). Household Debt and Business
+#' Cycles Worldwide. \emph{The Quarterly Journal of Economics}, 132(4),
+#' 1755-1817. \doi{10.1093/qje/qjx017}
+#'
+#' @seealso \code{\link{fLPPanel}}, \code{\link{MianSufiVerner2018}}
+#'
+#' @examples
+#' data("MianSufiVerner2017")
+#' d <- MianSufiVerner2017
+#'
+#' # Table II: the regressand is growth ending last year, so horizon h is
+#' # column k = h - 1 of the table.
+#' key <- paste(d$country, d$year)
+#' d$L1yd3 <- d$lnGDP_d3[match(paste(d$country, d$year - 1), key)]
+#'
+#' fit <- fLPPanel(L1yd3 ~ L1D3HHD_GDP + L1D3NFD_GDP | country, data = d,
+#'                 panel_id = c("country", "year"),
+#'                 shock = c("L1D3HHD_GDP", "L1D3NFD_GDP"), horizons = 6,
+#'                 cluster = ~country + year, n_threads = 2)
+#' round(fit$irfs, 3)
+"MianSufiVerner2017"
+
+
+#' Mian, Sufi and Verner (2018 Update) Global Debt Data
+#'
+#' Annual extract of the IMF Global Debt Database (vintage of 30 April 2018)
+#' that Mian, Sufi and Verner merged with \code{\link{MianSufiVerner2017}}
+#' to re-estimate Table II of their 2017 paper on a much larger set of
+#' countries.
+#'
+#' @format A tibble with 12,730 rows (190 countries, 1950-2016) and 5
+#'   columns:
+#' \describe{
+#'   \item{country}{Country name, as in the IMF Global Debt Database}
+#'   \item{year}{Year}
+#'   \item{rgdp}{Real GDP from the World Development Indicators, billions of
+#'     constant local currency units}
+#'   \item{hh_ls}{Household debt, loans and debt securities, percent of GDP}
+#'   \item{nfc_ls}{Nonfinancial corporate debt, loans and debt securities,
+#'     percent of GDP}
+#' }
+#'
+#' @details Missing observations are stored as \code{NA}. To merge with
+#'   \code{\link{MianSufiVerner2017}}, rename \code{"Hong Kong"} to
+#'   \code{"Hong Kong SAR"} and \code{"Korea, Rep."} to
+#'   \code{"Korea, Republic of"} there, as the authors' do file does. Built by
+#'   \code{inst/MianVerner2018/make_MianSufiVerner.R} from
+#'   \code{GlobalDebtDatabase_v043018merge.dta}.
+#'
+#' @references
+#' Mian, A., Sufi, A., & Verner, E. (2017). Household Debt and Business
+#' Cycles Worldwide. \emph{The Quarterly Journal of Economics}, 132(4),
+#' 1755-1817. \doi{10.1093/qje/qjx017}
+#'
+#' Mbaye, S., Moreno Badia, M., & Chae, K. (2018). Global Debt Database:
+#' Methodology and Sources. \emph{IMF Working Paper} 18/111.
+#'
+#' @seealso \code{\link{fLPPanel}}, \code{\link{MianSufiVerner2017}}
+#'
+#' @examples
+#' data("MianSufiVerner2018")
+#' head(MianSufiVerner2018[!is.na(MianSufiVerner2018$hh_ls), ])
+"MianSufiVerner2018"

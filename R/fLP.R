@@ -537,7 +537,6 @@
 #'     data = JordaTaylor2025, horizons = 6, shock = "RRShock",
 #'     n_threads = 2)
 #'
-#' \donttest{
 #' ## 3. Macro expansion
 #' controls <- c("dSTIR", "dLogGDP")
 #' fLP(dLogCPI ~ RRShock + ..controls,
@@ -559,7 +558,6 @@
 #' fLP(dLogCPI ~ RRShock + l(dLogCPI, 1:12) + f(dSTIR, 1),
 #'     data = JordaTaylor2025, horizons = 24, shock = "RRShock",
 #'     n_threads = 2)
-#' }
 #'
 #' @export
 fLP <- function(formula, data, horizons = 12L,
@@ -844,6 +842,15 @@ coef.fLP <- function(object, ...) {
 #' @return A data frame with horizon, response variable, shock, estimate,
 #'   standard error, and confidence bounds. Multiple confidence levels use
 #'   columns named \code{lower_<level>} and \code{upper_<level>}.
+#'
+#' @examples
+#' data("JordaTaylor2025")
+#'
+#' m <- fLP(dLogCPI ~ RRShock + l(dLogCPI, 1:3),
+#'          data = JordaTaylor2025, horizons = 6, shock = "RRShock",
+#'          n_threads = 2)
+#' head(tidy.fLP(m))
+#'
 #' @export
 tidy.fLP <- function(x, ...) {
   h_seq <- 0L:max(x$horizons)

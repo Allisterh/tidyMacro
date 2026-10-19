@@ -173,6 +173,20 @@ sign-restricted.
 \item \code{print(fSignRestr)}: Print a compact summary of the identified model.
 
 }}
+\examples{
+set.seed(123)
+y <- matrix(rnorm(400), ncol = 2)
+
+# Shock 1 raises both variables on impact; shock 2 moves them apart
+sign <- matrix(c(1, 1, -1, 1), 2, 2)
+
+# Few draws here to keep the example quick; use 500 or more in practice.
+sr <- fSignRestr(y, p = 1, sign = sign, nsteps = 12, ndraws = 50,
+                 n_threads = 2)
+dim(sr$IRmed)
+fPlotIRF(sr, shock = 1)
+
+}
 \references{
 Uhlig, H. (2005). \emph{Journal of Monetary Economics}, 52(2), 381--419.
 

@@ -312,6 +312,15 @@ Rcpp::List fSVARBootList_cpp(const SVARBootResult& r, const char* draws_name,
 //' where \eqn{e_t^*} is either a randomly resampled residual (residual scheme)
 //' or the t-th residual multiplied by a Rademacher sign (wild scheme).
 //'
+//' @examples
+//' set.seed(123)
+//' y          <- matrix(rnorm(400), ncol = 2)
+//' var_result <- fVAR(y, p = 2, c = 1)
+//'
+//' # One artificial sample drawn from the estimated VAR
+//' y_star <- fBootstrapVAR(y, var_result, bootscheme = "wild")
+//' dim(y_star$ynext)
+//'
 //' @seealso \code{\link{fBootstrapChol}}, \code{\link{fVAR}}
 //'
 //' @export

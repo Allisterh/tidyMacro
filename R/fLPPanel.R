@@ -26,10 +26,8 @@
 #   f(x, k)     lead x by k periods within each unit → column "x_fk"
 #   l(..vars, 1:3) works too.
 #
-# Heterogeneous responses (Almuzara-Sancibrián s ⊗ X):
-#   fLPPanel(y ~ mp_shock | id + time, ..., shock = "mp_shock",
-#            interact = c("size", "leverage"))
-#   returns one IRF column per interaction variable.
+# Heterogeneous responses (s ⊗ X): write the interaction in the formula,
+#   fLPPanel(y ~ mp_shock:size | id + time, ..., shock = "mp_shock:size")
 #
 # Compatible with fPlotIRF() via class = c("fLPPanel", "fLP").
 #
@@ -174,8 +172,9 @@
 
 #' Panel Local Projections (fixest-like syntax)
 #'
-#' Estimates panel impulse responses via the local-projection estimator of
-#' Almuzara & Sancibrián (2024, NY Fed SR 1090). Formula syntax mirrors
+#' Estimates panel impulse responses by local projections, as in the
+#' household debt application of Mian, Sufi and Verner (2017, QJE).
+#' Formula syntax mirrors
 #' \pkg{fixest}: RHS variables before \code{|} are the shock and controls,
 #' variables after \code{|} are absorbed fixed effects. Interactions
 #' (e.g. \code{shock:size}) are computed explicitly from the formula — the
@@ -190,7 +189,7 @@
 #'     \item \strong{LHS}: single response variable.
 #'     \item \strong{RHS-main} (before \code{|}): every term you want in the
 #'       regression. Interactions with \code{:} are computed as elementwise
-#'       products (this is where the Almuzara-Sancibrián \eqn{s_{it} \cdot X_t}
+#'       products (this is where the heterogeneity term \eqn{s_{it} \cdot X_t}
 #'       appears — write \code{shock:size} in the formula).
 #'     \item \strong{RHS-FE} (after \code{|}): categorical fixed-effect
 #'       variables (omit \code{|} for no fixed effects).
@@ -216,9 +215,10 @@
 #'   cluster-robust variance:
 #'   \describe{
 #'     \item{\code{"none"}}{(default) the asymptotic sandwich with normal
-#'       critical values (\code{df = Inf}). This is the convention of the
-#'       Almuzara-Sancibrian panel LP theory, which is asymptotic in both
-#'       the cross-section and the time dimension.}
+#'       critical values (\code{df = Inf}). This is the convention of
+#'       asymptotic panel LP inference, in both the cross-section and the
+#'       time dimension, and of Stata's \code{xtivreg2} without the
+#'       \code{small} option.}
 #'     \item{\code{"CR1"}}{the correction used by Stata and \pkg{fixest}:
 #'       every one-way component of the meat is multiplied by
 #'       \eqn{G/(G-1) \cdot (N-1)/(N-K)} with its own number of clusters
@@ -253,8 +253,17 @@
 #'   \code{NULL} is equivalent to clustering on the time variable. The
 #'   \code{ssc = "IK"} refinement is available only with time clustering.
 #'
+#' @details Each horizon \eqn{h} is estimated on its own sample: the rows
+#'   whose led regressand \eqn{y_{i,t+h}}, shock, controls and lags at
+#'   \eqn{t} are all observed. Missing values in these columns are kept in
+#'   the data, so a row with a missing regressor can still be the lead target
+#'   of an earlier row. This is the sample Stata or \pkg{fixest} use when the
+#'   leads are built before the regression. Only rows with a missing unit,
+#'   time or fixed effect are dropped before estimation.
+#'
 #' @return An object of class \code{c("fLPPanel", "fLP")} that plugs into
-#'   \code{\link{fPlotIRF}} and \code{\link{tidy.fLP}}.
+#'   \code{\link{fPlotIRF}} and \code{\link{tidy.fLP}}. Element
+#'   \code{nobs} holds the number of observations used at each horizon.
 #'
 #' @examples
 #' data("DemocracyGrowth")
@@ -265,7 +274,6 @@
 #'          data = DemocracyGrowth, panel_id = c("id", "year"),
 #'          shock = "dem", horizons = 4, cluster = ~id, n_threads = 2)
 #'
-#' \donttest{
 #' # The Stata / fixest finite-sample correction
 #' fLPPanel(lgdp ~ dem | id + year,
 #'          data = DemocracyGrowth, panel_id = c("id", "year"),
@@ -277,7 +285,6 @@
 #'          data = DemocracyGrowth, panel_id = c("id", "year"),
 #'          shock = "dem", horizons = 12, cumulative = TRUE,
 #'          cluster = ~id + year, n_threads = 2)
-#' }
 #'
 #' @export
 fLPPanel <- function(formula, data,
@@ -434,17 +441,27 @@ fLPPanel <- function(formula, data,
     fe_vars <- character(0L)
   }
 
-  # ---- collect all needed base columns and drop NA rows ---------------
+  # ---- collect all needed base columns ---------------------------------
   all_needed <- unique(c(lhs_vars, rhs_base_vars, fe_vars, id_var, time_var))
   miss <- setdiff(all_needed, names(data))
   if (length(miss))
     stop(sprintf("fLPPanel: columns not found in data: %s",
                  paste(miss, collapse = ", ")))
 
+  # Only rows that cannot be placed in the panel are dropped here: a missing
+  # unit, time, or fixed effect. Missing values in the regressand, the shock,
+  # or the controls are passed to the engine, which selects the sample of
+  # each horizon separately (y_{i,t+h}, shock and controls at t observed).
+  # A row with a missing regressor can therefore still be the lead target of
+  # an earlier row, and a row with a missing y_t still enters at h >= 1, as
+  # in Stata or fixest with pre-built leads.
   raw <- data[, all_needed, drop = FALSE]
-  na_rows <- which(!complete.cases(raw))
+  na_rows <- which(!complete.cases(raw[, unique(c(fe_vars, id_var, time_var)),
+                                       drop = FALSE]))
   if (length(na_rows)) {
-    message(sprintf("fLPPanel: dropping %d row(s) with NA.", length(na_rows)))
+    message(sprintf(
+      "fLPPanel: dropping %d row(s) with a missing unit, time, or fixed effect.",
+      length(na_rows)))
     raw <- raw[-na_rows, , drop = FALSE]
   }
 
@@ -457,8 +474,13 @@ fLPPanel <- function(formula, data,
   # ---- build the RHS design matrix from the formula --------------------
   # One column per term label (interactions computed as elementwise
   # products). No intercept — HDFE absorbs it.
+  # na.pass keeps rows with missing regressors (they are lead targets).
   design_formula <- as.formula(paste("~", rhs_str, "- 1"), env = env)
-  design <- stats::model.matrix(design_formula, data = raw)
+  design_frame   <- stats::model.frame(design_formula, data = raw,
+                                       na.action = stats::na.pass)
+  design <- stats::model.matrix(design_formula, data = design_frame)
+  if (nrow(design) != nrow(raw))
+    stop("fLPPanel: internal error \u2014 design matrix lost rows.")
 
   # model.matrix may rename term labels (e.g. reorder factors). Since all
   # our terms are numeric, colnames should match rhs_labels one-for-one,
@@ -545,6 +567,7 @@ fLPPanel <- function(formula, data,
   dimnames(res$estimate) <- list(as.character(h_seq), irf_names)
   dimnames(res$SE)       <- dimnames(res$estimate)
   dimnames(res$df)       <- dimnames(res$estimate)
+  nobs <- stats::setNames(as.integer(res$nobs), h_seq)
 
   # Bands at each requested conf level using per-cell t quantiles. The C++
   # engine no longer computes CI90/95/99 or p-values (they were the only
@@ -599,7 +622,7 @@ fLPPanel <- function(formula, data,
     cumulative   = isTRUE(cumulative),
     p_max        = p_max,
     n_threads    = as.integer(n_threads),
-    nobs         = nrow(raw),
+    nobs         = nobs,                   # observations used at each h
     formula      = main_formula,
     formula_orig = formula,
     call         = match.call()
@@ -644,7 +667,10 @@ print.fLPPanel <- function(x, digits = 4L, ...) {
   )
   cat("Confidence       : ",
       paste0(format(x$conf, trim = TRUE), "%", collapse = ", "), "\n")
-  cat("Observations     : ", x$nobs, "\n")
+  cat("Observations     : ",
+      if (length(unique(x$nobs)) == 1L) x$nobs[1L]
+      else paste0(min(x$nobs), " to ", max(x$nobs), " (varies by horizon)"),
+      "\n")
   cat("Lag order p_max  : ", x$p_max, "\n")
   cat("\nIRF (shock = '", x$shock, "'):\n", sep = "")
   print(round(x$irfs, digits))
@@ -659,8 +685,18 @@ coef.fLPPanel <- function(object, ...) object$irfs
 #' @param x An object returned by \code{\link{fLPPanel}}.
 #' @param ... Reserved for additional arguments.
 #' @return A data frame with horizon, shock, estimate, standard error,
-#'   degrees of freedom, p-value, and confidence bounds. Multiple confidence
+#'   degrees of freedom, p-value, number of observations, and confidence
+#'   bounds. Multiple confidence
 #'   levels use columns named \code{lower_<level>} and \code{upper_<level>}.
+#'
+#' @examples
+#' data("DemocracyGrowth")
+#'
+#' m <- fLPPanel(lgdp ~ dem | id + year,
+#'               data = DemocracyGrowth, panel_id = c("id", "year"),
+#'               shock = "dem", horizons = 4, cluster = ~id, n_threads = 2)
+#' head(tidy.fLPPanel(m))
+#'
 #' @export
 tidy.fLPPanel <- function(x, ...) {
   h_seq <- 0L:max(x$horizons)
@@ -671,6 +707,7 @@ tidy.fLPPanel <- function(x, ...) {
     se       = as.vector(x$irfs_se),
     df       = as.vector(x$df),
     pval     = as.vector(x$pval),
+    nobs     = rep(as.integer(x$nobs), times = ncol(x$irfs)),
     stringsAsFactors = FALSE
   )
   .fLP_tidy_bands(base, x)

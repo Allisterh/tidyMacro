@@ -40,6 +40,12 @@ StabilityResult fCheckStability_cpp(const VARResult& var_result) {
 //' @return Called for its side-effect of printing to the console.
 //'   Returns \code{NULL} invisibly.
 //'
+//' @examples
+//' set.seed(123)
+//' y          <- matrix(rnorm(400), ncol = 2)
+//' var_result <- fVAR(y, p = 2, c = 1)
+//' fCheckStability(var_result)
+//'
 //' @export
 // [[Rcpp::export]]
 void fCheckStability(const Rcpp::List& var_model) {

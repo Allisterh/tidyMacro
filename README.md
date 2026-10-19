@@ -48,7 +48,7 @@ The author designs and reviews every function, one at a time. That covers inputs
   | Sign, narrative and sign + IV restrictions | Uhlig (2005); Antolín-Díaz and Rubio-Ramírez (2018); Arias, Caldara and Rubio-Ramírez (2019); Cesa-Bianchi and Sokol (2022) |
   | Local projections and LP-IV | Jordà and Taylor (2025) |
   | State-dependent local projections | Tenreyro and Thwaites (2016) |
-  | Panel local projections | Almuzara and Sancibrián (2024) |
+  | Panel local projections | Mian, Sufi and Verner (2017) |
   | LP difference-in-differences | Dube, Girardi, Jordà and Taylor (2025) |
 
 - **Test suite.** The testthat suite compares estimators with independent reference implementations, such as the Newey-West and cluster-robust standard errors. It also checks that results do not depend on the number of threads.

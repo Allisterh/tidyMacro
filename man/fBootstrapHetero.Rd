@@ -62,3 +62,20 @@ Moving-block bootstrap confidence bands for structural IRFs identified via
 proxy IV restricted to OPEC announcement months (Kaenzig 2021, treatment
 group only). Residuals and proxy are resampled jointly.
 }
+\examples{
+set.seed(123)
+y          <- matrix(rnorm(400), ncol = 2)
+var_result <- fVAR(y, p = 2, c = 1)
+
+u      <- var_result$residuals
+Z      <- matrix(u[, 1] + rnorm(nrow(u), sd = 0.5), ncol = 1)
+rows   <- c(1, nrow(u))
+indsR1 <- as.integer(abs(Z[, 1]) > stats::median(abs(Z[, 1])))
+
+# Few draws here to keep the example quick; use 1000 or more in practice.
+boot <- fBootstrapHetero(y, var_result, Z, indsR1, rows, nboot = 50,
+                         blocksize = 10, hor = 12, nvar = 1, scale = 1,
+                         n_threads = 2)
+dim(boot$upper)
+
+}

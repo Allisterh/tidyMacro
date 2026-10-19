@@ -54,3 +54,17 @@ Computes both plug-in (delta method) and Anderson-Rubin weak-IV robust
 confidence sets for IV-identified structural IRFs following
 Montiel-Olea, Stock and Watson (2021).
 }
+\examples{
+set.seed(123)
+y          <- matrix(rnorm(400), ncol = 2)
+var_result <- fVAR(y, p = 2, c = 1)
+
+u    <- var_result$residuals
+Z    <- matrix(u[, 1] + rnorm(nrow(u), sd = 0.5), ncol = 1)
+rows <- c(1, nrow(u))
+
+msw <- fMSW(var_result, Z, y, rows, hor = 12, nvar = 1, NWlags = 2)
+msw$Fstat
+dim(msw$MSWlbound)
+
+}

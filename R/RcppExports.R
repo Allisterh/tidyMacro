@@ -193,6 +193,16 @@ fBootstrapBQ <- function(y, var_result, nboot, horizon, conf = 90.0, conf2 = 68.
 #'     \item{conf}{Band levels in percent, \code{c(conf, conf2)}}
 #'   }
 #'
+#' @examples
+#' set.seed(123)
+#' y          <- matrix(rnorm(400), ncol = 2)
+#' var_result <- fVAR(y, p = 2, c = 1)
+#'
+#' # Few draws here to keep the example quick; use 1000 or more in practice.
+#' boot <- fBootstrapChol(y, var_result, nboot = 50, horizon = 12,
+#'                        n_threads = 2)
+#' dim(boot$upper)
+#'
 #' @export
 fBootstrapChol <- function(y, var_result, nboot, horizon, conf = 90.0, conf2 = 68.0, bootscheme = "residual", exog = NULL, n_threads = 0L, verbose = FALSE) {
     .Call(`_tidyMacro_fBootstrapChol`, y, var_result, nboot, horizon, conf, conf2, bootscheme, exog, n_threads, verbose)
@@ -227,6 +237,16 @@ fBootstrapChol <- function(y, var_result, nboot, horizon, conf = 90.0, conf2 = 6
 #'     \item{conf}{Band levels in percent, \code{c(conf, conf2)}}
 #'   }
 #'
+#' @examples
+#' set.seed(123)
+#' y          <- matrix(rnorm(400), ncol = 2)
+#' var_result <- fVAR(y, p = 2, c = 1)
+#'
+#' # Few draws here to keep the example quick; use 1000 or more in practice.
+#' boot <- fBootstrapCholCorrected(y, var_result, nboot1 = 50, nboot2 = 50,
+#'                                 horizon = 12, n_threads = 2)
+#' dim(boot$upper)
+#'
 #' @export
 fBootstrapCholCorrected <- function(y, var_result, nboot1, nboot2, horizon, conf = 90.0, conf2 = 68.0, bootscheme = "residual", exog = NULL, n_threads = 0L, verbose = FALSE) {
     .Call(`_tidyMacro_fBootstrapCholCorrected`, y, var_result, nboot1, nboot2, horizon, conf, conf2, bootscheme, exog, n_threads, verbose)
@@ -253,6 +273,21 @@ fBootstrapCholCorrected <- function(y, var_result, nboot1, nboot2, horizon, conf
 #'
 #' @return List with N x (hor+1) matrices: upper, lower (at \code{conf}),
 #'   upper2, lower2 (at \code{conf2}), median.
+#'
+#' @examples
+#' set.seed(123)
+#' y          <- matrix(rnorm(400), ncol = 2)
+#' var_result <- fVAR(y, p = 1, c = 1)
+#'
+#' # A length-T instrument (the first observation is lost to the lag)
+#' u     <- var_result$residuals
+#' instr <- c(0, u[, 1] + rnorm(nrow(u), sd = 0.5))
+#'
+#' # Few draws here to keep the example quick; use 1000 or more in practice.
+#' boot <- fBootstrapIVInvertible(y, instr, var_result, nboot = 50, p = 1,
+#'                                c = 1, hor = 12, cumu = integer(),
+#'                                n_threads = 2)
+#' dim(boot$median)
 #'
 #' @seealso \code{\link{fBootstrapIVRecover}}, \code{\link{fGetBands}}
 #'
@@ -363,6 +398,28 @@ fBootstrapIVMBB <- function(y, var_result, Z, nboot, blocksize, adjustZ, adjustu
 #' @return List with N x (hor+1) matrices: upper, lower (at \code{conf}),
 #'   upper2, lower2 (at \code{conf2}), median.
 #'
+#' @examples
+#' set.seed(123)
+#' y          <- matrix(rnorm(400), ncol = 2)
+#' var_result <- fVAR(y, p = 1, c = 1)
+#'
+#' # Instrument built from current and one-period-ahead residuals (r = 1),
+#' # with the first-stage coefficients delta and noise v_t
+#' r     <- 1
+#' u     <- var_result$residuals
+#' n_eff <- nrow(u) - r
+#' delta <- c(0, 1, 0.2, 0.45, 0.1)
+#' noise <- rnorm(n_eff, sd = 0.5)
+#' u_f   <- cbind(u[seq_len(n_eff), ], u[2:(n_eff + 1), ])
+#' instr <- numeric(nrow(y))
+#' instr[2:(nrow(y) - r)] <- cbind(1, u_f) %*% delta + noise
+#'
+#' # Few draws here to keep the example quick; use 1000 or more in practice.
+#' boot <- fBootstrapIVRecover(y, instr, var_result, noise, delta, nboot = 50,
+#'                             p = 1, c = 1, r = r, hor = 12,
+#'                             cumu = integer(), n_threads = 2)
+#' dim(boot$median)
+#'
 #' @seealso \code{\link{fBootstrapIVInvertible}}, \code{\link{fGetBands}}
 #'
 #' @export
@@ -402,6 +459,17 @@ fBootstrapIVRecover <- function(y, instr, var_result, noise, delta, nboot, p, c,
 #'   coefficient array, where K is the number of regressors; and
 #'   \code{conf}, the band levels \code{c(conf, conf2)}. The corrected
 #'   variant stores \code{nboot2} draws.
+#'
+#' @examples
+#' set.seed(123)
+#' y          <- matrix(rnorm(400), ncol = 2)
+#' var_result <- fVAR(y, p = 2, c = 1)
+#'
+#' # Few draws here to keep the example quick; use 1000 or more in practice.
+#' boot <- fBootstrapMax(y, var_result, nboot = 50, horizon = 12,
+#'                       var_idx = 1, n_threads = 2)
+#' dim(boot$upper)
+#'
 #' @export
 fBootstrapMax <- function(y, var_result, nboot, horizon, var_idx, conf = 90.0, conf2 = 68.0, cumulate = as.integer( c()), scaling = NULL, exog = NULL, n_threads = 0L, verbose = FALSE) {
     .Call(`_tidyMacro_fBootstrapMax`, y, var_result, nboot, horizon, var_idx, conf, conf2, cumulate, scaling, exog, n_threads, verbose)
@@ -431,6 +499,17 @@ fBootstrapMaxCorrected <- function(y, var_result, nboot1, nboot2, horizon, var_i
 #'   coefficient array, where K is the number of regressors; and
 #'   \code{conf}, the band levels \code{c(conf, conf2)}. The corrected
 #'   variant stores \code{nboot2} draws.
+#'
+#' @examples
+#' set.seed(123)
+#' y          <- matrix(rnorm(400), ncol = 2)
+#' var_result <- fVAR(y, p = 2, c = 1)
+#'
+#' # Few draws here to keep the example quick; use 1000 or more in practice.
+#' boot <- fBootstrapUhlig(y, var_result, nboot = 50, horizon = 12,
+#'                         idx = 1, n_threads = 2)
+#' dim(boot$upper)
+#'
 #' @export
 fBootstrapUhlig <- function(y, var_result, nboot, horizon, idx, conf = 90.0, conf2 = 68.0, cumulate = as.integer( c()), exog = NULL, n_threads = 0L, verbose = FALSE) {
     .Call(`_tidyMacro_fBootstrapUhlig`, y, var_result, nboot, horizon, idx, conf, conf2, cumulate, exog, n_threads, verbose)
@@ -462,6 +541,15 @@ fBootstrapUhligCorrected <- function(y, var_result, nboot1, nboot2, horizon, idx
 #' The recursion is \deqn{y_t = c + A_1 y_{t-1} + \cdots + A_p y_{t-p} + e_t^*}
 #' where \eqn{e_t^*} is either a randomly resampled residual (residual scheme)
 #' or the t-th residual multiplied by a Rademacher sign (wild scheme).
+#'
+#' @examples
+#' set.seed(123)
+#' y          <- matrix(rnorm(400), ncol = 2)
+#' var_result <- fVAR(y, p = 2, c = 1)
+#'
+#' # One artificial sample drawn from the estimated VAR
+#' y_star <- fBootstrapVAR(y, var_result, bootscheme = "wild")
+#' dim(y_star$ynext)
 #'
 #' @seealso \code{\link{fBootstrapChol}}, \code{\link{fVAR}}
 #'
@@ -582,6 +670,12 @@ fCheckRestrictions <- function(irf, shock, restr, hor_vec) {
 #'
 #' @return Called for its side-effect of printing to the console.
 #'   Returns \code{NULL} invisibly.
+#'
+#' @examples
+#' set.seed(123)
+#' y          <- matrix(rnorm(400), ncol = 2)
+#' var_result <- fVAR(y, p = 2, c = 1)
+#' fCheckStability(var_result)
 #'
 #' @export
 fCheckStability <- function(var_model) {
@@ -857,6 +951,13 @@ fGenerateVARData <- function(y, p, c, beta, residuals) {
 #'
 #' @return List with three N x (hor+1) matrices: upper, lower, median.
 #'
+#' @examples
+#' set.seed(123)
+#' # 200 bootstrap draws of a 2-variable IRF over horizons 0 to 12
+#' bootirf <- array(rnorm(2 * 13 * 200), c(2, 13, 200))
+#' bands   <- fGetBands(bootirf, conf = 68)
+#' bands$median[, 1:3]
+#'
 #' @export
 fGetBands <- function(bootirf, conf = 90.0) {
     .Call(`_tidyMacro_fGetBands`, bootirf, conf)
@@ -881,6 +982,17 @@ fGetBands <- function(bootirf, conf = 90.0) {
 #'
 #' @return A T x 1 numeric vector of recovered structural shocks.
 #'
+#' @examples
+#' set.seed(123)
+#' y          <- matrix(rnorm(400), ncol = 2)
+#' var_result <- fVAR(y, p = 2, c = 1)
+#'
+#' # Impact vector normalised so the shock moves variable 1 by one unit
+#' S     <- t(chol(var_result$sigma))
+#' s     <- S[, 1] / S[1, 1]
+#' shock <- fGetShock(var_result$residuals, var_result$sigma, s)
+#' head(shock)
+#'
 #' @export
 fGetShock <- function(residuals, sigma_full, s, shockSize = 1.0, normalize = "unit") {
     .Call(`_tidyMacro_fGetShock`, residuals, sigma_full, s, shockSize, normalize)
@@ -902,6 +1014,17 @@ fGetShock <- function(residuals, sigma_full, s, shockSize = 1.0, normalize = "un
 #' @return A list with element:
 #'   \item{HDshock}{(T-p) x N matrix. Column \code{j} is the contribution
 #'     of the IV shock to variable \code{j} at each point in time.}
+#'
+#' @examples
+#' set.seed(123)
+#' y          <- matrix(rnorm(400), ncol = 2)
+#' var_result <- fVAR(y, p = 2, c = 1)
+#'
+#' S  <- t(chol(var_result$sigma))
+#' s  <- S[, 1] / S[1, 1]
+#' hd <- fHDIV(var_result$residuals, var_result$sigma, s,
+#'             var_result$beta, c = 1, p = 2)
+#' dim(hd$HDshock)
 #'
 #' @export
 fHDIV <- function(residuals, sigma, s, beta, c, p) {
@@ -936,6 +1059,23 @@ fHDIV <- function(residuals, sigma, s, beta, c, p) {
 #'   \item{HDshock}{(T-p) x N point-estimate HD matrix.}
 #'   \item{upper}{(T-p) x N upper confidence bands.}
 #'   \item{lower}{(T-p) x N lower confidence bands.}
+#'
+#' @examples
+#' set.seed(123)
+#' y          <- matrix(rnorm(400), ncol = 2)
+#' var_result <- fVAR(y, p = 2, c = 1)
+#'
+#' # An instrument correlated with the first reduced-form residual
+#' u    <- var_result$residuals
+#' Z    <- matrix(u[, 1] + rnorm(nrow(u), sd = 0.5), ncol = 1)
+#' rows <- c(1, nrow(u))
+#' s    <- c(1, sum(Z * u[, 2]) / sum(Z * u[, 1]))
+#'
+#' # Few draws here to keep the example quick; use 1000 or more in practice.
+#' boot <- fBootstrapHDIV(y, var_result, Z, s = s, nboot = 50, blocksize = 10,
+#'                        adjustZ = rows, adjustu = rows, policyvar = 1,
+#'                        n_threads = 2)
+#' names(boot)
 #'
 #' @export
 fBootstrapHDIV <- function(y, var_result, Z, s, nboot, blocksize, adjustZ, adjustu, policyvar = 1L, conf = 90.0, n_threads = 0L, verbose = FALSE) {
@@ -998,6 +1138,22 @@ fHDShock_cpp <- function(y, beta, B, p, c, exog = NULL) {
 #' @param scale      Shock size for normalization (default 10).
 #'
 #' @return A list with \code{IRF} (N x hor+1) and \code{b1} (N-vector).
+#'
+#' @examples
+#' set.seed(123)
+#' y          <- matrix(rnorm(400), ncol = 2)
+#' var_result <- fVAR(y, p = 2, c = 1)
+#'
+#' # A proxy and a 0/1 indicator for the high-variance (treatment) periods
+#' u      <- var_result$residuals
+#' Z      <- matrix(u[, 1] + rnorm(nrow(u), sd = 0.5), ncol = 1)
+#' rows   <- c(1, nrow(u))
+#' indsR1 <- as.integer(abs(Z[, 1]) > stats::median(abs(Z[, 1])))
+#'
+#' irf <- fHeteroIRF(var_result, Z, rows, indsR1, hor = 12, nvar = 1,
+#'                   scale = 1)
+#' dim(irf$IRF)
+#'
 #' @export
 fHeteroIRF <- function(var_result, Z, adjustu, indsR1, hor, nvar, scale = 10.0) {
     .Call(`_tidyMacro_fHeteroIRF`, var_result, Z, adjustu, indsR1, hor, nvar, scale)
@@ -1029,6 +1185,23 @@ fHeteroIRF <- function(var_result, Z, adjustu, indsR1, hor, nvar, scale = 10.0) 
 #'   \code{lower2}, \code{point} (each N x hor+1) and \code{conf}, the band
 #'   levels \code{c(conf, conf2)}. \code{point} is the plug-in estimate on
 #'   the original sample; the bootstrap supplies the bands only.
+#'
+#' @examples
+#' set.seed(123)
+#' y          <- matrix(rnorm(400), ncol = 2)
+#' var_result <- fVAR(y, p = 2, c = 1)
+#'
+#' u      <- var_result$residuals
+#' Z      <- matrix(u[, 1] + rnorm(nrow(u), sd = 0.5), ncol = 1)
+#' rows   <- c(1, nrow(u))
+#' indsR1 <- as.integer(abs(Z[, 1]) > stats::median(abs(Z[, 1])))
+#'
+#' # Few draws here to keep the example quick; use 1000 or more in practice.
+#' boot <- fBootstrapHetero(y, var_result, Z, indsR1, rows, nboot = 50,
+#'                          blocksize = 10, hor = 12, nvar = 1, scale = 1,
+#'                          n_threads = 2)
+#' dim(boot$upper)
+#'
 #' @export
 fBootstrapHetero <- function(y, var_result, Z, indsR1, adjustu, nboot = 1000L, blocksize = 0L, hor = 48L, nvar = 1L, scale = 10.0, conf = 90.0, conf2 = 68.0, n_threads = 0L, verbose = FALSE) {
     .Call(`_tidyMacro_fBootstrapHetero`, y, var_result, Z, indsR1, adjustu, nboot, blocksize, hor, nvar, scale, conf, conf2, n_threads, verbose)
@@ -1183,8 +1356,8 @@ fLPIV_cpp <- function(Y, D, Z, C, H, conf_level, nw_lags_iv, cumulative = FALSE,
 
 #' Panel Local Projections — Internal C++ engine
 #'
-#' Internal engine implementing the estimator of Almuzara & Sancibrián
-#' (NY Fed SR 1090, 2024). Users should call \code{fLPPanel()} instead.
+#' Internal panel local-projection engine. Users should call
+#' \code{fLPPanel()} instead.
 #'
 #' @keywords internal
 #' @noRd
@@ -1297,6 +1470,19 @@ fMBBVAR <- function(eps, lags, BlockSize, M = NULL) {
 #'   \item{Waldstat}{Wald statistic for instrument relevance (HAC-robust F-stat).}
 #'   \item{Fstat}{Same as Waldstat (reported for compatibility).}
 #'
+#' @examples
+#' set.seed(123)
+#' y          <- matrix(rnorm(400), ncol = 2)
+#' var_result <- fVAR(y, p = 2, c = 1)
+#'
+#' u    <- var_result$residuals
+#' Z    <- matrix(u[, 1] + rnorm(nrow(u), sd = 0.5), ncol = 1)
+#' rows <- c(1, nrow(u))
+#'
+#' msw <- fMSW(var_result, Z, y, rows, hor = 12, nvar = 1, NWlags = 2)
+#' msw$Fstat
+#' dim(msw$MSWlbound)
+#'
 #' @export
 fMSW <- function(var_result, Z, finaldata, adjustu, hor = 48L, nvar = 1L, scale = 1.0, confidence = 0.9, NWlags = 0L) {
     .Call(`_tidyMacro_fMSW`, var_result, Z, finaldata, adjustu, hor, nvar, scale, confidence, NWlags)
@@ -1315,6 +1501,17 @@ fMSW <- function(var_result, Z, finaldata, adjustu, hor = 48L, nvar = 1L, scale 
 #'   covariance matrix. At least two variables are required.
 #' @param var_idx Index (1-based) of the variable whose response is maximised.
 #' @return An N x (horizon+1) matrix of structural impulse responses.
+#'
+#' @examples
+#' set.seed(123)
+#' y          <- matrix(rnorm(400), ncol = 2)
+#' var_result <- fVAR(y, p = 2, c = 1)
+#' wold       <- fWoldIRF(var_result, horizon = 12)
+#'
+#' # Shock with the largest long-run effect on variable 1
+#' irf <- fMaxIRF(wold, t(chol(var_result$sigma)), var_idx = 1)
+#' dim(irf)
+#'
 #' @seealso \code{\link{fBootstrapMax}}, \code{\link{fUhligIRF}}
 #' @export
 fMaxIRF <- function(wold, S, var_idx) {
@@ -1346,6 +1543,13 @@ fNLLP_cpp <- function(Y, X, H, shock_col, specification, state, common_cols = as
 #'     \item fitted_partial: Fitted values excluding intercept
 #'   }
 #'
+#' @examples
+#' set.seed(123)
+#' X   <- matrix(rnorm(200), ncol = 2)
+#' y   <- X %*% c(1, -0.5) + rnorm(100)
+#' fit <- fOLS(y, X, c = 1)
+#' names(fit)
+#'
 #' @export
 fOLS <- function(y, X, c = 1L, lag = 0L) {
     .Call(`_tidyMacro_fOLS`, y, X, c, lag)
@@ -1365,6 +1569,17 @@ fOLS <- function(y, X, c = 1L, lag = 0L) {
 #'   (must be \eqn{\leq A_3 + B_3 - 1}).
 #'
 #' @return A 3-D array of dimension \eqn{d_1 \times K \times} \code{nlags}.
+#'
+#' @examples
+#' set.seed(123)
+#' y          <- matrix(rnorm(400), ncol = 2)
+#' var_result <- fVAR(y, p = 2, c = 1)
+#' wold       <- fWoldIRF(var_result, horizon = 12)
+#'
+#' # Multiplying by the identity polynomial returns the Wold coefficients
+#' I     <- array(diag(2), c(2, 2, 1))
+#' out   <- fPolyConvolve(wold, I, nlags = 13)
+#' all.equal(out, wold)
 #'
 #' @seealso \code{\link{fWoldIRF}}, \code{\link{fCholeskyIRF}}
 #'
@@ -1724,6 +1939,16 @@ fSignRestrictionsAll_cpp <- function(sigma, SIGN, sr_hor = 1L, sr_rot = 500L, Bf
 #' @return Numeric vector of length \eqn{N}: share of spectral variance
 #'   explained by the shock in the specified band.
 #'
+#' @examples
+#' set.seed(123)
+#' y          <- matrix(rnorm(400), ncol = 2)
+#' var_result <- fVAR(y, p = 2, c = 1)
+#' wold       <- fWoldIRF(var_result, horizon = 40)
+#' D          <- fCholeskyIRF(wold, t(chol(var_result$sigma)))
+#'
+#' # Share of business-cycle variance (6 to 32 periods) due to shock 1
+#' fSpectralFEVD(D, D[, 1, ], band = c(6, 32), J = 256)
+#'
 #' @seealso \code{\link{fCholeskyIRF}}, \code{\link{fPolyConvolve}}
 #'
 #' @export
@@ -1741,6 +1966,17 @@ fSpectralFEVD <- function(D, irf_s, band, J, fourier = TRUE) {
 #' @param idx Index (1-based) of the variable whose forecast error variance
 #'   contribution is maximised.
 #' @return An N x (horizon+1) matrix of structural impulse responses.
+#'
+#' @examples
+#' set.seed(123)
+#' y          <- matrix(rnorm(400), ncol = 2)
+#' var_result <- fVAR(y, p = 2, c = 1)
+#' wold       <- fWoldIRF(var_result, horizon = 12)
+#'
+#' # Shock explaining the largest forecast-error-variance share of variable 1
+#' irf <- fUhligIRF(wold, t(chol(var_result$sigma)), idx = 1)
+#' dim(irf)
+#'
 #' @seealso \code{\link{fBootstrapUhlig}}
 #' @export
 fUhligIRF <- function(wold, S, idx) {
@@ -1759,6 +1995,16 @@ fUhligIRF <- function(wold, S, idx) {
 #' @inheritParams fUhligIRF
 #' @return An N x 1 matrix containing the shock direction, with first
 #'   element zero.
+#'
+#' @examples
+#' set.seed(123)
+#' y          <- matrix(rnorm(400), ncol = 2)
+#' var_result <- fVAR(y, p = 2, c = 1)
+#' wold       <- fWoldIRF(var_result, horizon = 12)
+#'
+#' q <- fUhligMaxShare(wold, t(chol(var_result$sigma)), idx = 1)
+#' sum(q^2)   # a unit-length rotation vector
+#'
 #' @export
 fUhligMaxShare <- function(wold, S, idx) {
     .Call(`_tidyMacro_fUhligMaxShare`, wold, S, idx)

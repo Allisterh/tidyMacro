@@ -32,6 +32,17 @@
 #' @importFrom dplyr bind_rows
 #' @importFrom rlang .data
 #'
+#' @examples
+#' set.seed(123)
+#' y          <- matrix(rnorm(400), ncol = 2)
+#' var_result <- fVAR(y, p = 2, c = 1)
+#' wold       <- fWoldIRF(var_result, horizon = 20)
+#' chol_irf   <- fCholeskyIRF(wold, t(chol(var_result$sigma)))
+#' fevd       <- fFEVDChol(chol_irf)$fevd
+#'
+#' fPlotVarDec(fevd, varnames = c("y1", "y2"),
+#'             shocknames = c("Shock 1", "Shock 2"))
+#'
 #' @export
 fPlotVarDec <- function(fevd, varnames, shocknames, return_df = FALSE) {
     

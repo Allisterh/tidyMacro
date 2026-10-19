@@ -134,6 +134,13 @@ OLSResult fOLS_cpp(arma::mat y, arma::mat X, int c, int robust, int lag, int mod
 //'     \item fitted_partial: Fitted values excluding intercept
 //'   }
 //'
+//' @examples
+//' set.seed(123)
+//' X   <- matrix(rnorm(200), ncol = 2)
+//' y   <- X %*% c(1, -0.5) + rnorm(100)
+//' fit <- fOLS(y, X, c = 1)
+//' names(fit)
+//'
 //' @export
 // [[Rcpp::export]]
 Rcpp::List fOLS(arma::mat y, arma::mat X, int c = 1, int lag = 0) {

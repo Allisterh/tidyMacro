@@ -27,7 +27,8 @@ non-absorbing: countries democratize and revert.
 data("DemocracyGrowth")
 m <- fLPDID(lgdp ~ dem + l(lgdp, 1:4), data = DemocracyGrowth,
             panel_id = c("id", "year"), treat = "dem",
-            post = 30, pre = 20, nonabsorbing = TRUE, L = 20, ccc = 1)
+            post = 30, pre = 20, nonabsorbing = TRUE, L = 20, ccc = 1,
+            n_threads = 2)
 }
 \references{
 Acemoglu, D., Naidu, S., Restrepo, P., & Robinson, J. A. (2019).

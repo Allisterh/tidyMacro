@@ -57,7 +57,7 @@ narr <- list(
 
 fit <- fSignRestr(y, p = 12, c = 0, sign = SIGN, nsteps = 60, ndraws = 100,
                   sr_hor = 6, narrative = narr, dates = ADRR2018$Date,
-                  seed = 42)
+                  seed = 42, n_threads = 2)
 }
 \references{
 Antolin-Diaz, J., & Rubio-Ramirez, J. F. (2018). Narrative Sign

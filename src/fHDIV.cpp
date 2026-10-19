@@ -185,6 +185,17 @@ BootstrapHDIVResult fBootstrapHDIV_cpp(const arma::mat& y,
 //'   \item{HDshock}{(T-p) x N matrix. Column \code{j} is the contribution
 //'     of the IV shock to variable \code{j} at each point in time.}
 //'
+//' @examples
+//' set.seed(123)
+//' y          <- matrix(rnorm(400), ncol = 2)
+//' var_result <- fVAR(y, p = 2, c = 1)
+//'
+//' S  <- t(chol(var_result$sigma))
+//' s  <- S[, 1] / S[1, 1]
+//' hd <- fHDIV(var_result$residuals, var_result$sigma, s,
+//'             var_result$beta, c = 1, p = 2)
+//' dim(hd$HDshock)
+//'
 //' @export
 // [[Rcpp::export]]
 Rcpp::List fHDIV(const arma::mat& residuals,
@@ -226,6 +237,23 @@ Rcpp::List fHDIV(const arma::mat& residuals,
 //'   \item{HDshock}{(T-p) x N point-estimate HD matrix.}
 //'   \item{upper}{(T-p) x N upper confidence bands.}
 //'   \item{lower}{(T-p) x N lower confidence bands.}
+//'
+//' @examples
+//' set.seed(123)
+//' y          <- matrix(rnorm(400), ncol = 2)
+//' var_result <- fVAR(y, p = 2, c = 1)
+//'
+//' # An instrument correlated with the first reduced-form residual
+//' u    <- var_result$residuals
+//' Z    <- matrix(u[, 1] + rnorm(nrow(u), sd = 0.5), ncol = 1)
+//' rows <- c(1, nrow(u))
+//' s    <- c(1, sum(Z * u[, 2]) / sum(Z * u[, 1]))
+//'
+//' # Few draws here to keep the example quick; use 1000 or more in practice.
+//' boot <- fBootstrapHDIV(y, var_result, Z, s = s, nboot = 50, blocksize = 10,
+//'                        adjustZ = rows, adjustu = rows, policyvar = 1,
+//'                        n_threads = 2)
+//' names(boot)
 //'
 //' @export
 // [[Rcpp::export]]

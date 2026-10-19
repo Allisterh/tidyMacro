@@ -26,7 +26,6 @@ To revert to ggplot2 defaults, use \code{ggplot2::theme_set(ggplot2::theme_gray(
 and remove the scale defaults with \code{ggplot2::update_geom_defaults()}.
 }
 \examples{
-\donttest{
 library(ggplot2)
 library(tidyMacro)
 
@@ -39,7 +38,6 @@ ggplot(mtcars, aes(x = wt, y = mpg, color = factor(cyl))) +
 
 # Revert to ggplot2 defaults
 theme_set(theme_gray())
-}
 
 }
 \seealso{

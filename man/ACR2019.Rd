@@ -63,7 +63,8 @@ SIGN[, 1] <- c(-1, -1, 0, 0, 0, -1)   # a conventional demand shock
 
 fit <- fSignRestr(y, p = 12, c = 0, sign = SIGN, nsteps = 48,
                   ndraws = 100, sr_hor = 6,
-                  instrument = list(Z = as.matrix(ACR2019$RR)), seed = 42)
+                  instrument = list(Z = as.matrix(ACR2019$RR)), seed = 42,
+                  n_threads = 2)
 }
 \references{
 Arias, J. E., Caldara, D., & Rubio-Ramirez, J. F. (2019). The systematic

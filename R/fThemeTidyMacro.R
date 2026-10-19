@@ -21,7 +21,6 @@
 #' after loading the extrafont package.
 #'
 #' @examples
-#' \donttest{
 #' library(ggplot2)
 #'
 #' ggplot(mtcars, aes(x = wt, y = mpg)) +
@@ -34,7 +33,6 @@
 #'   labs(x = "Weight (1000 lbs)", y = "Miles per gallon") +
 #'   scale_color_tidyMacro() +
 #'   fThemeTidyMacro(base_size = 16)
-#' }
 #'
 #' @seealso
 #' \code{\link[ggplot2]{theme_bw}}, \code{\link[ggplot2]{theme}},

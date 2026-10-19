@@ -114,6 +114,19 @@
 #' Antolin-Diaz, J., & Rubio-Ramirez, J. F. (2018). \emph{American Economic
 #' Review}, 108(10), 2802--2829.
 #'
+#' @examples
+#' set.seed(123)
+#' y <- matrix(rnorm(400), ncol = 2)
+#'
+#' # Shock 1 raises both variables on impact; shock 2 moves them apart
+#' sign <- matrix(c(1, 1, -1, 1), 2, 2)
+#'
+#' # Few draws here to keep the example quick; use 500 or more in practice.
+#' sr <- fSignRestr(y, p = 1, sign = sign, nsteps = 12, ndraws = 50,
+#'                  n_threads = 2)
+#' dim(sr$IRmed)
+#' fPlotIRF(sr, shock = 1)
+#'
 #' @seealso \code{\link{fPlotIRF}}, \code{\link{fHDShock}}
 #'
 #' @export

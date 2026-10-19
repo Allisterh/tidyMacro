@@ -24,8 +24,7 @@ maximises the long-run forecast error variance of TFP.
 }
 \details{
 Data sourced from the replication package of Beaudry and Portier (2014),
-available at
-\url{https://www.openicpsr.org/openicpsr/project/113916/version/V1/view}.
+available at \doi{10.3886/E113916V1}.
 The VAR is estimated with \eqn{p = 2} lags and a constant. The news shock
 is ordered second (after TFP) and identified via the max-share criterion
 over a 40-quarter horizon.

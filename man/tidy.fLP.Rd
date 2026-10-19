@@ -19,3 +19,12 @@ A data frame with horizon, response variable, shock, estimate,
 \description{
 Tidy Local Projection Estimates
 }
+\examples{
+data("JordaTaylor2025")
+
+m <- fLP(dLogCPI ~ RRShock + l(dLogCPI, 1:3),
+         data = JordaTaylor2025, horizons = 6, shock = "RRShock",
+         n_threads = 2)
+head(tidy.fLP(m))
+
+}

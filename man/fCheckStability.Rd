@@ -21,3 +21,10 @@ Called for its side-effect of printing to the console.
 \description{
 Check VAR Stability
 }
+\examples{
+set.seed(123)
+y          <- matrix(rnorm(400), ncol = 2)
+var_result <- fVAR(y, p = 2, c = 1)
+fCheckStability(var_result)
+
+}

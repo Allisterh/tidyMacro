@@ -32,6 +32,17 @@ arma::cube fPolyConvolve_cpp(const arma::cube& A, const arma::cube& B, int nlags
 //'
 //' @return A 3-D array of dimension \eqn{d_1 \times K \times} \code{nlags}.
 //'
+//' @examples
+//' set.seed(123)
+//' y          <- matrix(rnorm(400), ncol = 2)
+//' var_result <- fVAR(y, p = 2, c = 1)
+//' wold       <- fWoldIRF(var_result, horizon = 12)
+//'
+//' # Multiplying by the identity polynomial returns the Wold coefficients
+//' I     <- array(diag(2), c(2, 2, 1))
+//' out   <- fPolyConvolve(wold, I, nlags = 13)
+//' all.equal(out, wold)
+//'
 //' @seealso \code{\link{fWoldIRF}}, \code{\link{fCholeskyIRF}}
 //'
 //' @export

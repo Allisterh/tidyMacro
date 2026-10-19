@@ -38,11 +38,10 @@ and other visualizations where multiple series need distinct colors.
 }
 \details{
 This function creates a discrete color scale using the tidyMacro palette.
-If the number of groups exceeds the 14 available colors, the palette will
+If the number of groups exceeds the 15 available colors, the palette will
 be recycled with a warning.
 }
 \examples{
-\donttest{
 library(ggplot2)
 
 # Use the tidyMacro theme for every plot in the session
@@ -51,7 +50,6 @@ fSetTidyMacroTheme()
 ggplot(mtcars, aes(x = wt, y = mpg, color = factor(cyl))) + geom_point()
 
 ggplot2::theme_set(old)   # restore
-}
 
 }
 \seealso{

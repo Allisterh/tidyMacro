@@ -188,8 +188,8 @@ div.csl-indent {
   <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
     <div class="pt-lg-2 mt-2 text-center sidebar-header">
       <a href="./index.html" class="sidebar-logo-link">
-      <img src="./logo.png" alt="" class="sidebar-logo light-content py-0 d-lg-inline d-none">
-      <img src="./logo.png" alt="" class="sidebar-logo dark-content py-0 d-lg-inline d-none">
+      <img src="./logo.jpeg" alt="" class="sidebar-logo light-content py-0 d-lg-inline d-none">
+      <img src="./logo.jpeg" alt="" class="sidebar-logo dark-content py-0 d-lg-inline d-none">
       </a>
       <div class="sidebar-tools-main tools-wide">
     <a href="https://github.com/muhsinciftci/tidyMacro" title="tidyMacro GitHub" class="quarto-navigation-tool px-1" aria-label="tidyMacro GitHub"><i class="bi bi-github"></i></a>
@@ -359,10 +359,10 @@ div.csl-indent {
 </header>
 
 
-<p>This chapter is a <strong>replication</strong> of <span class="citation" data-cites="jorda2025">Jorda and Taylor (<a href="#ref-jorda2025" role="doc-biblioref">2025</a>)</span> with <code>fLP()</code> and <code>fLPIV()</code>. Syntax conventions common to all four local-projection engines — formulas, <code>..macros</code>, <code>l()</code>/<code>f()</code>, multi-band <code>conf</code>, thread rules, output shapes — live in the <a href="05_2_lp_syntax_primer.html">Local Projections syntax primer</a>; this chapter focuses on the empirical exercise.</p>
-<p>The empirical exercise projects log CPI (×100) on a unit Romer-Romer monetary policy shock over 1985Q1-2007Q4, using long differences <code>CPI_{t+h} - CPI_{t-1}</code> and four lags of real GDP growth, CPI inflation, and the short-term rate change as controls. Two features specific to reproducing <span class="citation" data-cites="jorda2025">Jorda and Taylor (<a href="#ref-jorda2025" role="doc-biblioref">2025</a>)</span> in MATLAB (<code>LPmodel.m</code>) matter here:</p>
+<p>This chapter is a <strong>replication</strong> of <span class="citation" data-cites="jorda2025">Jorda and Taylor (<a href="#ref-jorda2025" role="doc-biblioref">2025</a>)</span> with <code>fLP()</code> and <code>fLPIV()</code>. Syntax conventions common to all four local-projection engines — formulas, <code>..macros</code>, <code>l()</code>/<code>f()</code>, multi-band <code>conf</code>, thread rules, output shapes — live in the <a href="05_2_LP_Syntax.html">Local Projections syntax primer</a>; this chapter focuses on the empirical exercise.</p>
+<p>The empirical exercise projects log CPI (×100) on a unit Romer-Romer monetary policy shock over 1985Q1-2007Q4, using long differences <code>CPI_{t+h} - CPI_{t-1}</code> and four lags of real GDP growth, CPI inflation, and the short-term rate change as controls. Two features specific to reproducing the MATLAB code of <span class="citation" data-cites="jorda2025">Jorda and Taylor (<a href="#ref-jorda2025" role="doc-biblioref">2025</a>)</span> matter here:</p>
 <ul>
-<li>The Newey-West bandwidth rule is Jordà’s classic <code>= h</code>, i.e.&nbsp;<code>nw_offset = 0</code> (the syntax primer explains the default). Under this rule the standard errors match <code>OLSmodel.m</code> bit-for-bit.</li>
+<li>The Newey-West bandwidth rule is Jordà’s classic <code>= h</code>, i.e.&nbsp;<code>nw_offset = 0</code> (the syntax primer explains the default). Under this rule the standard errors match the MATLAB OLS routine bit-for-bit.</li>
 <li>The LP-IV specification uses a fixed HAC bandwidth of 6 (<code>nw_lags_iv = 6</code>), matching Stata’s <code>vce(hac nw 6)</code>.</li>
 </ul>
 <hr>
@@ -568,7 +568,7 @@ Figure&nbsp;3: Multi-equation LP — two responses to one Romer-Romer shock, one
 </section>
 <section id="newey-west-bandwidth-matching-matlab-vs-the-mar-default" class="level2" data-number="6">
 <h2 data-number="6" class="anchored" data-anchor-id="newey-west-bandwidth-matching-matlab-vs-the-mar-default"><span class="header-section-number">6</span> 4 · Newey-West bandwidth: matching MATLAB vs the MA&amp;R default</h2>
-<p>Two bandwidth rules give <strong>identical point estimates</strong> but different SE bands: the classic Jordà <code>= h</code> rule (<code>nw_offset = 0</code>, matches <code>LPmodel.m</code> bit-for-bit) and the Miranda-Agrippino &amp; Ricco <code>= h + 1</code> rule (<code>nw_offset = 1</code>, the <code>fLP()</code> default). The syntax primer covers the general convention; here we visualise the resulting band gap on this replication.</p>
+<p>Two bandwidth rules give <strong>identical point estimates</strong> but different SE bands: the classic Jordà <code>= h</code> rule (<code>nw_offset = 0</code>, matches the MATLAB code bit-for-bit) and the Miranda-Agrippino &amp; Ricco <code>= h + 1</code> rule (<code>nw_offset = 1</code>, the <code>fLP()</code> default). The syntax primer covers the general convention; here we visualise the resulting band gap on this replication.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>lp_jorda <span class="ot">&lt;-</span> <span class="fu">fLP</span>(CPI <span class="sc">~</span> RRShock <span class="sc">+</span> <span class="fu">l</span>(..controls, <span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>),</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>                <span class="at">data =</span> jt_lp, <span class="at">horizons =</span> <span class="dv">17</span>, <span class="at">shock =</span> <span class="st">"RRShock"</span>,</span>
@@ -615,7 +615,7 @@ Figure&nbsp;4: Same IRF, different NW bandwidth rule at 90%
 <li><strong>Instruments</strong>: contemporaneous RR shock plus six lags (over-identified 2SLS)</li>
 <li><strong>HAC</strong>: Newey-West with a fixed bandwidth of 6 (Stata’s <code>vce(hac nw 6)</code>)</li>
 </ul>
-<p>The result is delivered horizon-by-horizon via Frisch-Waugh-Lovell 2SLS with a delta-method HAC standard error — the same recipe as Cesa-Bianchi’s <code>LPmodel.m</code> in LP-IV mode.</p>
+<p>The result is delivered horizon-by-horizon via Frisch-Waugh-Lovell 2SLS with a delta-method HAC standard error — the same recipe as the local-projection routine of Cesa-Bianchi’s VAR Toolbox in LP-IV mode.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(<span class="st">"JordaTaylor2025IV"</span>)</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -774,7 +774,7 @@ Figure&nbsp;7: First-stage F-statistic across horizons (values below 10 flag a w
 </div>
 </div>
 </div>
-<p>The <code>Fstat_fs</code> and <code>rsqr_fs</code> fields expose the per-horizon first-stage diagnostics for the (residualised) IV projection — worth checking whenever the point estimates look surprising. The df convention (<code>Th - kc - nz</code>) is documented in the <a href="05_2_lp_syntax_primer.html#the-estimating-equations">syntax primer</a>.</p>
+<p>The <code>Fstat_fs</code> and <code>rsqr_fs</code> fields expose the per-horizon first-stage diagnostics for the (residualised) IV projection — worth checking whenever the point estimates look surprising. The df convention (<code>Th - kc - nz</code>) is documented in the <a href="05_2_LP_Syntax.html#the-estimating-equations">syntax primer</a>.</p>
 <hr>
 </section>
 </section>
@@ -831,7 +831,7 @@ Figure&nbsp;7: First-stage F-statistic across horizons (values below 10 flag a w
 <h2 data-number="9" class="anchored" data-anchor-id="summary"><span class="header-section-number">9</span> Summary</h2>
 <ul>
 <li><code>nw_offset = 0</code> (classic Jordà <code>= h</code> rule) and <code>nw_lags_iv = 6</code> reproduce the <span class="citation" data-cites="jorda2025">Jorda and Taylor (<a href="#ref-jorda2025" role="doc-biblioref">2025</a>)</span> MATLAB / Stata standard errors.</li>
-<li>Both <code>fLP()</code> and <code>fLPIV()</code> handle multi-band <code>conf</code> and, for <code>fLP()</code>, multi-equation LHS in a single fit — see the <a href="05_2_lp_syntax_primer.html">syntax primer</a> for the shared conventions.</li>
+<li>Both <code>fLP()</code> and <code>fLPIV()</code> handle multi-band <code>conf</code> and, for <code>fLP()</code>, multi-equation LHS in a single fit — see the <a href="05_2_LP_Syntax.html">syntax primer</a> for the shared conventions.</li>
 </ul>
 </section>
 <section id="references" class="level2 unnumbered">

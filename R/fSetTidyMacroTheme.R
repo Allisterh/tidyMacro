@@ -1,30 +1,31 @@
-#' fastVARs Color Palette
+#' tidyMacro Color Palette
 #'
 #' Official color palette for the tidyMacro package, designed for VAR model
 #' visualizations including impulse response functions, forecast error variance
 #' decompositions, and other time series plots.
 #'
-#' @format A character vector of 14 hex color codes
+#' @format A character vector of 15 hex colour codes.
 #'
 #' @details
-#' The palette consists of 14 distinct colors optimized for clarity and
+#' The palette consists of 15 distinct colors optimized for clarity and
 #' professional presentation:
-#' - Crimson (#910048)
-#' - Cyan (#00B0B9)
-#' - Blue (#407EC9)
-#' - Orange (#FF8200)
-#' - Gray (#707372)
-#' - Navy (#001E60)
-#' - Lime (#78BE20)
-#' - Purple (#8031A7)
-#' - Olive (#658D1B)
-#' - Gold (#F2A900)
-#' - Dark Orange (#E35205)
-#' - Red (#DA291C)
-#' - Black (#231F20)
-#' - Light Blue (#009CDE)
-#'
-#' @format A character vector of 13 hex colour codes.
+#' \itemize{
+#'   \item Crimson (#910048)
+#'   \item Light Gray (#E5E5E5)
+#'   \item Blue (#407EC9)
+#'   \item Orange (#FF8200)
+#'   \item Gray (#707372)
+#'   \item Cyan (#00B0B9)
+#'   \item Navy (#001E60)
+#'   \item Lime (#78BE20)
+#'   \item Purple (#8031A7)
+#'   \item Olive (#658D1B)
+#'   \item Gold (#F2A900)
+#'   \item Dark Orange (#E35205)
+#'   \item Red (#DA291C)
+#'   \item Black (#231F20)
+#'   \item Light Blue (#009CDE)
+#' }
 #'
 #' @return A character vector of hex colour codes, usable wherever
 #'   \pkg{ggplot2} takes colours.
@@ -33,14 +34,12 @@
 #' # The first three colours are the ones the package's own plots use.
 #' tidyMacro_colors[1:3]
 #'
-#' \donttest{
 #' # Use with ggplot2
 #' library(ggplot2)
 #' ggplot(mtcars, aes(x = wt, y = mpg, color = factor(cyl))) +
 #'   geom_point() +
 #'   scale_color_manual(values = tidyMacro_colors) +
 #'   fThemeTidyMacro()
-#' }
 #'
 #' @seealso
 #' \code{\link{scale_color_tidyMacro}}, \code{\link{scale_fill_tidyMacro}},
@@ -122,11 +121,10 @@ tidyMacro_pal <- function(
 #'
 #' @details
 #' This function creates a discrete color scale using the tidyMacro palette.
-#' If the number of groups exceeds the 14 available colors, the palette will
+#' If the number of groups exceeds the 15 available colors, the palette will
 #' be recycled with a warning.
 #'
 #' @examples
-#' \donttest{
 #' library(ggplot2)
 #'
 #' # Use the tidyMacro theme for every plot in the session
@@ -135,7 +133,6 @@ tidyMacro_pal <- function(
 #' ggplot(mtcars, aes(x = wt, y = mpg, color = factor(cyl))) + geom_point()
 #'
 #' ggplot2::theme_set(old)   # restore
-#' }
 #'
 #' @seealso
 #' \code{\link{scale_fill_tidyMacro}}, \code{\link{tidyMacro_colors}},
@@ -182,11 +179,10 @@ scale_colour_tidyMacro <- scale_color_tidyMacro
 #'
 #' @details
 #' This function creates a discrete fill scale using the tidyMacro palette.
-#' If the number of groups exceeds the 14 available colors, the palette will
+#' If the number of groups exceeds the 15 available colors, the palette will
 #' be recycled with a warning.
 #'
 #' @examples
-#' \donttest{
 #' library(ggplot2)
 #'
 #' ggplot(mtcars, aes(x = factor(cyl), fill = factor(gear))) +
@@ -199,7 +195,6 @@ scale_colour_tidyMacro <- scale_color_tidyMacro
 #'   geom_col(position = "dodge") +
 #'   scale_fill_tidyMacro(reverse = TRUE) +
 #'   fThemeTidyMacro()
-#' }
 #'
 #' @seealso
 #' \code{\link{scale_color_tidyMacro}}, \code{\link{tidyMacro_colors}},
@@ -245,7 +240,6 @@ scale_fill_tidyMacro <- function(
 #' and remove the scale defaults with \code{ggplot2::update_geom_defaults()}.
 #'
 #' @examples
-#' \donttest{
 #' library(ggplot2)
 #' library(tidyMacro)
 #'
@@ -258,7 +252,6 @@ scale_fill_tidyMacro <- function(
 #'
 #' # Revert to ggplot2 defaults
 #' theme_set(theme_gray())
-#' }
 #'
 #' @seealso
 #' \code{\link{fThemeTidyMacro}}, \code{\link{scale_color_tidyMacro}},

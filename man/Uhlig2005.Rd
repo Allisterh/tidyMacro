@@ -50,7 +50,7 @@ SIGN <- matrix(0, 6, 6)
 SIGN[, 1] <- c(0, -1, -1, 0, -1, 1)
 
 fit <- fSignRestr(y, p = 12, c = 1, sign = SIGN, nsteps = 60,
-                  ndraws = 100, sr_hor = 6, seed = 42)
+                  ndraws = 100, sr_hor = 6, seed = 42, n_threads = 2)
 }
 \references{
 Uhlig, H. (2005). What are the effects of monetary policy on output?

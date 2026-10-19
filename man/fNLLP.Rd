@@ -170,13 +170,14 @@ tt <- tt[tt$Date >= as.Date("1968-10-01"), ]
 fit <- fNLLP(GDP ~ RRShock + l(GDP, 1) + l(FFR, 1) + trend,
              data = tt, horizons = 12, shock = "RRShock",
              type = "state", state = "Expansion", common = "trend",
-             regimes = c("Expansion", "Recession"), balanced = TRUE)
+             regimes = c("Expansion", "Recession"), balanced = TRUE,
+             n_threads = 2)
 fit
 
 # Asymmetry between contractionary and expansionary shocks
 fit_sign <- fNLLP(GDP ~ RRShock + l(GDP, 1) + l(FFR, 1) + trend,
                   data = tt, horizons = 12, shock = "RRShock",
-                  type = "sign", balanced = TRUE)
+                  type = "sign", balanced = TRUE, n_threads = 2)
 fit_sign
 
 }

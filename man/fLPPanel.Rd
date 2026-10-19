@@ -27,7 +27,7 @@ fLPPanel(
   \item \strong{LHS}: single response variable.
   \item \strong{RHS-main} (before \code{|}): every term you want in the
     regression. Interactions with \code{:} are computed as elementwise
-    products (this is where the Almuzara-Sancibrián \eqn{s_{it} \cdot X_t}
+    products (this is where the heterogeneity term \eqn{s_{it} \cdot X_t}
     appears — write \code{shock:size} in the formula).
   \item \strong{RHS-FE} (after \code{|}): categorical fixed-effect
     variables (omit \code{|} for no fixed effects).
@@ -59,9 +59,10 @@ SEs, so multi-level fits cost the same as single-level fits.}
 cluster-robust variance:
 \describe{
   \item{\code{"none"}}{(default) the asymptotic sandwich with normal
-    critical values (\code{df = Inf}). This is the convention of the
-    Almuzara-Sancibrian panel LP theory, which is asymptotic in both
-    the cross-section and the time dimension.}
+    critical values (\code{df = Inf}). This is the convention of
+    asymptotic panel LP inference, in both the cross-section and the
+    time dimension, and of Stata's \code{xtivreg2} without the
+    \code{small} option.}
   \item{\code{"CR1"}}{the correction used by Stata and \pkg{fixest}:
     every one-way component of the meat is multiplied by
     \eqn{G/(G-1) \cdot (N-1)/(N-K)} with its own number of clusters
@@ -103,17 +104,28 @@ Cameron-Gelbach-Miller inclusion-exclusion estimator. The default
 }
 \value{
 An object of class \code{c("fLPPanel", "fLP")} that plugs into
-  \code{\link{fPlotIRF}} and \code{\link{tidy.fLP}}.
+  \code{\link{fPlotIRF}} and \code{\link{tidy.fLP}}. Element
+  \code{nobs} holds the number of observations used at each horizon.
 }
 \description{
-Estimates panel impulse responses via the local-projection estimator of
-Almuzara & Sancibrián (2024, NY Fed SR 1090). Formula syntax mirrors
+Estimates panel impulse responses by local projections, as in the
+household debt application of Mian, Sufi and Verner (2017, QJE).
+Formula syntax mirrors
 \pkg{fixest}: RHS variables before \code{|} are the shock and controls,
 variables after \code{|} are absorbed fixed effects. Interactions
 (e.g. \code{shock:size}) are computed explicitly from the formula — the
 estimator uses \emph{exactly} the specification the user writes.
 Supports \code{..macro} expansion and panel-aware \code{l()} / \code{f()}
 operators.
+}
+\details{
+Each horizon \eqn{h} is estimated on its own sample: the rows
+  whose led regressand \eqn{y_{i,t+h}}, shock, controls and lags at
+  \eqn{t} are all observed. Missing values in these columns are kept in
+  the data, so a row with a missing regressor can still be the lead target
+  of an earlier row. This is the sample Stata or \pkg{fixest} use when the
+  leads are built before the regression. Only rows with a missing unit,
+  time or fixed effect are dropped before estimation.
 }
 \examples{
 data("DemocracyGrowth")
@@ -124,7 +136,6 @@ fLPPanel(lgdp ~ dem | id + year,
          data = DemocracyGrowth, panel_id = c("id", "year"),
          shock = "dem", horizons = 4, cluster = ~id, n_threads = 2)
 
-\donttest{
 # The Stata / fixest finite-sample correction
 fLPPanel(lgdp ~ dem | id + year,
          data = DemocracyGrowth, panel_id = c("id", "year"),
@@ -136,6 +147,5 @@ fLPPanel(lgdp ~ dem + l(lgdp, 1:2) | id + year,
          data = DemocracyGrowth, panel_id = c("id", "year"),
          shock = "dem", horizons = 12, cumulative = TRUE,
          cluster = ~id + year, n_threads = 2)
-}
 
 }

@@ -1,6 +1,6 @@
 ---
 title: "Panel Local Projections"
-subtitle: "Micro Responses to Macro Shocks — Almuzara & Sancibrián (2024)"
+subtitle: "Replicating Mian, Sufi & Verner (2017)"
 editor: visual
 bibliography: references.bib
 editor_options:
@@ -17,393 +17,389 @@ knitr::opts_chunk$set(
 
 ## Overview
 
-This chapter demonstrates `fLPPanel()` — `tidyMacro`'s panel local-projection estimator, a C++/OpenMP port of `panel_LP.m` from @almuzara2024micro. Shared conventions (formula grammar, `..macros`, `l()`/`f()`, `panel_id`, output shapes, multi-band `conf`) are documented in the [Local Projections syntax primer](05_2_lp_syntax_primer.html); this chapter focuses on the panel-specific estimator and replicates the reference R port on a synthetic unbalanced panel.
+@mianverner2017 show that a rise in the household debt to GDP ratio predicts higher growth for a short while and lower growth in the medium run, for 30 countries from 1960 to 2012. Their dynamic evidence comes from panel regressions in which the left-hand side is led one year at a time. Each of these is a panel local projection, so each is a single call to `fLPPanel()`, `tidyMacro`'s panel local-projection estimator. This chapter replicates three exercises from the authors' replication files:
 
-The estimated equation at horizon $h$ (per $j$-th interaction component of $s_{it}\,x_t$) is $$y_{i,t+h} = \alpha^{(h)}_{\mathrm{FE}}
-  + \beta_h^{(j)}\, (s_{it,j}\, x_t)
-  + \gamma_h' w_{it}
-  + \sum_{k=1}^{\min(h,\, p_{\max})} \delta_{hk}'\, v_{i,t-k}
-  + u_{i,t+h}.$$
+1.  **Table II of the paper.** Three-year GDP growth from $t+k-3$ to $t+k$, for $k=-1,\dots,5$, on the change in household and firm debt from $t-4$ to $t-1$, with country fixed effects and standard errors clustered on country and year.
+2.  **The 2018 out-of-sample update** of the authors' replication files, the "Timing of RHS" table. It re-runs Table II on the IMF Global Debt Database for the full sample, for the original 30 countries, and for the new countries only.
+3.  **Figure 2 of the paper.** @jorda2005 local projections with five lags, in levels and in first differences, with and without a time trend and the Great Recession.
 
-**Estimator-specific arguments** (beyond the shared list):
+Table II is reproduced to machine precision, and Figure 2 matches the medium-run effect the paper reports in its text.
 
-- `cluster` selects the asymptotic clustering dimension: `~unit`, `~tt`, or `~unit + tt`. Omitting it preserves the paper's time-clustered default.
-- `ssc` selects the small-sample correction applied to that covariance matrix. `"none"` (the default) is the asymptotic $t$-clustered (LAHR) SE $\hat V_h = (X'X)^{-1}\big(\sum_t Z_t Z_t'\big)(X'X)^{-1}$ with $Z_t = \sum_i X_{it}\hat u_{it}$, read against normal critical values — the convention of @almuzara2024micro. `"CR1"` applies the multiplier $\tfrac{G}{G-1}\cdot\tfrac{N-1}{N-K}$ to each one-way component of the meat and reads the result against $t$ with $\min(G)-1$ degrees of freedom, which is what Stata and `fixest` do; $K$ counts the regressors, the intercept, and $L-1$ parameters for every absorbed factor with $L$ levels that is not nested in a clustering dimension. `"IK"` invokes the @imbens2016 refinement, reporting a component-specific effective degrees of freedom; it is defined for the time-clustered score sequence only. The predecessor argument `small_sample = TRUE` still works and maps onto `ssc = "IK"`, with a deprecation warning.
-- `p_max` caps the number of lags of the regressand and the shock interaction added as controls (at horizon $h$ the effective number is $\min(h, p_\max)$).
+### The estimator
+
+At horizon $h$, `fLPPanel()` estimates
+
+$$y_{i,t+h} = \alpha^{(h)}_{\mathrm{FE}} + \beta_h'\, x_{it} + \gamma_h' w_{it} + u_{i,t+h},$$
+
+where $x_{it}$ are the shock terms, $w_{it}$ the controls, and the terms after `|` in the formula are absorbed fixed effects. With several shock terms, as with household and firm debt below, the fit returns one response per term. Shared conventions (formula grammar, `..macros`, `l()`/`f()`, `panel_id`, output shapes, multi-band `conf`) are documented in the [Local Projections syntax primer](05_2_LP_Syntax.html). The panel-specific arguments are:
+
+- `cluster` selects the clustering dimension: `~unit`, `~time`, or `~unit + time`, the last with the @Cameron2011 two-way estimator. Omitting it clusters on time.
+- `ssc` selects the small-sample correction. `"none"` (the default) is the asymptotic sandwich read against normal critical values, which is also what Stata's `xtivreg2` reports without the `small` option. `"CR1"` applies the Stata / `fixest` multiplier $\tfrac{G}{G-1}\cdot\tfrac{N-1}{N-K}$ to each one-way component and uses $t$ with $\min(G)-1$ degrees of freedom. `"IK"` is the @imbens2016 refinement, defined for time clustering only.
 - `cumulative = TRUE` projects $\sum_{r=0}^{h} y_{i,t+r}$ instead of $y_{i,t+h}$.
-
-Output-side, `fLPPanel()` additionally exposes per-horizon `status` and `converged` vectors that flag no-complete-rows or HDFE non-convergence at individual horizons — the syntax primer's [output section](05_2_lp_syntax_primer.html#what-each-engine-returns) explains the encoding.
+- `p_max` adds up to $\min(h, p_{\max})$ lags of the regressand and the shock as controls.
 
 ------------------------------------------------------------------------
 
-## Setup
+## Setup and data
 
 ```{r}
 #| label: setup
 library(tidyverse)
-library(patchwork)
 library(tidyMacro)
+
+set_theme(fThemeTidyMacro())
 ```
+
+`MianSufiVerner2017` is the QJE panel and `MianSufiVerner2018` the IMF Global Debt Database (GDD) extract the authors merged in for the 2018 tests; both are built from the authors' replication files.
+
+```{r}
+#| label: msv-load-data
+data("MianSufiVerner2017")
+data("MianSufiVerner2018")
+
+# Stata's L.x / F.x on an xtset panel: the value of x in (country, year - k).
+# Missing years stay missing, so a gap in the panel is never bridged.
+tlag <- function(x, id, year, k = 1) {
+  x[match(paste(id, year - k), paste(id, year))]
+}
+```
+
+## Table II: debt expansion and future growth
+
+The paper estimates, for each $k=-1,0,\dots,5$,
+
+$$\Delta_3 y_{i,t+k} = \alpha_i + \beta_{HH}\,\Delta_3 d^{HH}_{i,t-1} + \beta_F\,\Delta_3 d^{F}_{i,t-1} + u_{i,t+k}.$$
+
+The regressors are dated $t$ and the outcome is led $k$ years. Take the regressand to be $\Delta_3 y_{i,t-1}$ (three-year growth ending last year). At horizon $h$ `fLPPanel()` then projects $\Delta_3 y_{i,t+h-1}$, so the seven columns of Table II are horizons $h = 0,\dots,6$ of a single fit, with $k = h - 1$. Both debt terms are shocks, so the fit returns one response per sector.
+
+```{r}
+#| label: msv-qje-data
+qje <- MianSufiVerner2017 |>
+  transmute(country, year, lnGDP_d3, L1D3HHD_GDP, L1D3NFD_GDP) |>
+  mutate(L1yd3 = tlag(lnGDP_d3, country, year, 1))
+```
+
+`ssc = "none"` is the convention of Stata's `xtivreg2, fe cluster(cgroup year)` without the `small` option: Cameron–Gelbach–Miller two-way clustering [@Cameron2011] with no finite-sample multiplier.
+
+```{r}
+#| label: msv-qje-fit
+fit_qje <- fLPPanel(
+  L1yd3 ~ L1D3HHD_GDP + L1D3NFD_GDP | country,
+  data     = qje,
+  panel_id = c("country", "year"),
+  shock    = c("L1D3HHD_GDP", "L1D3NFD_GDP"),
+  horizons = 6,
+  conf     = 95,
+  cluster  = ~country + year,
+  ssc      = "none"
+)
+```
+
+The published coefficients and standard errors, copied from Table II of @mianverner2017:
+
+```{r}
+#| label: msv-qje-published
+published <- tibble(
+  k     = -1:5,
+  hh    = c(0.176, 0.121, -0.0136, -0.178, -0.337, -0.410, -0.405),
+  hh_se = c(0.0793, 0.0810, 0.0680, 0.0629, 0.0779, 0.0905, 0.102),
+  f     = c(-0.0430, -0.140, -0.159, -0.108, -0.0411, 0.0327, 0.0876),
+  f_se  = c(0.0556, 0.0550, 0.0437, 0.0362, 0.0349, 0.0395, 0.0373)
+)
+
+ours <- tibble(
+  k     = fit_qje$horizons - 1,
+  hh    = fit_qje$irfs[, "L1D3HHD_GDP"],
+  hh_se = fit_qje$irfs_se[, "L1D3HHD_GDP"],
+  f     = fit_qje$irfs[, "L1D3NFD_GDP"],
+  f_se  = fit_qje$irfs_se[, "L1D3NFD_GDP"]
+)
+
+left_join(ours, published, by = "k", suffix = c("", "_paper")) |>
+  select(k, hh, hh_paper, hh_se, hh_se_paper, f, f_paper, f_se, f_se_paper) |>
+  mutate(across(-k, \(x) round(x, 4)))
+```
+
+Rounded to the three significant digits the paper prints, all 28 numbers agree:
+
+```{r}
+#| label: msv-qje-check
+ours_cols  <- as.matrix(select(ours, -k))
+paper_cols <- as.matrix(select(published, -k))
+all(abs(signif(ours_cols, 3) - paper_cols) < 1e-12)
+```
+
+This includes column (1), $k=-1$, which uses 815 observations rather than the 785 of column (2). The 30 extra rows are the 2013 debt changes: their growth ending in 2012 is observed, while every later lead runs past the end of the data. A per-horizon sample therefore uses them in column (1) only. `fLPPanel()` handles this without any special treatment.
+
+```{r}
+#| label: fig-msv-qje
+#| fig-cap: "Table II as an impulse response: the effect of the change in debt from t-4 to t-1 on three-year growth ending in year t+k, with 95% bands clustered on country and year."
+fPlotIRF(fIRF(fit_qje),
+         shocknames = c("Household debt", "Firm debt"),
+         varnames   = "Three-year GDP growth") +
+  scale_x_continuous(breaks = 0:6, labels = \(h) h - 1) +
+  labs(x = "k (growth from t+k-3 to t+k)", y = "Coefficient")
+```
+
+The household debt coefficient changes sign: positive for growth ending in $t-1$ and $t$, about $-0.4$ for growth three to five years ahead. The firm debt coefficient is negative early and fades.
 
 ------------------------------------------------------------------------
 
-## A sample unbalanced panel
+## The 2018 update: out-of-sample countries
 
-::: callout-note
-The @almuzara2024micro application uses proprietary firm-level Compustat/CRSP micro data. What follows is a **synthetic sample panel** built to have the same structure — a common macro shock, a cross-sectional characteristic that scales the response, unit and time fixed effects, and realistic missingness so that anyone can reproduce the workflow end-to-end.
-:::
+In 2018 the authors re-ran Table II on the IMF Global Debt Database, which covers far more countries. Following the authors' Stata code, the data are merged, the debt and growth variables are rebuilt from the GDD series, and the panel keeps only years in which both one-year debt changes are observed (`keep if D1HHD_GDP < . & D1NFD_GDP < .`). The lagged regressand is formed after that step, as in their code.
 
 ```{r}
-#| label: sim-unbalanced
-set.seed(1918)
+#| label: msv-gdd-data
+master_keys <- MianSufiVerner2017 |>
+  mutate(country = recode(country,
+                          "Hong Kong"   = "Hong Kong SAR",
+                          "Korea, Rep." = "Korea, Republic of")) |>
+  select(country, year, mainsmp1, c_mainsmp)
 
-T_dim <- 30
-N     <- 1000
-
-# Common macro shock, unit-specific characteristic, true β = 1 on s·X.
-macro <- rnorm(T_dim)
-firm  <- 1 + rnorm(N)
-
-df_bal <- data.frame(
-  unit  = rep(1:N, times = T_dim),
-  tt    = rep(1:T_dim, each  = N),
-  shock = rep(macro, each  = N),
-  size  = rep(firm,  times = T_dim)
-) |>
+update <- full_join(master_keys,
+                    MianSufiVerner2018,
+                    by = c("country", "year")) |>
+  arrange(country, year) |>
   mutate(
-    y = size * shock +
-        as.vector(outer(0.5 * firm + rnorm(N), rnorm(T_dim))) +
-        rnorm(n())
-  )
+    lnGDP_d3    = 100 * (log(rgdp) - log(tlag(rgdp, country, year, 3))),
+    L1D3HHD_GDP = tlag(hh_ls,  country, year, 1) - tlag(hh_ls,  country, year, 4),
+    L1D3NFD_GDP = tlag(nfc_ls, country, year, 1) - tlag(nfc_ls, country, year, 4),
+    D1HHD_GDP   = hh_ls  - tlag(hh_ls,  country, year, 1),
+    D1NFD_GDP   = nfc_ls - tlag(nfc_ls, country, year, 1)
+  ) |>
+  filter(!is.na(D1HHD_GDP), !is.na(D1NFD_GDP)) |>
+  mutate(L1yd3 = tlag(lnGDP_d3, country, year, 1))
 
-# Realistic unbalancedness: (a) staggered entry, (b) random attrition,
-# (c) sprinkled item-level NAs on the response.
-set.seed(2025)
-entry <- sample.int(6, N, replace = TRUE)          # entry at t ∈ 1..6
-exit  <- pmin(T_dim, 14 + rgeom(N, prob = 0.15))   # exit at t ≥ 15
-sparsity_mask <- runif(nrow(df_bal)) > 0.05        # drop 5% of surviving cells
-
-df_panel <- df_bal |>
-    dplyr::filter(tt >= entry[unit], tt <= exit[unit]) |>
-    dplyr::filter(sparsity_mask[row_number()])
-
+# Countries that are part of the original QJE sample
+qje_countries <- update |>
+  filter(mainsmp1 %in% 1) |>
+  distinct(country) |>
+  pull()
 ```
 
-Coverage pattern for the first 60 firms:
+The three samples of the authors' code are: every country; the rows that belong to the QJE master file (`if c_mainsmp == 1`); and the countries outside the QJE sample. Stata's `if` restricts the rows a regression is run on, while their growth rates stay available as lead targets. The same restriction in `fLPPanel()` sets the regressors to `NA` outside the sample: those rows then never enter as regression rows, but their outcomes are still used as leads.
 
 ```{r}
-#| label: fig-panel-coverage
-#| fig-cap: "Observation availability by firm and time. Sparse cells reflect staggered entry, mid-sample attrition, and random missingness."
-df_panel |>
-  filter(unit <= 60) |>
-  ggplot(aes(x = tt, y = factor(unit))) +
-    geom_point(size = 0.6, colour = "#0055A4") +
-    scale_x_continuous(breaks = seq(0, T_dim, 5)) +
-    labs(x = "t", y = "Firm id (first 60 firms)") +
-    theme_minimal(base_size = 11) +
-    theme(axis.text.y = element_blank())
-```
-
-------------------------------------------------------------------------
-
-## Estimation — one `fLPPanel()` call
-
-The formula says *exactly* what the estimator does. `shock:size` is the elementwise product $s_{it}\,X_t$ that generates cross-sectional variation (necessary once the unit-invariant shock is absorbed into `tt` fixed effects). Two-way FE go after `|`.
-
-```{r}
-#| label: lp-panel-fit
-lp_pkg <- fLPPanel(
-  y ~ shock:size | unit + tt,
-  data         = df_panel,
-  panel_id     = c("unit", "tt"),   # id + time in a single argument
-  shock        = "shock:size",      # term label whose IRF we want
-  horizons     = 5,
-  conf         = c(68, 90),     # two bands from a single fit
-  cluster      = ~tt,               # paper's time-level clustering
-  ssc          = "IK",              # Imbens–Kolesar (2016) refinement
-  cumulative   = TRUE,              # sum_{k=0..h} y_{i,t+k}
-  n_threads    = 2                  # OpenMP over horizons
-)
-```
-
-Tidy output:
-
-```{r}
-#| label: lp-panel-tidy
-tidyMacro:::tidy.fLPPanel(lp_pkg) |>
-  mutate(across(where(is.numeric), \(x) round(x, 4)))
-```
-
-------------------------------------------------------------------------
-
-## Alternative clustering: an extension beyond the paper's benchmark
-
-The benchmark above follows @almuzara2024micro: aggregate shocks make the time dimension central for inference, and `ssc = "IK"` applies their time-clustered Imbens--Kolesár refinement. `fLPPanel()` also provides the conventional clustering choices used across the broader panel literature. This is an extension of the implementation beyond the main paper's recommended specification; it makes it possible to reproduce applications that cluster within units or in both dimensions and to report sensitivity to the covariance estimator.
-
-Unit and time clustering use the same one-way cluster-robust sandwich, with observations grouped by different keys [@liang1986]. `cluster = ~unit` allows arbitrary dependence over time within a unit, while `cluster = ~tt` allows arbitrary cross-sectional dependence within a period. Two-way clustering uses the @Cameron2011 inclusion-exclusion estimator
-
-$$\widehat M_{2W}
-= \widehat M_{unit}
-+ \widehat M_{time}
-- \widehat M_{unit\times time}.$$
-
-@Petersen2009 provides a practical comparison of unit, time, and two-way clustering in panel data. These choices affect the covariance matrix, not the regression: the formula after `|` continues to determine the absorbed fixed effects. The three fits below therefore have identical coefficients and different standard errors. The Imbens--Kolesár refinement is defined for the time-clustered score sequence, so unit and two-way clustering take `ssc = "none"` (or `"CR1"`, which is available in every clustering dimension).
-
-```{r}
-#| label: lp-panel-cluster-fits
-H <- 5
-
-cluster_arguments <- list(
-  formula      = y ~ shock:size | unit + tt,
-  data         = df_panel,
-  panel_id     = c("unit", "tt"),
-  shock        = "shock:size",
-  horizons     = H,
-  conf         = 90,
-  ssc          = "none",
-  cumulative   = TRUE,
-  n_threads    = 2
-)
-
-lp_cluster_unit <- do.call(
-  fLPPanel,
-  c(cluster_arguments, list(cluster = ~unit))
-)
-lp_cluster_time <- do.call(
-  fLPPanel,
-  c(cluster_arguments, list(cluster = ~tt))
-)
-lp_cluster_two_way <- do.call(
-  fLPPanel,
-  c(cluster_arguments, list(cluster = ~unit + tt))
-)
-```
-
-```{r}
-#| label: lp-panel-cluster-results
-extract_cluster_fit <- function(fit, key, label, offset) {
-  tibble::tibble(
-    h          = 0:H,
-    h_plot     = 0:H + offset,
-    key        = key,
-    clustering = label,
-    estimate   = as.numeric(fit$irfs[, 1]),
-    se         = as.numeric(fit$irfs_se[, 1]),
-    lo90       = as.numeric(fit$irfs_lower[, 1]),
-    hi90       = as.numeric(fit$irfs_upper[, 1])
+#| label: msv-gdd-fit
+fit_update <- function(data) {
+  fLPPanel(
+    L1yd3 ~ L1D3HHD_GDP + L1D3NFD_GDP | country,
+    data     = data,
+    panel_id = c("country", "year"),
+    shock    = c("L1D3HHD_GDP", "L1D3NFD_GDP"),
+    horizons = 6,
+    conf     = 95,
+    cluster  = ~country + year
   )
 }
 
-cluster_results <- bind_rows(
-  extract_cluster_fit(lp_cluster_unit, "unit", "Unit", -0.08),
-  extract_cluster_fit(lp_cluster_time, "time", "Time", 0),
-  extract_cluster_fit(
-    lp_cluster_two_way, "unit_time", "Unit + time", 0.08
-  )
+samples <- list(
+  "Full sample"    = update,
+  "MSV2017 sample" = mutate(update,
+                            across(c(L1D3HHD_GDP, L1D3NFD_GDP),
+                                   \(x) if_else(c_mainsmp %in% 1, x, NA))),
+  "IMF2018 sample" = filter(update, !country %in% qje_countries)
 )
+fits_update <- map(samples, fit_update)
 
-cat(sprintf(
-  "Maximum point-estimate difference across clustering choices: %.3e\n",
-  max(
-    abs(lp_cluster_unit$irfs - lp_cluster_time$irfs),
-    abs(lp_cluster_two_way$irfs - lp_cluster_time$irfs)
-  )
-))
+map_int(samples, \(d) n_distinct(d$country[!is.na(d$L1D3HHD_GDP)]))
 ```
 
 ```{r}
-#| label: fig-panel-cluster-comparison
-#| fig-cap: "Cumulative panel-LP response under unit, time, and two-way clustering. Every regression absorbs the same unit and time fixed effects. The small horizontal offsets separate the 90% intervals."
-cluster_colours <- c(
-  "Unit" = "#0072B2",
-  "Time" = "#D55E00",
-  "Unit + time" = "#009E73"
-)
-
-ggplot(
-  cluster_results,
-  aes(
-    x = h_plot,
-    y = estimate,
-    colour = clustering,
-    group = clustering
-  )
-) +
-  geom_hline(yintercept = 0, linetype = "dashed", linewidth = 0.4) +
-  geom_errorbar(
-    aes(ymin = lo90, ymax = hi90),
-    width = 0.045,
-    linewidth = 0.7,
-    alpha = 0.8
-  ) +
-  geom_line(linewidth = 0.8) +
-  geom_point(size = 2.3) +
-  scale_colour_manual(values = cluster_colours) +
-  scale_x_continuous(breaks = 0:H) +
-  labs(
-    x = "h",
-    y = "Cumulative response",
-    colour = "Clustering"
-  ) +
-  theme_minimal(base_size = 12) +
-  theme(legend.position = "bottom")
+#| label: fig-msv-gdd
+#| fig-cap: "Table II on the IMF Global Debt Database (2018 update). The boom-bust pattern for household debt holds in the 30 original countries and in the new countries; the firm debt coefficient is close to zero in the large sample."
+do.call(fPlotIRF, c(map(fits_update, fIRF),
+                    list(shocknames = c("Household debt", "Firm debt"),
+                         varnames   = "Three-year GDP growth"))) +
+  scale_x_continuous(breaks = 0:6, labels = \(h) h - 1) +
+  labs(x = "k (growth from t+k-3 to t+k)", y = "Coefficient")
 ```
 
-The numerical comparison makes clear that only inference changes:
-
 ```{r}
-#| label: table-panel-cluster-se
-cluster_se <- cluster_results |>
-  select(h, key, se) |>
-  pivot_wider(names_from = key, values_from = se) |>
-  mutate(
-    unit_minus_time     = unit - time,
-    two_way_minus_time  = unit_time - time,
-    two_way_minus_unit  = unit_time - unit
-  )
-
-knitr::kable(cluster_se, digits = 6)
+#| label: msv-gdd-table
+imap_dfr(fits_update, \(fit, sample) tibble(
+  sample = sample,
+  k      = fit$horizons - 1,
+  hh     = fit$irfs[, "L1D3HHD_GDP"],
+  hh_se  = fit$irfs_se[, "L1D3HHD_GDP"],
+  f      = fit$irfs[, "L1D3NFD_GDP"],
+  f_se   = fit$irfs_se[, "L1D3NFD_GDP"]
+)) |>
+  mutate(across(hh:f_se, \(x) round(x, 3))) |>
+  pivot_wider(names_from = sample, values_from = hh:f_se) |>
+  select(k, starts_with("hh_"), starts_with("f_"))
 ```
 
-There is no mechanical ordering of these standard errors. In particular, a two-way standard error can be smaller than either one-way value because the unit-time intersection term is subtracted rather than added.
+::: {.callout-note collapse="true"}
+### Check against Stata
 
-------------------------------------------------------------------------
-
-## Side-by-side check against `fixest`
-
-`fixest` doesn't ship a dedicated panel-LP function, but a cumulative panel LP is *definitionally* a stack of `feols` fits — one per horizon, with the leaded / cumulated regressand on the LHS and the same shock and fixed-effects on the RHS. We build that stack manually and compare it against `fLPPanel()` on the **same unbalanced sample**.
-
-The comparison is run twice, because the two packages differ in exactly one place — the small-sample correction. `ssc = "none"` is the asymptotic LAHR variance of @almuzara2024micro; `ssc = "CR1"` applies the same correction `fixest` applies by default. The first should differ from `fixest` by that multiplier alone, the second should match it to machine precision.
+Stata builds each lead `F.L1yd3` before it runs the regression, so every horizon has its own sample: a row can be a lead target even when its own regressors are missing, and a regression row enters at $h \geq 1$ even when its own $h=0$ outcome is missing. `fLPPanel()` selects the sample the same way, horizon by horizon. The 2018 update has no published numbers to compare with, so the chunk below rebuilds the authors' Stata `xtivreg2` regressions one horizon at a time with `fixest`. It keeps singleton countries, as `xtivreg2` does, and forms the Cameron–Gelbach–Miller two-way variance without a small-sample correction. The same construction reproduces the published Table II exactly.
 
 ```{r}
-#| label: fixest-fit
+#| label: msv-gdd-stata-check
 library(fixest)
 
-# Panel-aware cumulative-lead. IMPORTANT: `dplyr::lead(y, k)` shifts by
-# ROW INDEX, so it silently closes internal time gaps in an unbalanced
-# panel. To shift by actual TIME we first `complete()` the (unit, tt)
-# grid — missing cells become NA — then `dplyr::lead` steps along real
-# time, matching fLPPanel's per-unit hash-lookup shift.
-df_grid <- df_panel |>
-  tidyr::complete(unit, tt) |>
-  dplyr::arrange(unit, tt)
-
-lead_cumsum <- function(y, h) {
-  s <- y                                              # h = 0 → y itself
-  if (h > 0) for (k in 1:h) s <- s + dplyr::lead(y, k)
-  s
+stata_style <- function(data, subset = rep(TRUE, nrow(data))) {
+  data$cy <- paste(data$country, data$year)
+  map_dfr(0:6, function(h) {
+    data$lhs <- tlag(data$L1yd3, data$country, data$year, -h)
+    fit <- feols(lhs ~ L1D3HHD_GDP + L1D3NFD_GDP | country, data,
+                 subset = subset, fixef.rm = "none", notes = FALSE)
+    one_way <- \(cl) vcov(fit, cluster = cl,
+                          ssc = ssc(adj = FALSE, cluster.adj = FALSE))
+    V <- one_way(~country) + one_way(~year) - one_way(~cy)
+    tibble(h = h, b = list(coef(fit)), se = list(sqrt(diag(V))), n = nobs(fit))
+  })
 }
 
-H <- 5
+stata_fits <- list(
+  "Full sample"    = stata_style(update),
+  "MSV2017 sample" = stata_style(update, update$c_mainsmp %in% 1),
+  "IMF2018 sample" = stata_style(filter(update, !country %in% qje_countries))
+)
 
-fixest_tbl <- purrr::map_dfr(0:H, function(h) {
-  df_h <- df_grid |>
-    dplyr::group_by(unit) |>
-    dplyr::mutate(y_h = lead_cumsum(y, h)) |>
-    dplyr::ungroup() |>
-    tidyr::drop_na(y_h, shock, size)      # drop grid cells that were empty
-
-  fit <- fixest::feols(y_h ~ shock:size | unit + tt,
-                       data    = df_h,
-                       cluster = ~tt,      # time-clustered, fixest's default ssc
-                       notes   = FALSE)
-  # fixest reads its clustered SE against t with min(G) - 1 degrees of
-  # freedom, so the band uses the same quantile rather than the normal one.
-  ci <- stats::confint(fit, level = 0.90)
-  tibble::tibble(
-    h        = h,
-    estimate = coef(fit)[["shock:size"]],
-    se       = fit$se[["shock:size"]],
-    lo90     = ci["shock:size", 1],
-    hi90     = ci["shock:size", 2]
+imap_dfr(fits_update, \(fit, sample) {
+  ref <- stata_fits[[sample]]
+  tibble(
+    sample      = sample,
+    max_coef_gap = max(abs(fit$irfs - do.call(rbind, ref$b))),
+    max_se_gap   = max(abs(fit$irfs_se - do.call(rbind, ref$se))),
+    same_nobs    = identical(unname(fit$nobs), ref$n)
   )
 })
 ```
-
-```{r}
-#| label: pkg-refit-ssc
-# Same estimator, the two small-sample conventions.
-ssc_arguments <- cluster_arguments
-ssc_arguments$ssc     <- NULL          # supplied per fit below
-ssc_arguments$cluster <- ~tt
-
-lp_pkg_none <- do.call(fLPPanel, c(ssc_arguments, list(ssc = "none")))
-lp_pkg_cr1  <- do.call(fLPPanel, c(ssc_arguments, list(ssc = "CR1")))
-```
-
-Point estimates coincide to machine precision — all three fits solve the same OLS system on the same effective sample. The standard errors separate the two conventions: `ssc = "none"` differs from `fixest` by the finite-sample multiplier $\tfrac{G}{G-1}\cdot\tfrac{N-1}{N-K}$, while `ssc = "CR1"` reproduces it.
-
-```{r}
-#| label: fixest-diff
-cat(sprintf(
-  paste0("max |estimate diff|           = %.3e\n",
-         "max |SE diff|, ssc = \"none\"   = %.3e  (fixest's small-sample multiplier)\n",
-         "max |SE diff|, ssc = \"CR1\"    = %.3e\n",
-         "max |90%% band diff|, ssc = \"CR1\" = %.3e\n"),
-  max(abs(as.vector(lp_pkg_cr1$irfs)     - fixest_tbl$estimate)),
-  max(abs(as.vector(lp_pkg_none$irfs_se) - fixest_tbl$se)),
-  max(abs(as.vector(lp_pkg_cr1$irfs_se)  - fixest_tbl$se)),
-  max(abs(c(as.vector(lp_pkg_cr1$irfs_lower) - fixest_tbl$lo90,
-            as.vector(lp_pkg_cr1$irfs_upper) - fixest_tbl$hi90)))
-))
-```
-
-The band agrees as well because `ssc = "CR1"` also switches the critical value from the normal to $t$ with $\min(G)-1$ degrees of freedom, which is `fixest`'s `t.df = "min"` default. `K` follows `fixest`'s `fixef.K = "nested"` rule: the `tt` factor is nested in the clustering dimension and so contributes no parameters, while the `unit` factor contributes its $L-1$ absorbed levels.
-
-```{r}
-#| label: fig-panel-lp-fixest
-#| fig-cap: "IRF and 90% band on the unbalanced sample. Left: tidyMacro::fLPPanel() with ssc = \"CR1\". Right: stack of fixest::feols fits, one per horizon, with the same clustering and fixest's default small-sample correction. The two panels coincide."
-horizons <- 0:H
-blue     <- "#0055A4"
-
-mk_panel <- function(est, lo, hi, title) {
-  ggplot(data.frame(h = horizons, est = est, lo = lo, hi = hi), aes(x = h)) +
-    geom_hline(yintercept = 0, linetype = "dashed", linewidth = 0.4) +
-    geom_ribbon(aes(ymin = lo, ymax = hi), fill = blue, alpha = 0.2) +
-    geom_line(aes(y = est), colour = blue, linewidth = 1.2) +
-    geom_point(aes(y = est), colour = blue, size = 3) +
-    scale_x_continuous(breaks = horizons) +
-    labs(title = title, x = "h", y = "Cumulative response") +
-    theme_minimal(base_size = 13)
-}
-
-p_pkg <- mk_panel(as.vector(lp_pkg_cr1$irfs),
-                  as.vector(lp_pkg_cr1$irfs_lower),
-                  as.vector(lp_pkg_cr1$irfs_upper),
-                  "tidyMacro::fLPPanel(ssc = \"CR1\")")
-p_fx  <- mk_panel(fixest_tbl$estimate,
-                  fixest_tbl$lo90,
-                  fixest_tbl$hi90,
-                  "fixest::feols stack")
-
-p_pkg + p_fx + plot_layout(ncol = 2)
-```
-
-::: {.callout-tip title="What `fLPPanel()` adds over a raw fixest stack"}
-- One call instead of one per horizon.
-- Panel-aware `l()` / `f()` operators that respect unit boundaries.
-- OpenMP-parallel horizon loop (each horizon is independent once y is leaded).
-- A choice of small-sample convention in one argument: `ssc = "CR1"` matches `fixest` exactly, `ssc = "none"` the asymptotic variance of the paper, and `ssc = "IK"` the @imbens2016 refinement with component-specific effective degrees of freedom, which `fixest` does not provide.
-- Multi-band CIs from a single fit (`conf = c(68, 95)`).
 :::
 
 ------------------------------------------------------------------------
 
-## Two-band plot via `fPlotIRF()`
+## Figure 2: Jordà local projections
 
-The result object has class `c("fLPPanel", "fLP")` so every `fLP` helper transfers:
+Section III.B of the paper checks the VAR evidence with local projections that control for five lags of debt and GDP. In levels,
+
+$$y_{i,t+h-1} = \alpha^h_i + \sum_{j=1}^{5} \beta^h_{HH,j}\, d^{HH}_{i,t-j} + \sum_{j=1}^{5} \beta^h_{F,j}\, d^{F}_{i,t-j} + \sum_{j=1}^{5} \delta^h_j\, y_{i,t-j} + \epsilon^h_{i,t+h-1}, \qquad h = 1,\dots,10,$$
+
+where $d^s_{it}$ is nominal sector debt in year $t$ over nominal GDP in $t-1$ (`HHD_L1GDP`, `NFD_L1GDP`), and the response is the sequence $\hat\beta^h_{HH,1}$, $\hat\beta^h_{F,1}$. Dating the regressors at $s = t-1$ gives `fLPPanel()`'s form: outcome $y_{i,s+h}$, shock $d_{i,s}$, controls $d_{i,s-1},\dots,d_{i,s-4}$ and $y_{i,s},\dots,y_{i,s-4}$. Because $y_{i,s}$ is a control, the response at $h=0$ is exactly zero, as in the figure.
+
+The first-difference version projects $\Delta_h y_{i,t+h-1} = y_{i,t+h-1} - y_{i,t-1}$ on five lags of $\Delta d^{HH}$, $\Delta d^{F}$ and $\Delta y$. `cumulative = TRUE` with regressand $\Delta y$ projects $y_{i,s+h} - y_{i,s-1}$. That differs from the paper's outcome by $\Delta y_{i,s}$, which is itself a control, so the debt coefficients are the same.
 
 ```{r}
-#| label: fig-panel-lp
-#| fig-cap: "Cumulative response with 68% (inner) and 90% (outer) Imbens-Kolesar bands"
-fPlotIRF(lp_pkg, facet_scales = "free_y") +
-  ggplot2::labs(x = "h", y = "Cumulative response")
+#| label: msv-fig2-data
+fig2 <- MianSufiVerner2017 |>
+  transmute(country, year,
+            y   = 100 * lnGDP,
+            dHH = HHD_L1GDP,
+            dF  = NFD_L1GDP) |>
+  mutate(
+    dy   = y   - tlag(y,   country, year, 1),
+    dy3  = y   - tlag(y,   country, year, 3),
+    ddHH = dHH - tlag(dHH, country, year, 1),
+    ddF  = dF  - tlag(dF,  country, year, 1)
+  )
 ```
+
+Each panel of Figure 2 combines a functional form, an optional linear time trend, and an optional cut at 2006 that removes the Great Recession. One function covers all eight:
+
+```{r}
+#| label: msv-fig2-fun
+fit_fig2 <- function(form, trend, pre2007, outcome = NULL, horizons = 10) {
+  data <- if (pre2007) filter(fig2, year <= 2006) else fig2
+
+  if (form == "Levels") {
+    rhs    <- "dHH + dF + l(dHH, 1:4) + l(dF, 1:4) + y + l(y, 1:4)"
+    shocks <- c("dHH", "dF")
+    lhs    <- "y"
+  } else {
+    rhs    <- "ddHH + ddF + l(ddHH, 1:4) + l(ddF, 1:4) + dy + l(dy, 1:4)"
+    shocks <- c("ddHH", "ddF")
+    lhs    <- "dy"
+  }
+  if (trend) rhs <- paste(rhs, "+ year")
+  cumulative <- form == "First differences"
+
+  # The medium-run check replaces the regressand with y_t - y_{t-3}
+  if (!is.null(outcome)) {
+    lhs        <- outcome
+    cumulative <- FALSE
+  }
+
+  fLPPanel(
+    as.formula(paste(lhs, "~", rhs, "| country")),
+    data       = data,
+    panel_id   = c("country", "year"),
+    shock      = shocks,
+    horizons   = horizons,
+    cumulative = cumulative,
+    conf       = 95,
+    cluster    = ~country + year
+  )
+}
+
+# Panel order of the paper: baseline, trend, pre-2007, trend and pre-2007
+specs <- expand_grid(
+  form    = c("Levels", "First differences"),
+  pre2007 = c(FALSE, TRUE),
+  trend   = c(FALSE, TRUE)
+) |>
+  mutate(label = paste0(form,
+                        if_else(trend,   ", time trend", ""),
+                        if_else(pre2007, ", pre-2007", "")))
+
+fits_fig2 <- pmap(select(specs, form, trend, pre2007), fit_fig2)
+names(fits_fig2) <- specs$label
+```
+
+`fIRF()` turns each fit into the package's long IRF format, so the eight panels of the figure are one `ggplot` call:
+
+```{r}
+#| label: fig-msv-fig2
+#| fig-cap: "Figure 2 of Mian, Sufi and Verner (2017): response of 100 x log real GDP to a one-unit rise in household or firm debt to lagged GDP, 95% bands clustered on country and year. Top row: levels; bottom row: first differences."
+#| fig-height: 6.5
+irf_fig2 <- imap_dfr(fits_fig2, \(fit, label) fIRF(fit, model = label)) |>
+  mutate(
+    shock = if_else(shock %in% c("dHH", "ddHH"), "Household", "Firm"),
+    model = factor(model, levels = specs$label)
+  )
+
+ggplot(irf_fig2, aes(horizon, point, colour = shock, fill = shock)) +
+  geom_hline(yintercept = 0, linetype = "dashed", colour = "grey50") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.15, colour = NA) +
+  geom_line(linewidth = 0.8) +
+  facet_wrap(~model, ncol = 4, labeller = label_wrap_gen(28)) +
+  scale_x_continuous(breaks = seq(0, 10, 2)) +
+  scale_colour_manual(values = c(Household = "#0055A4", Firm = "#B5121B")) +
+  scale_fill_manual(values = c(Household = "#0055A4", Firm = "#B5121B")) +
+  labs(x = "Years after shock", y = NULL, colour = NULL, fill = NULL) +
+  fThemeTidyMacro(base_size = 10) +
+  theme(legend.position = "bottom")
+```
+
+### The medium-run effect
+
+The paper summarises the top-left panel with one number: a unit shock to household debt changes log output from $t=3$ to $t=6$ by $-0.42$ (standard error $0.11$), against $0.03$ ($0.06$) for firm debt. The standard error of a difference between two horizons needs their covariance. Projecting $y_{i,s+6} - y_{i,s+3}$ directly avoids that: it is the regressand $y_{i,s} - y_{i,s-3}$ (`dy3`) at horizon 6. The paper notes that the decline from $t=3$ to $t=6$ appears in all eight specifications, so the table reports all eight.
+
+```{r}
+#| label: msv-fig2-medium-run
+medium_run <- pmap(select(specs, form, trend, pre2007), fit_fig2,
+                   outcome = "dy3", horizons = 6)
+
+specs |>
+  select(label) |>
+  mutate(
+    household    = map_dbl(medium_run, \(fit) fit$irfs[7, 1]),
+    household_se = map_dbl(medium_run, \(fit) fit$irfs_se[7, 1]),
+    firm         = map_dbl(medium_run, \(fit) fit$irfs[7, 2]),
+    firm_se      = map_dbl(medium_run, \(fit) fit$irfs_se[7, 2])
+  ) |>
+  mutate(across(where(is.numeric), \(x) round(x, 3)))
+```
+
+The baseline row gives $-0.42$ ($0.11$) for household debt and $0.03$ ($0.06$) for firm debt, the values in the paper.
 
 ------------------------------------------------------------------------
 
 ## Other supported specifications
 
-Alternative shapes — bare shock, no interaction, no fixed effects, panel-aware lags with macros — follow the shared formula grammar and are demonstrated in the [Local Projections syntax primer](05_2_lp_syntax_primer.html). Everything documented there works with `fLPPanel()` unchanged.
+Alternative shapes — bare shock, no interaction, no fixed effects, panel-aware lags with macros — follow the shared formula grammar and are demonstrated in the [Local Projections syntax primer](05_2_LP_Syntax.html). Everything documented there works with `fLPPanel()` unchanged.
 
 ## References {.unnumbered}

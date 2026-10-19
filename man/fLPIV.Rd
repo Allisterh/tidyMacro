@@ -96,7 +96,6 @@ fLPIV(Unemployment ~ FFRates + l(Unemployment, 1:3),
       horizons    = 6,
       n_threads   = 2)
 
-\donttest{
 controls <- c("Unemployment", "Inflation", "FFRates")
 fLPIV(Unemployment ~ FFRates + l(..controls, 1:6),
       instruments = ~ l(RRShock, 0:6),
@@ -107,6 +106,5 @@ fLPIV(Unemployment ~ FFRates + l(..controls, 1:6),
       nw_lags_iv  = 6,
       cumulative  = TRUE,
       n_threads   = 2)
-}
 
 }

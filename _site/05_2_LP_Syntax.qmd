@@ -17,13 +17,13 @@ knitr::opts_chunk$set(
 
 ## Purpose of this chapter
 
-The four local-projection engines in `tidyMacro` — `fLP()`, `fLPIV()`, `fLPPanel()`, `fLPDID()` — deliberately share a single, `fixest`-inspired interface: the same formula grammar, the same lag/lead operators, the same panel-index convention, the same multi-band handling, and the same plotting entry point (`fPlotIRF()` / `fPlotLPDID()`). This chapter is the **one place** where those shared conventions are documented, so the empirical replication chapters that follow (@jorda2025, @almuzara2024micro, @dube2025) can stay focused on the economics.
+The four local-projection engines in `tidyMacro` — `fLP()`, `fLPIV()`, `fLPPanel()`, `fLPDID()` — deliberately share a single, `fixest`-inspired interface: the same formula grammar, the same lag/lead operators, the same panel-index convention, the same multi-band handling, and the same plotting entry point (`fPlotIRF()` / `fPlotLPDID()`). This chapter is the **one place** where those shared conventions are documented, so the empirical replication chapters that follow (@jorda2025, @mianverner2017, @dube2025) can stay focused on the economics.
 
 Read this once, then treat the estimator chapters as extensions:
 
-- `fLP()` and `fLPIV()` — [Local Projections with Shocks and IV](05_JordaTaylor2025.html)
-- `fLPPanel()` — [Panel Local Projections](06_AlmuzaraSancibrian2024.html)
-- `fLPDID()` — [Local Projections Difference-in-Differences](07_Dube2025.html)
+- `fLP()` and `fLPIV()` — [Local Projections with Shocks and IV](05_3_LP_Exo_IV.html)
+- `fLPPanel()` — [Panel Local Projections](06_LP_Panel.html)
+- `fLPDID()` — [Local Projections Difference-in-Differences](07_LPDID.html)
 
 ------------------------------------------------------------------------
 
@@ -113,7 +113,7 @@ Every engine accepts a **vector** `conf`, e.g. `conf = c(68, 95)`, and rebuilds 
 
 ### 2.2 · Impulse units (`shock_size`)
 
-`fLP()` and `fLPIV()` report the response to a **one-unit** shock by default (`shock_size = "unit"`). Setting `shock_size = "sd"` reports the response to a **one-standard-deviation** shock instead: `fLP()` z-scores the shock regressor, `fLPIV()` scales the 2SLS coefficient and its standard error by `sd(D)`. In both cases the standard deviation is taken over the **estimation sample** — i.e. after the leading rows consumed by generated lags — not over the raw input column. These correspond to `LPopt.impact = 1` and `LPopt.impact = 0` in Cesa-Bianchi's `LPmodel.m`.
+`fLP()` and `fLPIV()` report the response to a **one-unit** shock by default (`shock_size = "unit"`). Setting `shock_size = "sd"` reports the response to a **one-standard-deviation** shock instead: `fLP()` z-scores the shock regressor, `fLPIV()` scales the 2SLS coefficient and its standard error by `sd(D)`. In both cases the standard deviation is taken over the **estimation sample** — i.e. after the leading rows consumed by generated lags — not over the raw input column. These correspond to `LPopt.impact = 1` and `LPopt.impact = 0` in the local-projection routine of Cesa-Bianchi's VAR Toolbox.
 
 ### 2.3 · Threading and console noise
 
@@ -186,7 +186,7 @@ $$y_{t+h} \;=\; \alpha_h + \beta_h\, s_t + \gamma_h' w_t + u_{t+h}, \qquad h = 0
 Cumulative form (`cumulative = TRUE`):
 $$y_{t+h} - y_{t-1} \;=\; \alpha_h + \beta_h\, s_t + \gamma_h' w_t + u_{t+h}.$$
 
-The base $y_{t-1}$ for the **first** estimable date lies one period before the estimation sample. When generated lags trim the leading rows, that outcome is still observed, so `fLP()` and `fLPIV()` keep it as the base rather than discarding it — the estimation sample is not shortened by the long difference. This matches `endo_lag1 = ENDO(lag_trim:end-1)` in `LPmodel.m`. Time-series LP also requires a contiguous sample: rows with `NA` cannot simply be deleted, since the engines treat retained rows as consecutive periods, so an **interior** gap is rejected with an error (leading and trailing `NA`s from `l()` / `f()` are fine).
+The base $y_{t-1}$ for the **first** estimable date lies one period before the estimation sample. When generated lags trim the leading rows, that outcome is still observed, so `fLP()` and `fLPIV()` keep it as the base rather than discarding it — the estimation sample is not shortened by the long difference. This matches `endo_lag1 = ENDO(lag_trim:end-1)` in the VAR Toolbox's local-projection routine. Time-series LP also requires a contiguous sample: rows with `NA` cannot simply be deleted, since the engines treat retained rows as consecutive periods, so an **interior** gap is rejected with an error (leading and trailing `NA`s from `l()` / `f()` are fine).
 
 The IRF at horizon $h$ is $\beta_h$. Standard errors use the full Newey–West sandwich `V_h = (X'X)⁻¹ X'ΩX (X'X)⁻¹` with a Bartlett kernel of bandwidth `max(nw_lags + h + nw_offset, 0)`.
 
@@ -201,7 +201,7 @@ The endogenous treatment $D_t$ is identified by an external instrument matrix $Z
 
 The first-stage F reported in `Fstat_fs` uses `df2 = Th − kc − nz`, i.e. the residual df of the *full* first-stage regression $D \sim [1, C, Z]$ under the FWL equivalence; if `df2 <= 0` the value is `NaN`.
 
-### `fLPPanel()` — panel LP à la Almuzara & Sancibrián
+### `fLPPanel()` — panel LP
 
 At horizon $h$, for each interaction component $j$:
 $$y_{i, t+h} \;=\; \alpha^{(h)}_{\mathrm{FE}} + \beta_h^{(j)} (s_{it, j}\, x_t) + \gamma_h' w_{it} + \sum_{k=1}^{\min(h, p_{\max})} \delta_{hk}' v_{i,t-k} + u_{i,t+h}.$$
@@ -260,8 +260,8 @@ The R wrappers already enforce all of the above; the direct-call checks are a sa
 
 ## 8 · Where to go next
 
-- **`fLP()` and `fLPIV()`** — [Local Projections with Shocks and IV](05_JordaTaylor2025.html) (Jordà & Taylor 2025 replication).
-- **`fLPPanel()`** — [Panel Local Projections](06_AlmuzaraSancibrian2024.html) (Almuzara & Sancibrián 2024 sample port).
-- **`fLPDID()`** — [Local Projections Difference-in-Differences](07_Dube2025.html) (Dube, Girardi, Jordà & Taylor 2025 replication).
+- **`fLP()` and `fLPIV()`** — [Local Projections with Shocks and IV](05_3_LP_Exo_IV.html) (Jordà & Taylor 2025 replication).
+- **`fLPPanel()`** — [Panel Local Projections](06_LP_Panel.html) (@mianverner2017 replication).
+- **`fLPDID()`** — [Local Projections Difference-in-Differences](07_LPDID.html) (Dube, Girardi, Jordà & Taylor 2025 replication).
 
 ## References {.unnumbered}

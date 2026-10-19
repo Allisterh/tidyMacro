@@ -51,6 +51,22 @@ The same Rademacher vector is applied to both the VAR residuals and the
 raw instrument; at each draw the structural impact vector is re-estimated
 by IV regression.
 }
+\examples{
+set.seed(123)
+y          <- matrix(rnorm(400), ncol = 2)
+var_result <- fVAR(y, p = 1, c = 1)
+
+# A length-T instrument (the first observation is lost to the lag)
+u     <- var_result$residuals
+instr <- c(0, u[, 1] + rnorm(nrow(u), sd = 0.5))
+
+# Few draws here to keep the example quick; use 1000 or more in practice.
+boot <- fBootstrapIVInvertible(y, instr, var_result, nboot = 50, p = 1,
+                               c = 1, hor = 12, cumu = integer(),
+                               n_threads = 2)
+dim(boot$median)
+
+}
 \seealso{
 \code{\link{fBootstrapIVRecover}}, \code{\link{fGetBands}}
 }

@@ -48,6 +48,16 @@ arma::vec fUhligMaxShare_cpp(const arma::cube& wold, const arma::mat& S, int idx
 //' @inheritParams fUhligIRF
 //' @return An N x 1 matrix containing the shock direction, with first
 //'   element zero.
+//'
+//' @examples
+//' set.seed(123)
+//' y          <- matrix(rnorm(400), ncol = 2)
+//' var_result <- fVAR(y, p = 2, c = 1)
+//' wold       <- fWoldIRF(var_result, horizon = 12)
+//'
+//' q <- fUhligMaxShare(wold, t(chol(var_result$sigma)), idx = 1)
+//' sum(q^2)   # a unit-length rotation vector
+//'
 //' @export
 // [[Rcpp::export]]
 arma::vec fUhligMaxShare(const arma::cube& wold, const arma::mat& S, int idx) {

@@ -86,3 +86,14 @@ used by \code{\link{fMaxIRF}}. The corrected variant first estimates
 coefficient bias, shrinking the correction if needed for VAR stability,
 and then bootstraps the bias-corrected VAR.
 }
+\examples{
+set.seed(123)
+y          <- matrix(rnorm(400), ncol = 2)
+var_result <- fVAR(y, p = 2, c = 1)
+
+# Few draws here to keep the example quick; use 1000 or more in practice.
+boot <- fBootstrapMax(y, var_result, nboot = 50, horizon = 12,
+                      var_idx = 1, n_threads = 2)
+dim(boot$upper)
+
+}

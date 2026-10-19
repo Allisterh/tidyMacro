@@ -102,11 +102,9 @@ m <- fLPDID(lshare ~ bank, data = BankingDeregulation,
 m
 fPlotLPDID(m)
 
-\donttest{
 # Controls through the panel-aware operators and a macro
 ctrl <- c("grgsp", "corptax", "unionmem")
 fLPDID(lshare ~ bank + l(lshare, 1:4) + l(d(lshare), 1:4) + l(..ctrl, 1:4),
        data = BankingDeregulation, panel_id = c("id", "year"),
        treat = "bank", post = 9, pre = 9, n_threads = 2)
-}
 }

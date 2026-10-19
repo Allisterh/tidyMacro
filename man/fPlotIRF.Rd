@@ -102,14 +102,12 @@ boot  <- fBootstrapChol(y, fit, nboot = 50, horizon = 12, n_threads = 2)
 # A point estimate and its bands, in one call
 fPlotIRF(point, bands = boot, varnames = colnames(y), shock = 1)
 
-\donttest{
 # Comparing results: each one carries its own bands, so build them first
 corrected <- fBootstrapCholCorrected(y, fit, nboot1 = 50, nboot2 = 50,
                                      horizon = 12, n_threads = 2)
 fPlotIRF(Standard    = fIRF(point, bands = boot),
          `Corrected` = fIRF(point, bands = corrected),
          varnames = colnames(y), shock = 1)
-}
 }
 \seealso{
 \code{\link{fIRF}}

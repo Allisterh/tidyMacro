@@ -40,3 +40,18 @@ one facet per result:
 Horizons that could not be estimated (non-finite estimates) are dropped
 from the plot with a message, so no ggplot warnings are emitted.
 }
+\examples{
+data("BankingDeregulation")
+
+m <- fLPDID(lshare ~ bank, data = BankingDeregulation,
+            panel_id = c("id", "year"), treat = "bank",
+            post = 4, pre = 4, n_threads = 2)
+fPlotLPDID(m)
+
+# Several fits side by side, named by their arguments
+m95 <- fLPDID(lshare ~ bank, data = BankingDeregulation,
+              panel_id = c("id", "year"), treat = "bank",
+              post = 4, pre = 4, conf = 95, n_threads = 2)
+fPlotLPDID(`90\%` = m, `95\%` = m95, ci = "bars")
+
+}

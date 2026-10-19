@@ -93,6 +93,13 @@ FGetBands2Result fGetBands2_cpp(const arma::cube& bootirf, double conf, double c
 //'
 //' @return List with three N x (hor+1) matrices: upper, lower, median.
 //'
+//' @examples
+//' set.seed(123)
+//' # 200 bootstrap draws of a 2-variable IRF over horizons 0 to 12
+//' bootirf <- array(rnorm(2 * 13 * 200), c(2, 13, 200))
+//' bands   <- fGetBands(bootirf, conf = 68)
+//' bands$median[, 1:3]
+//'
 //' @export
 // [[Rcpp::export]]
 Rcpp::List fGetBands(const arma::cube& bootirf, double conf = 90.0) {

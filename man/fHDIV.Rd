@@ -29,3 +29,15 @@ Computes the companion-form historical decomposition attributing each
 observation of all VAR variables to the IV-identified structural shock,
 following Stock and Watson (2018).
 }
+\examples{
+set.seed(123)
+y          <- matrix(rnorm(400), ncol = 2)
+var_result <- fVAR(y, p = 2, c = 1)
+
+S  <- t(chol(var_result$sigma))
+s  <- S[, 1] / S[1, 1]
+hd <- fHDIV(var_result$residuals, var_result$sigma, s,
+            var_result$beta, c = 1, p = 2)
+dim(hd$HDshock)
+
+}

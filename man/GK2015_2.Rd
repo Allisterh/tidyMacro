@@ -62,7 +62,7 @@ SIGN[, 1] <- c(0, -1, -1, 0)
 
 fit <- fSignRestr(endo, p = 12, c = 1, sign = SIGN, nsteps = 48,
                   ndraws = 100, sr_hor = 3, instrument = list(Z = iv),
-                  seed = 42)
+                  seed = 42, n_threads = 2)
 }
 \references{
 Gertler, M., & Karadi, P. (2015). Monetary Policy Surprises, Credit Costs,

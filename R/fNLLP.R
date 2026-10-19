@@ -210,13 +210,14 @@
 #' fit <- fNLLP(GDP ~ RRShock + l(GDP, 1) + l(FFR, 1) + trend,
 #'              data = tt, horizons = 12, shock = "RRShock",
 #'              type = "state", state = "Expansion", common = "trend",
-#'              regimes = c("Expansion", "Recession"), balanced = TRUE)
+#'              regimes = c("Expansion", "Recession"), balanced = TRUE,
+#'              n_threads = 2)
 #' fit
 #'
 #' # Asymmetry between contractionary and expansionary shocks
 #' fit_sign <- fNLLP(GDP ~ RRShock + l(GDP, 1) + l(FFR, 1) + trend,
 #'                   data = tt, horizons = 12, shock = "RRShock",
-#'                   type = "sign", balanced = TRUE)
+#'                   type = "sign", balanced = TRUE, n_threads = 2)
 #' fit_sign
 #'
 #' @export
@@ -537,7 +538,8 @@ coef.fNLLP <- function(object, ...) {
 #' tt <- TenreyroThwaites2016
 #' tt <- tt[tt$Date >= as.Date("1968-10-01"), ]
 #' fit <- fNLLP(FFR ~ RRShock + l(FFR, 1), data = tt, horizons = 8,
-#'              shock = "RRShock", type = "sign", balanced = TRUE)
+#'              shock = "RRShock", type = "sign", balanced = TRUE,
+#'              n_threads = 2)
 #' head(tidy.fNLLP(fit))
 #' @export
 tidy.fNLLP <- function(x, difference = TRUE, ...) {
@@ -623,7 +625,8 @@ tidy.fNLLP <- function(x, difference = TRUE, ...) {
 #' tt <- TenreyroThwaites2016
 #' tt <- tt[tt$Date >= as.Date("1968-10-01"), ]
 #' fit <- fNLLP(FFR ~ RRShock + l(FFR, 1), data = tt, horizons = 8,
-#'              shock = "RRShock", type = "cubic", balanced = TRUE)
+#'              shock = "RRShock", type = "cubic", balanced = TRUE,
+#'              n_threads = 2)
 #' # A small and a large shock
 #' head(predict(fit, size = c(0.25, 2)))
 #' @export

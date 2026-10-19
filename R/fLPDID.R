@@ -148,13 +148,11 @@
 #' m
 #' fPlotLPDID(m)
 #'
-#' \donttest{
 #' # Controls through the panel-aware operators and a macro
 #' ctrl <- c("grgsp", "corptax", "unionmem")
 #' fLPDID(lshare ~ bank + l(lshare, 1:4) + l(d(lshare), 1:4) + l(..ctrl, 1:4),
 #'        data = BankingDeregulation, panel_id = c("id", "year"),
 #'        treat = "bank", post = 9, pre = 9, n_threads = 2)
-#' }
 #' @export
 fLPDID <- function(formula, data,
                    panel_id,
@@ -493,6 +491,21 @@ fLPDID <- function(formula, data,
 #'   (shaded band, DGJT Figure-4 style; default) or \code{"bars"}
 #'   (point estimates with capped error bars, coefplot / Figure-3 style).
 #' @return A ggplot object.
+#'
+#' @examples
+#' data("BankingDeregulation")
+#'
+#' m <- fLPDID(lshare ~ bank, data = BankingDeregulation,
+#'             panel_id = c("id", "year"), treat = "bank",
+#'             post = 4, pre = 4, n_threads = 2)
+#' fPlotLPDID(m)
+#'
+#' # Several fits side by side, named by their arguments
+#' m95 <- fLPDID(lshare ~ bank, data = BankingDeregulation,
+#'               panel_id = c("id", "year"), treat = "bank",
+#'               post = 4, pre = 4, conf = 95, n_threads = 2)
+#' fPlotLPDID(`90%` = m, `95%` = m95, ci = "bars")
+#'
 #' @export
 fPlotLPDID <- function(..., title = NULL,
                        xlab = "Event time", ylab = "Estimate",

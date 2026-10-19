@@ -30,11 +30,10 @@ bands in impulse response visualizations.
 }
 \details{
 This function creates a discrete fill scale using the tidyMacro palette.
-If the number of groups exceeds the 14 available colors, the palette will
+If the number of groups exceeds the 15 available colors, the palette will
 be recycled with a warning.
 }
 \examples{
-\donttest{
 library(ggplot2)
 
 ggplot(mtcars, aes(x = factor(cyl), fill = factor(gear))) +
@@ -47,7 +46,6 @@ ggplot(mtcars, aes(x = factor(cyl), y = mpg, fill = factor(gear))) +
   geom_col(position = "dodge") +
   scale_fill_tidyMacro(reverse = TRUE) +
   fThemeTidyMacro()
-}
 
 }
 \seealso{

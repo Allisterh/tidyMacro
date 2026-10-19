@@ -116,7 +116,6 @@ fLP(dLogCPI ~ RRShock + l(dLogCPI, 1:3),
     data = JordaTaylor2025, horizons = 6, shock = "RRShock",
     n_threads = 2)
 
-\donttest{
 ## 3. Macro expansion
 controls <- c("dSTIR", "dLogGDP")
 fLP(dLogCPI ~ RRShock + ..controls,
@@ -138,6 +137,5 @@ fLP(c(dLogCPI, dLogGDP, dSTIR) ~ RRShock + l(..vars, 1:3),
 fLP(dLogCPI ~ RRShock + l(dLogCPI, 1:12) + f(dSTIR, 1),
     data = JordaTaylor2025, horizons = 24, shock = "RRShock",
     n_threads = 2)
-}
 
 }

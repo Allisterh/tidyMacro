@@ -155,6 +155,28 @@ arma::cube fBootstrapIVRecover_cpp(
 //' @return List with N x (hor+1) matrices: upper, lower (at \code{conf}),
 //'   upper2, lower2 (at \code{conf2}), median.
 //'
+//' @examples
+//' set.seed(123)
+//' y          <- matrix(rnorm(400), ncol = 2)
+//' var_result <- fVAR(y, p = 1, c = 1)
+//'
+//' # Instrument built from current and one-period-ahead residuals (r = 1),
+//' # with the first-stage coefficients delta and noise v_t
+//' r     <- 1
+//' u     <- var_result$residuals
+//' n_eff <- nrow(u) - r
+//' delta <- c(0, 1, 0.2, 0.45, 0.1)
+//' noise <- rnorm(n_eff, sd = 0.5)
+//' u_f   <- cbind(u[seq_len(n_eff), ], u[2:(n_eff + 1), ])
+//' instr <- numeric(nrow(y))
+//' instr[2:(nrow(y) - r)] <- cbind(1, u_f) %*% delta + noise
+//'
+//' # Few draws here to keep the example quick; use 1000 or more in practice.
+//' boot <- fBootstrapIVRecover(y, instr, var_result, noise, delta, nboot = 50,
+//'                             p = 1, c = 1, r = r, hor = 12,
+//'                             cumu = integer(), n_threads = 2)
+//' dim(boot$median)
+//'
 //' @seealso \code{\link{fBootstrapIVInvertible}}, \code{\link{fGetBands}}
 //'
 //' @export

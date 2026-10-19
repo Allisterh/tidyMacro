@@ -21,3 +21,11 @@ Computes upper, lower, and median bands from a 3-D bootstrap IRF array
 along the third (bootstrap) dimension. Percentiles follow R's
 \code{quantile(type = 7)}.
 }
+\examples{
+set.seed(123)
+# 200 bootstrap draws of a 2-variable IRF over horizons 0 to 12
+bootirf <- array(rnorm(2 * 13 * 200), c(2, 13, 200))
+bands   <- fGetBands(bootirf, conf = 68)
+bands$median[, 1:3]
+
+}

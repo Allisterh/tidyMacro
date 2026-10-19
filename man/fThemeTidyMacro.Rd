@@ -30,7 +30,6 @@ On most systems, you can check available fonts using \code{extrafont::fonts()}
 after loading the extrafont package.
 }
 \examples{
-\donttest{
 library(ggplot2)
 
 ggplot(mtcars, aes(x = wt, y = mpg)) +
@@ -43,7 +42,6 @@ ggplot(mtcars, aes(x = wt, y = mpg, color = factor(cyl))) +
   labs(x = "Weight (1000 lbs)", y = "Miles per gallon") +
   scale_color_tidyMacro() +
   fThemeTidyMacro(base_size = 16)
-}
 
 }
 \seealso{

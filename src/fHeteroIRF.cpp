@@ -188,6 +188,22 @@ BootHeteroResult fBootstrapHetero_cpp(const arma::mat& y,
 //' @param scale      Shock size for normalization (default 10).
 //'
 //' @return A list with \code{IRF} (N x hor+1) and \code{b1} (N-vector).
+//'
+//' @examples
+//' set.seed(123)
+//' y          <- matrix(rnorm(400), ncol = 2)
+//' var_result <- fVAR(y, p = 2, c = 1)
+//'
+//' # A proxy and a 0/1 indicator for the high-variance (treatment) periods
+//' u      <- var_result$residuals
+//' Z      <- matrix(u[, 1] + rnorm(nrow(u), sd = 0.5), ncol = 1)
+//' rows   <- c(1, nrow(u))
+//' indsR1 <- as.integer(abs(Z[, 1]) > stats::median(abs(Z[, 1])))
+//'
+//' irf <- fHeteroIRF(var_result, Z, rows, indsR1, hor = 12, nvar = 1,
+//'                   scale = 1)
+//' dim(irf$IRF)
+//'
 //' @export
 // [[Rcpp::export]]
 Rcpp::List fHeteroIRF(const Rcpp::List& var_result,
@@ -236,6 +252,23 @@ Rcpp::List fHeteroIRF(const Rcpp::List& var_result,
 //'   \code{lower2}, \code{point} (each N x hor+1) and \code{conf}, the band
 //'   levels \code{c(conf, conf2)}. \code{point} is the plug-in estimate on
 //'   the original sample; the bootstrap supplies the bands only.
+//'
+//' @examples
+//' set.seed(123)
+//' y          <- matrix(rnorm(400), ncol = 2)
+//' var_result <- fVAR(y, p = 2, c = 1)
+//'
+//' u      <- var_result$residuals
+//' Z      <- matrix(u[, 1] + rnorm(nrow(u), sd = 0.5), ncol = 1)
+//' rows   <- c(1, nrow(u))
+//' indsR1 <- as.integer(abs(Z[, 1]) > stats::median(abs(Z[, 1])))
+//'
+//' # Few draws here to keep the example quick; use 1000 or more in practice.
+//' boot <- fBootstrapHetero(y, var_result, Z, indsR1, rows, nboot = 50,
+//'                          blocksize = 10, hor = 12, nvar = 1, scale = 1,
+//'                          n_threads = 2)
+//' dim(boot$upper)
+//'
 //' @export
 // [[Rcpp::export]]
 Rcpp::List fBootstrapHetero(const arma::mat& y,

@@ -130,6 +130,17 @@ static void max_args(int N, int var_idx, Rcpp::IntegerVector cumulate,
 //'   coefficient array, where K is the number of regressors; and
 //'   \code{conf}, the band levels \code{c(conf, conf2)}. The corrected
 //'   variant stores \code{nboot2} draws.
+//'
+//' @examples
+//' set.seed(123)
+//' y          <- matrix(rnorm(400), ncol = 2)
+//' var_result <- fVAR(y, p = 2, c = 1)
+//'
+//' # Few draws here to keep the example quick; use 1000 or more in practice.
+//' boot <- fBootstrapMax(y, var_result, nboot = 50, horizon = 12,
+//'                       var_idx = 1, n_threads = 2)
+//' dim(boot$upper)
+//'
 //' @export
 // [[Rcpp::export]]
 Rcpp::List fBootstrapMax(const arma::mat& y, const Rcpp::List& var_result,

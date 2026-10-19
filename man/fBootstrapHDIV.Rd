@@ -60,3 +60,21 @@ the VAR is re-estimated, the IV identification is re-run, and the
 companion-form HD recursion is applied to the bootstrap draw. Bands are
 recentered around the point estimate following Kaenzig (2021).
 }
+\examples{
+set.seed(123)
+y          <- matrix(rnorm(400), ncol = 2)
+var_result <- fVAR(y, p = 2, c = 1)
+
+# An instrument correlated with the first reduced-form residual
+u    <- var_result$residuals
+Z    <- matrix(u[, 1] + rnorm(nrow(u), sd = 0.5), ncol = 1)
+rows <- c(1, nrow(u))
+s    <- c(1, sum(Z * u[, 2]) / sum(Z * u[, 1]))
+
+# Few draws here to keep the example quick; use 1000 or more in practice.
+boot <- fBootstrapHDIV(y, var_result, Z, s = s, nboot = 50, blocksize = 10,
+                       adjustZ = rows, adjustu = rows, policyvar = 1,
+                       n_threads = 2)
+names(boot)
+
+}

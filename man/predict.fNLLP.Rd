@@ -38,7 +38,8 @@ data("TenreyroThwaites2016")
 tt <- TenreyroThwaites2016
 tt <- tt[tt$Date >= as.Date("1968-10-01"), ]
 fit <- fNLLP(FFR ~ RRShock + l(FFR, 1), data = tt, horizons = 8,
-             shock = "RRShock", type = "cubic", balanced = TRUE)
+             shock = "RRShock", type = "cubic", balanced = TRUE,
+             n_threads = 2)
 # A small and a large shock
 head(predict(fit, size = c(0.25, 2)))
 }

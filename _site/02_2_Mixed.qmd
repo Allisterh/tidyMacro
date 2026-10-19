@@ -116,7 +116,7 @@ fPlotIRF(struct_irf, bands = boot_max, varnames = varnames, facet_ncol = 2)
 
 ## Compare the result to @barsky2012
 
-Now we can compare the results to that of @barsky2012 and plot IRF results. This alternative chooses the zero-impact shock that maximizes the horizon-weighted cumulative contribution to TFP's forecast error variance, matching `uhlig_maxshare.m` in the replication files.
+Now we can compare the results to that of @barsky2012 and plot IRF results. This alternative chooses the zero-impact shock that maximizes the horizon-weighted cumulative contribution to TFP's forecast error variance, matching the maximum-share routine in the replication files.
 
 ```{r}
 #| label: bootstrap-uhlig

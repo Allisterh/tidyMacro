@@ -33,3 +33,11 @@ A list containing:
 \description{
 Ordinary Least Squares Regression
 }
+\examples{
+set.seed(123)
+X   <- matrix(rnorm(200), ncol = 2)
+y   <- X \%*\% c(1, -0.5) + rnorm(100)
+fit <- fOLS(y, X, c = 1)
+names(fit)
+
+}

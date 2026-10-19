@@ -229,6 +229,7 @@ LPPanelResult fLPPanel_internal(
   out.df.set_size(H + 1, n_s);        out.df.fill(arma::datum::nan);
   out.status.set_size(H + 1);         out.status.zeros();
   out.converged.set_size(H + 1);      out.converged.ones();
+  out.nobs.set_size(H + 1);           out.nobs.zeros();
 
   // Threading — unified rule across all LP engines:
   //   n_threads <= 0 -> all cores minus one
@@ -279,6 +280,7 @@ LPPanelResult fLPPanel_internal(
         if (!std::isfinite(W_in(r, c))) keep(r) = 0;
     }
     const arma::uvec keep_idx = arma::find(keep);
+    out.nobs(h) = static_cast<int>(keep_idx.n_elem);
     if (keep_idx.n_elem == 0) {
       out.status(h) = 1;   // no complete observations — leave NaN, warn in R
       continue;
@@ -384,7 +386,7 @@ LPPanelResult fLPPanel_internal(
       // Time, unit, or Cameron-Gelbach-Miller two-way (unit + time).
       //
       // ssc_mode 0 keeps the asymptotic sandwich and normal critical values,
-      // which is the convention of the Almuzara-Sancibrian panel LP theory.
+      // which is the convention of asymptotic panel LP inference.
       // ssc_mode 1 reproduces Stata and fixest: every one-way component of
       // the meat is scaled by G/(G-1)*(N-1)/(N-K) with its own cluster count,
       // and inference uses t with min(G) - 1 degrees of freedom. K counts the
@@ -466,8 +468,8 @@ LPPanelResult fLPPanel_internal(
 
 //' Panel Local Projections — Internal C++ engine
 //'
-//' Internal engine implementing the estimator of Almuzara & Sancibrián
-//' (NY Fed SR 1090, 2024). Users should call \code{fLPPanel()} instead.
+//' Internal panel local-projection engine. Users should call
+//' \code{fLPPanel()} instead.
 //'
 //' @keywords internal
 //' @noRd
@@ -489,8 +491,9 @@ Rcpp::List fLPPanel_cpp(
     bool verbose      = false
 ) {
   // Boundary validation — the R wrapper does most of it, but this engine is
-  // also exported for direct .Call, so guard against non-finite and shape
-  // errors here before entering the parallel region.
+  // also exported for direct .Call, so guard against shape errors here
+  // before entering the parallel region. Non-finite values in y, s, X and W
+  // are allowed: the horizon loop drops them per horizon.
   if (y.n_rows == 0) Rcpp::stop("fLPPanel_cpp: y is empty.");
   if (y.n_cols == 0) Rcpp::stop("fLPPanel_cpp: y must have at least one column.");
   if (s.n_rows != y.n_rows || X.n_rows != y.n_rows ||
@@ -529,6 +532,7 @@ Rcpp::List fLPPanel_cpp(
     Rcpp::Named("SE")        = r.SE,
     Rcpp::Named("df")        = r.df,
     Rcpp::Named("status")    = r.status,
-    Rcpp::Named("converged") = r.converged
+    Rcpp::Named("converged") = r.converged,
+    Rcpp::Named("nobs")      = r.nobs
   );
 }

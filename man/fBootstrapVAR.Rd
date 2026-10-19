@@ -29,6 +29,16 @@ The recursion is \deqn{y_t = c + A_1 y_{t-1} + \cdots + A_p y_{t-p} + e_t^*}
 where \eqn{e_t^*} is either a randomly resampled residual (residual scheme)
 or the t-th residual multiplied by a Rademacher sign (wild scheme).
 }
+\examples{
+set.seed(123)
+y          <- matrix(rnorm(400), ncol = 2)
+var_result <- fVAR(y, p = 2, c = 1)
+
+# One artificial sample drawn from the estimated VAR
+y_star <- fBootstrapVAR(y, var_result, bootscheme = "wild")
+dim(y_star$ynext)
+
+}
 \seealso{
 \code{\link{fBootstrapChol}}, \code{\link{fVAR}}
 }

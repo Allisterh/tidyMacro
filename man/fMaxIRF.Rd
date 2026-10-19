@@ -24,6 +24,17 @@ variable at the last supplied horizon, subject to a zero first shock
 coordinate and unit norm. The sign is chosen so the selected variable's
 last-horizon response is non-negative.
 }
+\examples{
+set.seed(123)
+y          <- matrix(rnorm(400), ncol = 2)
+var_result <- fVAR(y, p = 2, c = 1)
+wold       <- fWoldIRF(var_result, horizon = 12)
+
+# Shock with the largest long-run effect on variable 1
+irf <- fMaxIRF(wold, t(chol(var_result$sigma)), var_idx = 1)
+dim(irf)
+
+}
 \seealso{
 \code{\link{fBootstrapMax}}, \code{\link{fUhligIRF}}
 }

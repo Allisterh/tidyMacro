@@ -172,3 +172,22 @@ test_that("fLPPanel rejects an existing x_l1 column that is not the lag of x", {
     "not lag 1"
   )
 })
+
+test_that("fLPPanel uses a separate sample at each horizon, as with pre-built leads", {
+  d <- sim_panel_df()
+  set.seed(11)
+  d$shock[sample(nrow(d), 40)] <- NA   # rows that are only lead targets
+  d$y[sample(nrow(d), 40)]     <- NA   # rows that only enter at h >= 1
+  H <- 3
+  p <- fLPPanel(y ~ shock | unit + tt, data = d, panel_id = c("unit", "tt"),
+                shock = "shock", horizons = H, n_threads = NT)
+
+  key <- paste(d$unit, d$tt)
+  for (h in 0:H) {
+    d$y_h <- d$y[match(paste(d$unit, d$tt + h), key)]
+    ref <- lm(y_h ~ shock + factor(unit) + factor(tt), data = d)
+    expect_equal(unname(p$irfs[h + 1, 1]), unname(coef(ref)["shock"]),
+                 tolerance = 1e-8)
+    expect_equal(unname(p$nobs[h + 1]), nobs(ref))
+  }
+})

@@ -214,8 +214,8 @@ window.Quarto = {
   <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
     <div class="pt-lg-2 mt-2 text-center sidebar-header">
       <a href="./index.html" class="sidebar-logo-link">
-      <img src="./logo.png" alt="" class="sidebar-logo light-content py-0 d-lg-inline d-none">
-      <img src="./logo.png" alt="" class="sidebar-logo dark-content py-0 d-lg-inline d-none">
+      <img src="./logo.jpeg" alt="" class="sidebar-logo light-content py-0 d-lg-inline d-none">
+      <img src="./logo.jpeg" alt="" class="sidebar-logo dark-content py-0 d-lg-inline d-none">
       </a>
       <div class="sidebar-tools-main tools-wide">
     <a href="https://github.com/muhsinciftci/tidyMacro" title="tidyMacro GitHub" class="quarto-navigation-tool px-1" aria-label="tidyMacro GitHub"><i class="bi bi-github"></i></a>
@@ -366,7 +366,7 @@ window.Quarto = {
   <ul class="collapse">
   <li><a href="#flp-classical-jordà-lp" id="toc-flp-classical-jordà-lp" class="nav-link" data-scroll-target="#flp-classical-jordà-lp"><span class="header-section-number">6.1</span> <code>fLP()</code> — classical Jordà LP</a></li>
   <li><a href="#flpiv-lp-with-an-external-instrument" id="toc-flpiv-lp-with-an-external-instrument" class="nav-link" data-scroll-target="#flpiv-lp-with-an-external-instrument"><span class="header-section-number">6.2</span> <code>fLPIV()</code> — LP with an external instrument</a></li>
-  <li><a href="#flppanel-panel-lp-à-la-almuzara-sancibrián" id="toc-flppanel-panel-lp-à-la-almuzara-sancibrián" class="nav-link" data-scroll-target="#flppanel-panel-lp-à-la-almuzara-sancibrián"><span class="header-section-number">6.3</span> <code>fLPPanel()</code> — panel LP à la Almuzara &amp; Sancibrián</a></li>
+  <li><a href="#flppanel-panel-lp" id="toc-flppanel-panel-lp" class="nav-link" data-scroll-target="#flppanel-panel-lp"><span class="header-section-number">6.3</span> <code>fLPPanel()</code> — panel LP</a></li>
   <li><a href="#flpdid-lp-did-à-la-dubegirardijordàtaylor" id="toc-flpdid-lp-did-à-la-dubegirardijordàtaylor" class="nav-link" data-scroll-target="#flpdid-lp-did-à-la-dubegirardijordàtaylor"><span class="header-section-number">6.4</span> <code>fLPDID()</code> — LP-DiD à la Dube–Girardi–Jordà–Taylor</a></li>
   </ul></li>
   <li><a href="#plotting" id="toc-plotting" class="nav-link" data-scroll-target="#plotting"><span class="header-section-number">7</span> 6 · Plotting</a></li>
@@ -401,12 +401,12 @@ window.Quarto = {
 
 <section id="purpose-of-this-chapter" class="level2" data-number="1">
 <h2 data-number="1" class="anchored" data-anchor-id="purpose-of-this-chapter"><span class="header-section-number">1</span> Purpose of this chapter</h2>
-<p>The four local-projection engines in <code>tidyMacro</code> — <code>fLP()</code>, <code>fLPIV()</code>, <code>fLPPanel()</code>, <code>fLPDID()</code> — deliberately share a single, <code>fixest</code>-inspired interface: the same formula grammar, the same lag/lead operators, the same panel-index convention, the same multi-band handling, and the same plotting entry point (<code>fPlotIRF()</code> / <code>fPlotLPDID()</code>). This chapter is the <strong>one place</strong> where those shared conventions are documented, so the empirical replication chapters that follow (<span class="citation" data-cites="jorda2025">Jorda and Taylor (<a href="#ref-jorda2025" role="doc-biblioref">2025</a>)</span>, <span class="citation" data-cites="almuzara2024micro">Almuzara and Sancibrián (<a href="#ref-almuzara2024micro" role="doc-biblioref">2024</a>)</span>, <span class="citation" data-cites="dube2025">Dube et al. (<a href="#ref-dube2025" role="doc-biblioref">2025</a>)</span>) can stay focused on the economics.</p>
+<p>The four local-projection engines in <code>tidyMacro</code> — <code>fLP()</code>, <code>fLPIV()</code>, <code>fLPPanel()</code>, <code>fLPDID()</code> — deliberately share a single, <code>fixest</code>-inspired interface: the same formula grammar, the same lag/lead operators, the same panel-index convention, the same multi-band handling, and the same plotting entry point (<code>fPlotIRF()</code> / <code>fPlotLPDID()</code>). This chapter is the <strong>one place</strong> where those shared conventions are documented, so the empirical replication chapters that follow (<span class="citation" data-cites="jorda2025">Jorda and Taylor (<a href="#ref-jorda2025" role="doc-biblioref">2025</a>)</span>, <span class="citation" data-cites="mianverner2017">Mian et al. (<a href="#ref-mianverner2017" role="doc-biblioref">2017</a>)</span>, <span class="citation" data-cites="dube2025">Dube et al. (<a href="#ref-dube2025" role="doc-biblioref">2025</a>)</span>) can stay focused on the economics.</p>
 <p>Read this once, then treat the estimator chapters as extensions:</p>
 <ul>
-<li><code>fLP()</code> and <code>fLPIV()</code> — <a href="05_JordaTaylor2025.html">Local Projections with Shocks and IV</a></li>
-<li><code>fLPPanel()</code> — <a href="06_AlmuzaraSancibrian2024.html">Panel Local Projections</a></li>
-<li><code>fLPDID()</code> — <a href="07_Dube2025.html">Local Projections Difference-in-Differences</a></li>
+<li><code>fLP()</code> and <code>fLPIV()</code> — <a href="05_3_LP_Exo_IV.html">Local Projections with Shocks and IV</a></li>
+<li><code>fLPPanel()</code> — <a href="06_LP_Panel.html">Panel Local Projections</a></li>
+<li><code>fLPDID()</code> — <a href="07_LPDID.html">Local Projections Difference-in-Differences</a></li>
 </ul>
 <hr>
 </section>
@@ -655,12 +655,12 @@ window.Quarto = {
 <td>NW bandwidth shift (<code>+1</code> MA&amp;R, <code>0</code> classic Jordà)</td>
 </tr>
 <tr class="even">
-<td><code>small_sample</code></td>
+<td><code>ssc</code></td>
 <td style="text-align: center;">—</td>
 <td style="text-align: center;">—</td>
 <td style="text-align: center;">✓</td>
 <td style="text-align: center;">—</td>
-<td>Imbens–Kolesar small-sample refinement</td>
+<td>Small-sample correction of the clustered variance: <code>"none"</code>, <code>"CR1"</code>, <code>"IK"</code></td>
 </tr>
 <tr class="odd">
 <td><code>p_max</code></td>
@@ -718,7 +718,7 @@ window.Quarto = {
 </section>
 <section id="impulse-units-shock_size" class="level3" data-number="3.2">
 <h3 data-number="3.2" class="anchored" data-anchor-id="impulse-units-shock_size"><span class="header-section-number">3.2</span> 2.2 · Impulse units (<code>shock_size</code>)</h3>
-<p><code>fLP()</code> and <code>fLPIV()</code> report the response to a <strong>one-unit</strong> shock by default (<code>shock_size = "unit"</code>). Setting <code>shock_size = "sd"</code> reports the response to a <strong>one-standard-deviation</strong> shock instead: <code>fLP()</code> z-scores the shock regressor, <code>fLPIV()</code> scales the 2SLS coefficient and its standard error by <code>sd(D)</code>. In both cases the standard deviation is taken over the <strong>estimation sample</strong> — i.e.&nbsp;after the leading rows consumed by generated lags — not over the raw input column. These correspond to <code>LPopt.impact = 1</code> and <code>LPopt.impact = 0</code> in Cesa-Bianchi’s <code>LPmodel.m</code>.</p>
+<p><code>fLP()</code> and <code>fLPIV()</code> report the response to a <strong>one-unit</strong> shock by default (<code>shock_size = "unit"</code>). Setting <code>shock_size = "sd"</code> reports the response to a <strong>one-standard-deviation</strong> shock instead: <code>fLP()</code> z-scores the shock regressor, <code>fLPIV()</code> scales the 2SLS coefficient and its standard error by <code>sd(D)</code>. In both cases the standard deviation is taken over the <strong>estimation sample</strong> — i.e.&nbsp;after the leading rows consumed by generated lags — not over the raw input column. These correspond to <code>LPopt.impact = 1</code> and <code>LPopt.impact = 0</code> in the local-projection routine of Cesa-Bianchi’s VAR Toolbox.</p>
 </section>
 <section id="threading-and-console-noise" class="level3" data-number="3.3">
 <h3 data-number="3.3" class="anchored" data-anchor-id="threading-and-console-noise"><span class="header-section-number">3.3</span> 2.3 · Threading and console noise</h3>
@@ -847,7 +847,7 @@ window.Quarto = {
 <h3 data-number="6.1" class="anchored" data-anchor-id="flp-classical-jordà-lp"><span class="header-section-number">6.1</span> <code>fLP()</code> — classical Jordà LP</h3>
 <p>Standard form: <span class="math display">\[y_{t+h} \;=\; \alpha_h + \beta_h\, s_t + \gamma_h' w_t + u_{t+h}, \qquad h = 0, 1, \dots, H.\]</span></p>
 <p>Cumulative form (<code>cumulative = TRUE</code>): <span class="math display">\[y_{t+h} - y_{t-1} \;=\; \alpha_h + \beta_h\, s_t + \gamma_h' w_t + u_{t+h}.\]</span></p>
-<p>The base <span class="math inline">\(y_{t-1}\)</span> for the <strong>first</strong> estimable date lies one period before the estimation sample. When generated lags trim the leading rows, that outcome is still observed, so <code>fLP()</code> and <code>fLPIV()</code> keep it as the base rather than discarding it — the estimation sample is not shortened by the long difference. This matches <code>endo_lag1 = ENDO(lag_trim:end-1)</code> in <code>LPmodel.m</code>. Time-series LP also requires a contiguous sample: rows with <code>NA</code> cannot simply be deleted, since the engines treat retained rows as consecutive periods, so an <strong>interior</strong> gap is rejected with an error (leading and trailing <code>NA</code>s from <code>l()</code> / <code>f()</code> are fine).</p>
+<p>The base <span class="math inline">\(y_{t-1}\)</span> for the <strong>first</strong> estimable date lies one period before the estimation sample. When generated lags trim the leading rows, that outcome is still observed, so <code>fLP()</code> and <code>fLPIV()</code> keep it as the base rather than discarding it — the estimation sample is not shortened by the long difference. This matches <code>endo_lag1 = ENDO(lag_trim:end-1)</code> in the VAR Toolbox’s local-projection routine. Time-series LP also requires a contiguous sample: rows with <code>NA</code> cannot simply be deleted, since the engines treat retained rows as consecutive periods, so an <strong>interior</strong> gap is rejected with an error (leading and trailing <code>NA</code>s from <code>l()</code> / <code>f()</code> are fine).</p>
 <p>The IRF at horizon <span class="math inline">\(h\)</span> is <span class="math inline">\(\beta_h\)</span>. Standard errors use the full Newey–West sandwich <code>V_h = (X'X)⁻¹ X'ΩX (X'X)⁻¹</code> with a Bartlett kernel of bandwidth <code>max(nw_lags + h + nw_offset, 0)</code>.</p>
 </section>
 <section id="flpiv-lp-with-an-external-instrument" class="level3" data-number="6.2">
@@ -861,10 +861,10 @@ window.Quarto = {
 </ol>
 <p>The first-stage F reported in <code>Fstat_fs</code> uses <code>df2 = Th − kc − nz</code>, i.e.&nbsp;the residual df of the <em>full</em> first-stage regression <span class="math inline">\(D \sim [1, C, Z]\)</span> under the FWL equivalence; if <code>df2 &lt;= 0</code> the value is <code>NaN</code>.</p>
 </section>
-<section id="flppanel-panel-lp-à-la-almuzara-sancibrián" class="level3" data-number="6.3">
-<h3 data-number="6.3" class="anchored" data-anchor-id="flppanel-panel-lp-à-la-almuzara-sancibrián"><span class="header-section-number">6.3</span> <code>fLPPanel()</code> — panel LP à la Almuzara &amp; Sancibrián</h3>
+<section id="flppanel-panel-lp" class="level3" data-number="6.3">
+<h3 data-number="6.3" class="anchored" data-anchor-id="flppanel-panel-lp"><span class="header-section-number">6.3</span> <code>fLPPanel()</code> — panel LP</h3>
 <p>At horizon <span class="math inline">\(h\)</span>, for each interaction component <span class="math inline">\(j\)</span>: <span class="math display">\[y_{i, t+h} \;=\; \alpha^{(h)}_{\mathrm{FE}} + \beta_h^{(j)} (s_{it, j}\, x_t) + \gamma_h' w_{it} + \sum_{k=1}^{\min(h, p_{\max})} \delta_{hk}' v_{i,t-k} + u_{i,t+h}.\]</span></p>
-<p>Inference: asymptotic time-clustered (LAHR) by default; the <span class="citation" data-cites="imbens2016">Imbens and Kolesár (<a href="#ref-imbens2016" role="doc-biblioref">2016</a>)</span> small-sample refinement is available via <code>small_sample = TRUE</code>, which reports a component-specific effective degrees of freedom.</p>
+<p>Inference: asymptotic time-clustered (LAHR) by default (<code>ssc = "none"</code>). <code>ssc = "CR1"</code> applies the finite-sample multiplier and <span class="math inline">\(t\)</span> degrees of freedom used by Stata and <code>fixest</code>; <code>ssc = "IK"</code> applies the <span class="citation" data-cites="imbens2016">Imbens and Kolesár (<a href="#ref-imbens2016" role="doc-biblioref">2016</a>)</span> refinement, which reports a component-specific effective degrees of freedom. The predecessor argument <code>small_sample = TRUE</code> maps onto <code>ssc = "IK"</code> and is deprecated.</p>
 </section>
 <section id="flpdid-lp-did-à-la-dubegirardijordàtaylor" class="level3" data-number="6.4">
 <h3 data-number="6.4" class="anchored" data-anchor-id="flpdid-lp-did-à-la-dubegirardijordàtaylor"><span class="header-section-number">6.4</span> <code>fLPDID()</code> — LP-DiD à la Dube–Girardi–Jordà–Taylor</h3>
@@ -911,9 +911,9 @@ window.Quarto = {
 <section id="where-to-go-next" class="level2" data-number="9">
 <h2 data-number="9" class="anchored" data-anchor-id="where-to-go-next"><span class="header-section-number">9</span> 8 · Where to go next</h2>
 <ul>
-<li><strong><code>fLP()</code> and <code>fLPIV()</code></strong> — <a href="05_JordaTaylor2025.html">Local Projections with Shocks and IV</a> (Jordà &amp; Taylor 2025 replication).</li>
-<li><strong><code>fLPPanel()</code></strong> — <a href="06_AlmuzaraSancibrian2024.html">Panel Local Projections</a> (Almuzara &amp; Sancibrián 2024 sample port).</li>
-<li><strong><code>fLPDID()</code></strong> — <a href="07_Dube2025.html">Local Projections Difference-in-Differences</a> (Dube, Girardi, Jordà &amp; Taylor 2025 replication).</li>
+<li><strong><code>fLP()</code> and <code>fLPIV()</code></strong> — <a href="05_3_LP_Exo_IV.html">Local Projections with Shocks and IV</a> (Jordà &amp; Taylor 2025 replication).</li>
+<li><strong><code>fLPPanel()</code></strong> — <a href="06_LP_Panel.html">Panel Local Projections</a> (<span class="citation" data-cites="mianverner2017">Mian et al. (<a href="#ref-mianverner2017" role="doc-biblioref">2017</a>)</span> replication).</li>
+<li><strong><code>fLPDID()</code></strong> — <a href="07_LPDID.html">Local Projections Difference-in-Differences</a> (Dube, Girardi, Jordà &amp; Taylor 2025 replication).</li>
 </ul>
 </section>
 <section id="references" class="level2 unnumbered">
@@ -924,9 +924,6 @@ window.Quarto = {
 </section>
 
 <a onclick="window.scrollTo(0, 0); return false;" role="button" id="quarto-back-to-top"><i class="bi bi-arrow-up"></i> Back to top</a><div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" role="list">
-<div id="ref-almuzara2024micro" class="csl-entry" role="listitem">
-Almuzara, Martı́n, and Vı́ctor Sancibrián. 2024. <span>“Micro Responses to Macro Shocks.”</span> <em>FRB of New York Staff Report</em>, no. 1090.
-</div>
 <div id="ref-dube2025" class="csl-entry" role="listitem">
 Dube, Arindrajit, Daniele Girardi, Òscar Jordà, and Alan M. Taylor. 2025. <span>“A <span>Local Projections Approach</span> to <span class="nocase">Difference-in-Differences</span>.”</span> <em>Journal of Applied Econometrics</em> 40 (7): 741–58. <a href="https://doi.org/10.1002/jae.70000">https://doi.org/10.1002/jae.70000</a>.
 </div>
@@ -935,6 +932,9 @@ Imbens, Guido W., and Michal Kolesár. 2016. <span>“Robust Standard Errors in 
 </div>
 <div id="ref-jorda2025" class="csl-entry" role="listitem">
 Jorda, Oscar, and Alan M. Taylor. 2025. <span>“Local <span>Projections</span>.”</span> <em>Journal of Economic Literature</em> 63 (1): 59–110. <a href="https://doi.org/10.1257/jel.20241521">https://doi.org/10.1257/jel.20241521</a>.
+</div>
+<div id="ref-mianverner2017" class="csl-entry" role="listitem">
+Mian, Atif, Amir Sufi, and Emil Verner. 2017. <span>“Household Debt and Business Cycles Worldwide.”</span> <em>The Quarterly Journal of Economics</em> 132 (4): 1755–817. <a href="https://doi.org/10.1093/qje/qjx017">https://doi.org/10.1093/qje/qjx017</a>.
 </div>
 </div></section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">

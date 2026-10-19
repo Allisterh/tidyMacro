@@ -24,6 +24,17 @@ Computes impulse responses using the direction returned by
 \code{\link{fUhligMaxShare}}. The sign is chosen so the first variable's
 last-horizon response is non-negative.
 }
+\examples{
+set.seed(123)
+y          <- matrix(rnorm(400), ncol = 2)
+var_result <- fVAR(y, p = 2, c = 1)
+wold       <- fWoldIRF(var_result, horizon = 12)
+
+# Shock explaining the largest forecast-error-variance share of variable 1
+irf <- fUhligIRF(wold, t(chol(var_result$sigma)), idx = 1)
+dim(irf)
+
+}
 \seealso{
 \code{\link{fBootstrapUhlig}}
 }

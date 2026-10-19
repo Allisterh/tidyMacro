@@ -40,7 +40,7 @@
 #' SIGN[, 1] <- c(0, -1, -1, 0, -1, 1)
 #'
 #' fit <- fSignRestr(y, p = 12, c = 1, sign = SIGN, nsteps = 24,
-#'                   ndraws = 100, sr_hor = 6, seed = 42)
+#'                   ndraws = 100, sr_hor = 6, seed = 42, n_threads = 2)
 #' hd <- fHDShock(fit, y = y)
 #'
 #' # Components reproduce the data over the estimation sample.

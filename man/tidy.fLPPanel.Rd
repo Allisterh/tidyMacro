@@ -13,9 +13,19 @@ tidy.fLPPanel(x, ...)
 }
 \value{
 A data frame with horizon, shock, estimate, standard error,
-  degrees of freedom, p-value, and confidence bounds. Multiple confidence
+  degrees of freedom, p-value, number of observations, and confidence
+  bounds. Multiple confidence
   levels use columns named \code{lower_<level>} and \code{upper_<level>}.
 }
 \description{
 Tidy Panel Local Projection Estimates
+}
+\examples{
+data("DemocracyGrowth")
+
+m <- fLPPanel(lgdp ~ dem | id + year,
+              data = DemocracyGrowth, panel_id = c("id", "year"),
+              shock = "dem", horizons = 4, cluster = ~id, n_threads = 2)
+head(tidy.fLPPanel(m))
+
 }

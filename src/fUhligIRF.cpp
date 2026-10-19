@@ -17,6 +17,17 @@
 //' @param idx Index (1-based) of the variable whose forecast error variance
 //'   contribution is maximised.
 //' @return An N x (horizon+1) matrix of structural impulse responses.
+//'
+//' @examples
+//' set.seed(123)
+//' y          <- matrix(rnorm(400), ncol = 2)
+//' var_result <- fVAR(y, p = 2, c = 1)
+//' wold       <- fWoldIRF(var_result, horizon = 12)
+//'
+//' # Shock explaining the largest forecast-error-variance share of variable 1
+//' irf <- fUhligIRF(wold, t(chol(var_result$sigma)), idx = 1)
+//' dim(irf)
+//'
 //' @seealso \code{\link{fBootstrapUhlig}}
 //' @export
 // [[Rcpp::export]]

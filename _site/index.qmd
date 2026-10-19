@@ -123,7 +123,7 @@ tidyMacro is an R package for fast estimation and identification of Structural V
     - State Dependency and Nonlinear Local projections
       - Replication: @tenreyro2016a
     - Panel Local projections
-      - Replication: @almuzara2024micro
+      - Replication: @mianverner2017
     - State Dependent Nonlinear and Panel Local projections ⛔
     - Local Projections Difference in Differences
       - Replication: @dube2025

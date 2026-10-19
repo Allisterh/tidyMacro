@@ -24,6 +24,18 @@ Computes \eqn{C(L) = A(L) \cdot B(L)} truncated to \code{nlags} terms.
 Both polynomials are stored as 3-D arrays where the third dimension indexes
 lag order (slice 1 = lag 0, slice 2 = lag 1, etc.).
 }
+\examples{
+set.seed(123)
+y          <- matrix(rnorm(400), ncol = 2)
+var_result <- fVAR(y, p = 2, c = 1)
+wold       <- fWoldIRF(var_result, horizon = 12)
+
+# Multiplying by the identity polynomial returns the Wold coefficients
+I     <- array(diag(2), c(2, 2, 1))
+out   <- fPolyConvolve(wold, I, nlags = 13)
+all.equal(out, wold)
+
+}
 \seealso{
 \code{\link{fWoldIRF}}, \code{\link{fCholeskyIRF}}
 }

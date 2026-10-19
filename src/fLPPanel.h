@@ -7,14 +7,15 @@
 // -----------------------------------------------------------------------
 // Panel Local Projections — C++ engine
 //
-// Port of `panel_LP.m` (Almuzara & Sancibrián, "Micro Responses to Macro
-// Shocks", NY Fed Staff Report 1090, 2024).
-//
 // Model at horizon h (per s-component j = 1..n_s):
 //     y_{i,t+h} = alpha_{FE} + sum_j (s_{it,j} * X_it) * beta_h^j
 //                 + W'_{it} * G^h
 //                 + sum_{k=1..p} lag_k(y, s⊗X)' * D^h_k + u_{i,t+h}
 //   (cumulative: replaces y_{i,t+h} by sum_{r=0..h} y_{i,t+r})
+//
+// Sample: y, s, X and W may contain NaN. Each horizon keeps the rows whose
+// led (or cumulated) y, s⊗X, lags and W are all finite, so the sample is
+// chosen per horizon, as with leads built before the regression in Stata.
 //
 // Inference:
 //   * ssc_mode = 0 (none) → asymptotic cluster-robust sandwich SEs:
@@ -46,6 +47,7 @@ struct LPPanelResult {
   arma::ivec status;     // (H+1)   0 = OK, 1 = no complete rows,
                          //         2 = HDFE non-convergence
   arma::ivec converged;  // (H+1)   1 = HDFE converged, 0 = did not
+  arma::ivec nobs;       // (H+1)   rows used at each horizon
 };
 
 LPPanelResult fLPPanel_internal(
