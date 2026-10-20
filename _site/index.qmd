@@ -68,9 +68,7 @@ tidyMacro is an R package for fast estimation and identification of Structural V
       - **Delta method**
       - **Anderson-Rubin**
     - Replication: @kaenzig2021
-
-      **External instrument SVAR analysis for noninvertible shocks** following @forni2022
-
+    - **External instrument SVAR analysis for noninvertible shocks** following @forni2022
       - Invertibility test
       - Recoverability test
       - Calculate IRF, HD, FEVD and relative IRF if none.
