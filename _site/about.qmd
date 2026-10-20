@@ -1,0 +1,15 @@
+---
+title: "About"
+editor: visual
+number-sections: false
+---
+
+Hello! I am Muhsin. I am an economist and I received my PhD in economics from Goethe University Frankfurt, Germany. My research focuses on macroeconometrics, inflation, central banking and climate change. *tidyMacro* grew out of the tools I used in my work.
+
+I wrote the package for my own research and share it freely, in the hope that it saves others some time.
+
+## Get in touch
+
+- **Bugs and feature requests:** [GitHub issues](https://github.com/muhsinciftci/tidyMacro/issues)
+- **Source code:** [github.com/muhsinciftci/tidyMacro](https://github.com/muhsinciftci/tidyMacro)
+- **LinkedIn:** [muhsin-ciftci](https://www.linkedin.com/in/muhsin-ciftci/)

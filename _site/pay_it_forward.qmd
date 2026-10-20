@@ -1,0 +1,87 @@
+---
+title: "Pay It Forward"
+subtitle: "A gentle invitation, entirely optional"
+editor: visual
+number-sections: false
+execute:
+  # Monthly totals come from a live CSV, so this page re-executes on every
+  # render instead of keeping a frozen copy of old numbers.
+  freeze: false
+editor_options:
+  chunk_output_type: console
+---
+
+Thank you for using tidyMacro! I built it for my own research, and it makes me genuinely happy every time I hear that it is useful to someone else. It is free and open source, and it will always stay that way.
+
+*If tidyMacro saved you some time, or a few late nights, you might like to pass a little of that on by supporting a children's or education charity of your choice.*
+
+***Just to be clear: I have no affiliation with the organisations below and receive nothing from any donation. They are only suggestions, and any cause close to your heart is just as welcome.***
+
+## Some suggestions
+
+A few organisations doing wonderful work for children and education:
+
+- [UNICEF](https://www.unicef.org/take-action): works for children's health, protection and education in more than 190 countries and territories.
+- [Save the Children](https://www.savethechildren.net/): supports children's health, education and protection, including in emergencies.
+- [Room to Read](https://www.roomtoread.org/): focuses on childhood literacy and girls' education in low-income countries.
+- [Malala Fund](https://malala.org/): works for girls' access to twelve years of free, safe, quality education.
+
+## Donations reported by users
+
+Research can do good in many ways, and this is one I find especially heartwarming: knowing that tidyMacro might, even in a small way, help children and their education is a big part of what keeps me going. The chart below keeps track of what users have kindly reported.
+
+```{r}
+#| include: false
+# Anonymous Google Form (date + amount in EUR, e-mail collection off). Only the
+# monthly-totals tab of the response sheet is published as CSV, never the raw
+# responses. Expected columns: month (e.g. 2026-09 or 2026-09-01), total.
+form_url <- "https://docs.google.com/forms/d/e/1FAIpQLScIKjkOcvY9tW5vufe7dI0W3iR1tfb4FwE0wA0UfA33Gflnxg/viewform?usp=dialog"
+csv_url  <- "https://docs.google.com/spreadsheets/d/e/2PACX-1vRJ9SX1yilPbD0Sn3yjogpwx--gplKY9OzSmHv8Btpf9Sipc4odsBz2fM82-37OkRR1TmO2d1ce1UAz/pub?gid=1545958266&single=true&output=csv"
+
+read_monthly <- function(url) {
+    if (!nzchar(url)) return(NULL)
+    tryCatch({
+        d <- utils::read.csv(url, stringsAsFactors = FALSE)
+        names(d) <- tolower(trimws(names(d)))
+        m <- substr(as.character(d$month), 1, 7)
+        d <- data.frame(
+            month = as.Date(paste0(m, "-01")),
+            total = suppressWarnings(as.numeric(d$total))
+        )
+        d <- d[!is.na(d$month) & !is.na(d$total), ]
+        if (nrow(d) == 0) NULL else d[order(d$month), ]
+    }, error = function(e) NULL)
+}
+
+donations <- read_monthly(csv_url)
+```
+
+```{r}
+#| echo: false
+#| results: asis
+if (nzchar(form_url)) {
+    cat("If you donated because of tidyMacro, I would love to hear about it! You can [let me know anonymously](",
+        form_url, "): the form asks only for the date and the amount, no name or e-mail.\n\n",
+        sep = "")
+}
+if (is.null(donations)) {
+    cat("*No donations have been reported yet; the monthly chart will appear here as soon as the first one comes in.*\n")
+} else {
+    cat("These figures are self-reported and cannot be verified, so the real total is probably higher. A heartfelt thank you to everyone who has given!\n")
+}
+```
+
+```{r}
+#| echo: false
+#| fig-width: 10
+#| fig-height: 5
+if (!is.null(donations)) {
+    library(ggplot2)
+    ggplot(donations, aes(x = month, y = total)) +
+        geom_col(fill = tidyMacro::tidyMacro_colors[1], width = 25) +
+        scale_x_date(date_labels = "%b %Y") +
+        labs(x = NULL, y = "Reported donations (EUR)",
+             caption = "Donations reported by users; not verified.") +
+        tidyMacro::fThemeTidyMacro()
+}
+```

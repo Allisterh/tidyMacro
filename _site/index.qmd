@@ -57,25 +57,16 @@ tidyMacro is an R package for fast estimation and identification of Structural V
 3.  **Identification via external instruments (Proxy-SVAR)**
 
     - Impulse Response functions
-
       - Moving block bootstraps
-
     - Forecast error variance Decomposition
-
     - Historical Decomposition
-
     - First Stage F-stats
-
     - Recovering the shock series
-
       - Unit normalization
       - One SD normalization
-
     - Weak IV Robust IRF
-
       - **Delta method**
       - **Anderson-Rubin**
-
     - Replication: @kaenzig2021
 
       **External instrument SVAR analysis for noninvertible shocks** following @forni2022

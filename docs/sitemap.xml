@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
+    <loc>https://tidymacro.netlify.app/about.html</loc>
+    <lastmod>2026-10-20T21:26:39.736Z</lastmod>
+  </url>
+  <url>
     <loc>https://tidymacro.netlify.app/faq.html</loc>
     <lastmod>2026-10-14T22:00:54.408Z</lastmod>
   </url>
@@ -38,7 +42,7 @@
   </url>
   <url>
     <loc>https://tidymacro.netlify.app/index.html</loc>
-    <lastmod>2026-10-19T00:18:29.380Z</lastmod>
+    <lastmod>2026-10-20T21:28:41.286Z</lastmod>
   </url>
   <url>
     <loc>https://tidymacro.netlify.app/02_1_LR.html</loc>
@@ -71,5 +75,9 @@
   <url>
     <loc>https://tidymacro.netlify.app/07_LPDID.html</loc>
     <lastmod>2026-09-18T22:48:47.431Z</lastmod>
+  </url>
+  <url>
+    <loc>https://tidymacro.netlify.app/pay_it_forward.html</loc>
+    <lastmod>2026-10-20T21:22:33.268Z</lastmod>
   </url>
 </urlset>

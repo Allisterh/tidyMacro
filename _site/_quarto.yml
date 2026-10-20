@@ -24,6 +24,8 @@ project:
     - 06_LP_Panel.qmd
     - 07_LPDID.qmd
     - faq.qmd
+    - pay_it_forward.qmd
+    - about.qmd
 
 page-layout: full
 
@@ -51,6 +53,10 @@ website:
         text: Home
       - href: faq.qmd
         text: FAQ
+      - href: pay_it_forward.qmd
+        text: Pay It Forward
+      - href: about.qmd
+        text: About
 
   sidebar:
     logo: "logo.png"
