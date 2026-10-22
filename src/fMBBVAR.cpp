@@ -47,7 +47,14 @@ MBBSamplerState fmbb_precompute_cpp(const arma::mat& eps, int lags, int BlockSiz
     for (int j = 0; j < nBlocks_avail; ++j)
       s.MBlocks.slice(j) = M->rows(j, j + actualBlockSize - 1);
 
-    // Instruments are centred on their non-zero values only
+    // Instruments are centred on their non-zero values only, keeping the
+    // sample mean of the non-zero values (Kaenzig 2021, runProxyVAR.m)
+    arma::rowvec Mmean(k, arma::fill::zeros);
+    for (int col = 0; col < k; ++col) {
+      arma::vec col_vec = M->col(col);
+      arma::uvec nz = arma::find(col_vec != 0.0);
+      if (nz.n_elem > 0) Mmean(col) = arma::mean(col_vec.elem(nz));
+    }
     arma::mat Mcentering(actualBlockSize, k, arma::fill::zeros);
     for (int j = 0; j < actualBlockSize; ++j) {
       arma::mat subM = M->rows(j, j + center_end);
@@ -55,7 +62,7 @@ MBBSamplerState fmbb_precompute_cpp(const arma::mat& eps, int lags, int BlockSiz
         arma::vec col_vec = subM.col(col);
         arma::uvec nz = arma::find(col_vec != 0.0);
         if (nz.n_elem > 0)
-          Mcentering(j, col) = arma::mean(col_vec.elem(nz));
+          Mcentering(j, col) = arma::mean(col_vec.elem(nz)) - Mmean(col);
       }
     }
     s.Mcentering_full = make_centering_full(Mcentering, nBlock, actualBlockSize, final_size);
@@ -133,7 +140,9 @@ MBBVARResult fmbb_sample_cpp(const MBBSamplerState& s, const arma::ivec& index) 
 //' of Income Tax Changes in the United States".
 //' 
 //' Both residuals and instruments are centered to preserve their sample properties.
-//' For instruments, only non-zero values are centered (to handle sparse instruments).
+//' For instruments, only non-zero values are centered (to handle sparse
+//' instruments), and the centering keeps the sample mean of the non-zero
+//' values, as in Kaenzig (2021).
 //' 
 //' @examples
 //' set.seed(123)

@@ -35,7 +35,9 @@ in the residuals. The default block size follows the recommendation from
 of Income Tax Changes in the United States".
 
 Both residuals and instruments are centered to preserve their sample properties.
-For instruments, only non-zero values are centered (to handle sparse instruments).
+For instruments, only non-zero values are centered (to handle sparse
+instruments), and the centering keeps the sample mean of the non-zero
+values, as in Kaenzig (2021).
 }
 \examples{
 set.seed(123)

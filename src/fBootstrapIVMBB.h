@@ -6,6 +6,7 @@
 
 // Struct to hold bootstrap IV MBB results
 struct BootstrapIVMBBResult {
+  // Bands are percentiles recentred on `point` (q - median + point)
   arma::mat upper;   // N x (horizon+1) matrix of upper confidence bands (conf)
   arma::mat lower;   // N x (horizon+1) matrix of lower confidence bands (conf)
   arma::mat upper2;  // N x (horizon+1) matrix of upper confidence bands (conf2)
@@ -17,8 +18,8 @@ struct BootstrapIVMBBResult {
 };
 
 // Proxy-SVAR impact vector (Gertler-Karadi / Mertens-Ravn, unit effect on
-// the policy variable): first stage of u(:, pv) on Z, then the remaining
-// residuals on the fitted values. u and Z are row-aligned; pv is 0-based.
+// the policy variable): first stage of u(:, pv) on Z and a constant, then the
+// remaining residuals on the fitted values and a constant. u and Z are row-aligned; pv is 0-based.
 // Returns false when the second stage is singular (a weak or degenerate
 // instrument on this sample) instead of throwing, so it is safe to call
 // from an OpenMP worker; `s` is then left unusable and the draw is dropped.

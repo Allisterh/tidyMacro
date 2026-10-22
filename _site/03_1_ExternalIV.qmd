@@ -98,18 +98,23 @@ wold <- fWoldIRF(var_result, horizon = hor)
 adjustZ <- c(1, nrow(iv_oil))
 adjustu <- c(nrow(residuals) - nrow(iv_oil) + 1, nrow(residuals))
 
+# As in the paper: the proxy spans the whole residual sample (1975M01-2017M12),
+# with the months before the futures data start censored to zero
+iv_oil_full <- tail(iv_oil_trunc, nrow(residuals))
+adjust_full <- c(1, nrow(residuals))
+
 tic()
 result_mbb <- fBootstrapIVMBB(
     y          = finaldata,
     var_result = var_result,
-    Z          = iv_oil,
-    nboot      = 1000,
+    Z          = iv_oil_full,
+    nboot      = 10000,
     blocksize  = 24,          # 0: auto block size, 24 is in the paper
-    adjustZ    = adjustZ,
-    adjustu    = adjustu,
+    adjustZ    = adjust_full,
+    adjustu    = adjust_full,
     policyvar  = 1,
     horizon    = hor,
-    n_threads  = 2
+    n_threads  = 3
 )
 toc()
 ```

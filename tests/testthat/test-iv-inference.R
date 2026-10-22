@@ -129,11 +129,11 @@ test_that("fBootstrapIVMBB reports the sample estimate, not a bootstrap summary"
     adjustZ = x$adjust, adjustu = x$adjust, policyvar = 1L,
     horizon = 4L, n_threads = NT))
 
-  # Same identification, computed directly: residuals on the instrument,
-  # then the Wold coefficients times that impact vector.
+  # Same identification, computed directly: residuals on the instrument and
+  # a constant, then the Wold coefficients times that impact vector.
   u <- x$fit$residuals
-  uhat <- stats::fitted(stats::lm(u[, 1] ~ x$Z - 1))
-  b1 <- c(1, stats::coef(stats::lm(u[, -1] ~ uhat - 1)))
+  uhat <- stats::fitted(stats::lm(u[, 1] ~ x$Z))
+  b1 <- c(1, as.matrix(stats::coef(stats::lm(u[, -1] ~ uhat)))[2, ])
   wold <- fWoldIRF(x$fit, horizon = 4L)
   ref <- vapply(seq_len(5L), function(h) as.vector(wold[, , h] %*% b1),
                 numeric(ncol(x$y)))
@@ -147,6 +147,46 @@ test_that("fBootstrapIVMBB reports the sample estimate, not a bootstrap summary"
     horizon = 4L, n_threads = NT))
   expect_identical(b$point, b2$point)
   expect_false(isTRUE(all.equal(b$upper, b2$upper)))
+})
+
+test_that("fBootstrapIVMBB bands are recentred on the point estimate", {
+  x <- proxy_fixture(T = 150L)
+  set.seed(11)
+  b <- suppressMessages(fBootstrapIVMBB(
+    x$y, x$fit, x$Z, nboot = 40L, blocksize = 5L,
+    adjustZ = x$adjust, adjustu = x$adjust, policyvar = 1L,
+    horizon = 4L, n_threads = NT))
+
+  tol <- 1e-12
+  expect_true(all(b$lower - tol <= b$point & b$point <= b$upper + tol))
+  expect_true(all(b$lower2 - tol <= b$point & b$point <= b$upper2 + tol))
+})
+
+test_that("fBootstrapIVMBB identifies on a shorter instrument window", {
+  x <- proxy_fixture(T = 150L)
+  n <- nrow(x$fit$residuals)
+  rows <- 31:n
+  Zw <- x$Z[rows, , drop = FALSE]
+  set.seed(5)
+  b <- suppressMessages(fBootstrapIVMBB(
+    x$y, x$fit, Zw, nboot = 30L, blocksize = 5L,
+    adjustZ = c(1L, nrow(Zw)), adjustu = range(rows), policyvar = 1L,
+    horizon = 3L, n_threads = NT))
+
+  # Both stages include a constant on the window rows
+  u <- x$fit$residuals[rows, ]
+  uhat <- stats::fitted(stats::lm(u[, 1] ~ Zw))
+  b1 <- c(1, as.matrix(stats::coef(stats::lm(u[, -1] ~ uhat)))[2, ])
+  wold <- fWoldIRF(x$fit, horizon = 3L)
+  ref <- vapply(seq_len(4L), function(h) as.vector(wold[, , h] %*% b1),
+                numeric(ncol(x$y)))
+  expect_equal(b$point, ref, tolerance = 1e-10, ignore_attr = TRUE)
+  expect_nested_bands(b, 2L, 4L)
+
+  expect_error(suppressMessages(fBootstrapIVMBB(
+    x$y, x$fit, Zw, nboot = 5L, blocksize = 5L,
+    adjustZ = c(1L, nrow(Zw) - 1L), adjustu = range(rows), policyvar = 1L,
+    horizon = 2L, n_threads = 1L)), "same number of rows")
 })
 
 test_that("bootstrap entry points reject impossible arguments", {

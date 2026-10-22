@@ -304,7 +304,9 @@ fBootstrapIVInvertible <- function(y, instr, var_result, nboot, p, c, hor, cumu,
 #'
 #' @param y T x N matrix of endogenous variables
 #' @param var_result List output from fVAR containing beta, residuals, p, c
-#' @param Z (T-p) x K matrix of instrumental variables
+#' @param Z Matrix of instrumental variables with K columns; rows
+#'   \code{adjustZ} are used. Zeros are treated as months without an
+#'   instrument observation.
 #' @param nboot Integer number of bootstrap replications
 #' @param blocksize Integer block size for moving block bootstrap
 #' @param adjustZ Integer vector of length 2: start and end row indices
@@ -329,6 +331,10 @@ fBootstrapIVInvertible <- function(y, instr, var_result, nboot, p, c, hor, cumu,
 #'     \item lower: N x (horizon+1) matrix of lower confidence bands
 #'     \item upper2: N x (horizon+1) matrix of secondary upper bands
 #'     \item lower2: N x (horizon+1) matrix of secondary lower bands
+#'
+#'     All four bands are bootstrap percentiles recentred on the point
+#'     estimate, percentile minus bootstrap median plus \code{point}, so
+#'     \code{point} always lies inside them.
 #'     \item point: N x (horizon+1) matrix of impulse responses on the
 #'       original sample, computed as the Wold coefficients times the
 #'       proxy-SVAR impact vector, exactly as in \code{fHeteroIRF()} and
@@ -338,10 +344,18 @@ fBootstrapIVInvertible <- function(y, instr, var_result, nboot, p, c, hor, cumu,
 #'   }
 #'
 #' @details
-#' This function implements the moving block bootstrap for IV-identified SVARs.
-#' The first stage regresses the policy variable residual on the instrument(s),
-#' and the second stage recovers the structural impact matrix. The
-#' normalization sets the policy variable shock to have unit impact on itself.
+#' This function implements the moving block bootstrap for IV-identified
+#' SVARs, following the replication code of Kaenzig (2021). The first stage
+#' regresses the policy variable residual on the instrument(s) and a
+#' constant, and the second stage regresses the other residuals on the
+#' fitted values and a constant. The normalization sets the policy variable
+#' shock to have unit impact on itself.
+#'
+#' Blocks are drawn from all VAR residuals jointly with the instrument, which
+#' is set to zero outside the rows selected by \code{adjustu}; the
+#' identification step uses those rows only. Non-zero instrument values are
+#' centred so that they keep their sample mean. A resample with fewer than 15
+#' non-zero instrument values in the identification window is drawn again.
 #'
 #' The function uses OpenMP for parallel computation when available,
 #' speeding up bootstrap iterations. Each bootstrap replication and percentile
@@ -1435,7 +1449,9 @@ fLagMakerMatrix <- function(y, p) {
 #' of Income Tax Changes in the United States".
 #' 
 #' Both residuals and instruments are centered to preserve their sample properties.
-#' For instruments, only non-zero values are centered (to handle sparse instruments).
+#' For instruments, only non-zero values are centered (to handle sparse
+#' instruments), and the centering keeps the sample mean of the non-zero
+#' values, as in Kaenzig (2021).
 #' 
 #' @examples
 #' set.seed(123)
