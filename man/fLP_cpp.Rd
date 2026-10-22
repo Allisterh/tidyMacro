@@ -21,10 +21,16 @@ fLP_cpp(
 )
 }
 \arguments{
-\item{Y}{Numeric matrix (T x n_y). LHS variable(s).}
+\item{Y}{Numeric matrix (T_Y x n_y), T_Y >= T. LHS variable(s). Row t is
+the date of row t of \code{X}; rows past T hold the outcomes' leads,
+so \eqn{y_{t+h}} is read beyond the last regressor date when observed.
+\code{NA} marks an unobserved outcome: at each horizon, each outcome
+uses the dates whose \eqn{y_{t+h}} (and \eqn{y_{t-1}} when cumulative) is
+observed. Each column must be observed on one block of consecutive
+rows.}
 
-\item{X}{Numeric matrix (T x k). RHS variables — no constant, no automatic
-lags. Pass exactly what you want on the RHS.}
+\item{X}{Numeric matrix (T x k), finite. RHS variables — no constant, no
+automatic lags. Pass exactly what you want on the RHS.}
 
 \item{H}{Integer. Maximum horizon (projections run for h = 0, 1, ..., H).}
 
@@ -57,13 +63,12 @@ Cesa-Bianchi's VAR Toolbox \code{LPmodel.m}
 Jorda-Taylor (2025) replication.}
 
 \item{Y_pre}{Numeric matrix (1 x n_y) or \code{NULL}. Cumulative LP only:
-the outcome at the date immediately BEFORE row 1 of \code{Y}, used as
-the long-difference base \eqn{y_{t-1}} for the first estimable date.
-Supplying it keeps every row of \code{Y} as an estimable LHS date and
+the outcome at the date immediately BEFORE row 1 of \code{X}, used as
+the long-difference base \eqn{y_{t-1}} for the first date. This
 matches the \code{endo_lag1} alignment of Cesa-Bianchi's
-\code{LPmodel.m}. With \code{NULL} (default) row 1 of \code{Y} is
-consumed as the base and one observation is lost — correct only when no
-earlier outcome exists. Ignored when \code{cumulative = FALSE}.}
+\code{LPmodel.m}. With \code{NULL} (default) or \code{NA} the first
+date has no base and drops out of the cumulative samples. Ignored when
+\code{cumulative = FALSE}.}
 
 \item{nw_prewhite}{Logical. Andrews-Monahan (1992) VAR(1) prewhitening
 of the score vector before the Newey-West sum, with the VAR(1) matrix
@@ -73,7 +78,8 @@ shrunk when its spectral radius exceeds 0.97. Default \code{FALSE}.}
 A named list with \code{irfs}, \code{irfs_upper}, \code{irfs_lower},
   \code{irfs_se} (raw, unscaled SE of the shock coefficient — lets
   callers build confidence bands at any level without re-running the
-  engine), and optionally \code{betas} and \code{ses}.
+  engine), \code{nobs} ((H+1) x n_y observations per horizon and
+  outcome), and optionally \code{betas} and \code{ses}.
 }
 \description{
 Low-level engine called by \code{fLP()}. Prefer the high-level wrapper

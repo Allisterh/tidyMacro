@@ -38,7 +38,14 @@ fNLLP(
 }}
 
 \item{data}{A \code{data.frame} or \code{tibble}. Must contain all variables
-referenced in the formula (before lag/lead expansion).}
+referenced in the formula (before lag/lead expansion). Rows are
+consecutive periods. The regressors must be observed on one block of
+rows. Outcomes may have \code{NA}: at each horizon \eqn{h}, each outcome
+uses the dates \eqn{t} whose regressors and \eqn{y_{t+h}} are observed
+(and \eqn{y_{t-1}} when \code{cumulative = TRUE}), as Stata does with
+\code{F.h y}. So \eqn{y_{t+h}} is used after the regressors end, and each
+outcome of \code{c(y1, y2)} has its own sample. An outcome must be
+observed on one block of rows; an interior gap is an error.}
 
 \item{horizons}{Integer. Maximum horizon H, or the complete sequence
 \code{0:H}; projections run for \eqn{h = 0, 1, \ldots, H}. Default: 12.}
@@ -82,8 +89,10 @@ so multi-level fits cost the same as single-level fits. Default: 90.}
 
 \item{nw_lags}{Integer or \code{NULL}. Base Newey-West bandwidth.
 At horizon \eqn{h} the effective bandwidth is
-\code{max(nw_lags + h + nw_offset, 0)} (Bartlett kernel).
-Defaults to \code{floor(T^(1/3))}.}
+\code{max(nw_lags + h + nw_offset, 0)} (Bartlett kernel), capped at
+the horizon's observations minus one.
+Defaults to \code{floor(T^(1/3))}, with \eqn{T} the number of dates
+with every regressor observed.}
 
 \item{nw_offset}{Integer. Shift applied to the NW bandwidth rule. Default
 \code{1L}, the Miranda-Agrippino & Ricco convention (bandwidth grows as
@@ -105,13 +114,14 @@ Toolbox).}
 at every horizon and the outcome is read \eqn{h} rows later, as in the
 Tenreyro-Thwaites (2016) code; \code{data} must then run \code{horizons}
 rows past the last regressor date, and the regressors must have no
-interior gaps. Default \code{FALSE}: the sample shrinks with the horizon,
-as in \code{fLP()}.}
+interior gaps. Default \code{FALSE}: as in \code{fLP()}, each horizon
+and outcome uses the dates whose regressors and \eqn{y_{t+h}} are
+observed, so the sample shrinks with the horizon once the outcome ends.}
 
 \item{cumulative}{Logical. If \code{TRUE}, the LHS at horizon \eqn{h} is
 \eqn{y_{t+h} - y_{t-1}} (cumulative response from \eqn{t-1} to \eqn{t+h}).
 Default \code{FALSE}. When generated lags trim the leading rows, the
-outcome immediately before the first estimable date is still observed
+outcome immediately before the first regressor date is still observed
 and is used as that date's long-difference base, so no observation is
 lost — matching \code{endo_lag1} in Cesa-Bianchi's \code{LPmodel.m}.}
 
@@ -136,7 +146,8 @@ An object of class \code{"fNLLP"}, a list with
     \item{\code{diff}, \code{diff_se}}{\code{(H+1) x n_y} first minus
       second component and its standard error; \code{NaN} for
       \code{type = "cubic"}.}
-    \item{\code{nobs}}{Observations per horizon.}
+    \item{\code{nobs}}{\code{(H+1) x n_y} observations per horizon and
+      outcome.}
     \item{\code{betas}, \code{ses}}{With \code{store_full = TRUE}: one
       matrix per horizon, rows named by \code{design_vars}.}
   }

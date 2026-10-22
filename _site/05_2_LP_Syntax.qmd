@@ -113,7 +113,7 @@ Every engine accepts a **vector** `conf`, e.g. `conf = c(68, 95)`, and rebuilds 
 
 ### 2.2 · Impulse units (`shock_size`)
 
-`fLP()` and `fLPIV()` report the response to a **one-unit** shock by default (`shock_size = "unit"`). Setting `shock_size = "sd"` reports the response to a **one-standard-deviation** shock instead: `fLP()` z-scores the shock regressor, `fLPIV()` scales the 2SLS coefficient and its standard error by `sd(D)`. In both cases the standard deviation is taken over the **estimation sample** — i.e. after the leading rows consumed by generated lags — not over the raw input column. These correspond to `LPopt.impact = 1` and `LPopt.impact = 0` in the local-projection routine of Cesa-Bianchi's VAR Toolbox.
+`fLP()` and `fLPIV()` report the response to a **one-unit** shock by default (`shock_size = "unit"`). Setting `shock_size = "sd"` reports the response to a **one-standard-deviation** shock instead: `fLP()` z-scores the shock regressor, `fLPIV()` scales the 2SLS coefficient and its standard error by `sd(D)`. In both cases the standard deviation is taken over the dates with every regressor observed — i.e. after the leading rows consumed by generated lags — not over the raw input column, and the same value serves every horizon. These correspond to `LPopt.impact = 1` and `LPopt.impact = 0` in the local-projection routine of Cesa-Bianchi's VAR Toolbox.
 
 ### 2.3 · Threading and console noise
 
@@ -148,7 +148,8 @@ An S3 object of class `"fLP"` (`fLPIV()` adds the `"fLPIV"` subclass). Core fiel
 | `irfs_se`     | `(H+1) × n_y`            | Raw HAC SE of the shock coefficient |
 | `irfs_upper`, `irfs_lower` | matrix, or named list of matrices | Confidence bands; a list when `conf` has multiple levels |
 | `horizons`    | `0:H`                    | Horizon index |
-| `Fstat_fs`, `rsqr_fs` | `H+1` (fLPIV only) | Per-horizon first-stage F and R² |
+| `nobs`        | `(H+1) × n_y`            | Observations per horizon and outcome |
+| `Fstat_fs`, `rsqr_fs` | `(H+1) × n_y` (fLPIV only) | First-stage F and R² per horizon and outcome (each outcome's sample has its own first stage) |
 
 `tidy.fLP()` returns a long data frame; single-band fits give the classic `(estimate, se, lower, upper)` columns, multi-band fits give one `lower_X` / `upper_X` pair per level.
 
@@ -186,7 +187,15 @@ $$y_{t+h} \;=\; \alpha_h + \beta_h\, s_t + \gamma_h' w_t + u_{t+h}, \qquad h = 0
 Cumulative form (`cumulative = TRUE`):
 $$y_{t+h} - y_{t-1} \;=\; \alpha_h + \beta_h\, s_t + \gamma_h' w_t + u_{t+h}.$$
 
-The base $y_{t-1}$ for the **first** estimable date lies one period before the estimation sample. When generated lags trim the leading rows, that outcome is still observed, so `fLP()` and `fLPIV()` keep it as the base rather than discarding it — the estimation sample is not shortened by the long difference. This matches `endo_lag1 = ENDO(lag_trim:end-1)` in the VAR Toolbox's local-projection routine. Time-series LP also requires a contiguous sample: rows with `NA` cannot simply be deleted, since the engines treat retained rows as consecutive periods, so an **interior** gap is rejected with an error (leading and trailing `NA`s from `l()` / `f()` are fine).
+The base $y_{t-1}$ for the **first** regressor date lies one period before the regressor sample. When generated lags trim the leading rows, that outcome is still observed, so `fLP()` and `fLPIV()` keep it as the base rather than discarding it — the estimation sample is not shortened by the long difference. This matches `endo_lag1 = ENDO(lag_trim:end-1)` in the VAR Toolbox's local-projection routine.
+
+**Missing values.** The sample is chosen as Stata does with `F.h y`: the lead is built on the full data first, and rows are dropped afterwards, horizon by horizon. The regressors (shock and controls; in `fLPIV()` the treatment, controls and instruments) fix the candidate dates $t$, the rows where all of them are observed. At horizon $h$, each outcome then uses the dates whose $y_{t+h}$ is observed (and $y_{t-1}$ for the cumulative form). Three consequences:
+
+- an outcome observed after the shock series ends is used, so the sample does not shrink with $h$ until the outcome itself ends;
+- each outcome in `c(y1, y2)` has its own sample, so the `NA`s of `y2` never change the estimates for `y1`;
+- a date whose outcome is missing at $t$ but observed at $t+h$ is kept.
+
+`nobs` reports the resulting sample size per horizon and outcome. On fully observed data nothing changes. Time-series LP still requires contiguous samples: the engines treat the retained rows as consecutive periods for the Newey–West autocovariances, so an **interior** gap in the regressors or in an outcome is rejected with an error (leading and trailing `NA`s, e.g. from `l()` / `f()`, are fine).
 
 The IRF at horizon $h$ is $\beta_h$. Standard errors use the full Newey–West sandwich `V_h = (X'X)⁻¹ X'ΩX (X'X)⁻¹` with a Bartlett kernel of bandwidth `max(nw_lags + h + nw_offset, 0)`.
 
@@ -249,7 +258,7 @@ Multi-band `fLP()` / `fLPIV()` / `fLPPanel()` fits automatically get one ribbon 
 
 Advanced users may bypass the R wrapper and call the C++ engines through `tidyMacro:::fLP_cpp`, `tidyMacro:::fLPIV_cpp`, `tidyMacro:::fLPPanel_cpp`, `tidyMacro:::fLPDID_cpp`. Each of these does its own boundary validation before entering the parallel region:
 
-- Finite inputs only — `NA`, `NaN`, `Inf` are rejected up-front.
+- Finite inputs only — `NA`, `NaN`, `Inf` are rejected up-front. The exception is the outcome matrix `Y` of `fLP_cpp` and `fLPIV_cpp`, where `NA` marks an unobserved outcome (`Inf` is still rejected); `Y` may also have more rows than the regressors, the extra rows holding the outcomes' leads.
 - Row-count consistency across all matrices / vectors.
 - Non-negative scalar arguments (`H`, `pre_window`, `post_window`, etc.).
 - `ccc ∈ {0, 1, 2}` for LP-DiD; `Lwin >= 0` when `nonabsorbing` and `ccc > 0`.

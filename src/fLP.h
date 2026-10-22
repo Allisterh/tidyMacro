@@ -10,22 +10,23 @@
 //   Standard:   y_{t+h}           = a_h + B^h X_t + u_{t+h}
 //   Cumulative: y_{t+h} - y_{t-1} = a_h + B^h X_t + u_{t+h}
 //
-// Cumulative base row (Y_pre). The long difference needs y_{t-1}, which for
-// the first estimable date lies one period BEFORE row 0 of Y. Two input
-// conventions are supported:
+// Samples (lp_sample.h). Row t of Y is the date of row t of X; rows of Y
+// past nrow(X) hold the outcomes' leads, and NaN marks an unobserved
+// outcome. Horizon h of outcome j uses the rows t of X whose y_{t+h} (and,
+// cumulative, y_{t-1}) is observed, so each outcome has its own sample and
+// a regressor date is not lost because the outcome is missing at t. Each
+// outcome must be observed on a block of consecutive rows. Outcomes with
+// the same sample share one QR of the design.
 //
-//   Y_pre is 1 x n_y : the outcome at the date immediately preceding Y row 0.
-//                      Every row of Y is then an estimable LHS date and no
-//                      observation is lost. This reproduces the endo_lag1
-//                      alignment of Cesa-Bianchi's LPmodel.m
-//                      (endo_lag1 = ENDO(lag_trim:end-1)).
-//   Y_pre is empty   : Y row 0 is consumed as the base and estimation starts
-//                      at row 1, costing one observation. Correct only when
-//                      no earlier outcome exists in the data.
+// Cumulative base row (Y_pre): the outcome one period BEFORE row 0, which
+// is the long-difference base of the first date (endo_lag1 =
+// ENDO(lag_trim:end-1) in Cesa-Bianchi's LPmodel.m). Empty or NaN: row 0
+// has no base and leaves every cumulative sample.
 //
 // IRF at horizon h = coefficient on the shock variable in B^h.
 //
-// Newey-West HAC bandwidth: nwLag = min(max(nw_lags_base + h + nw_offset, 0), T_h - 1).
+// Newey-West HAC bandwidth: nwLag = min(max(nw_lags_base + h + nw_offset, 0), T_h - 1),
+// T_h = observations of the horizon sample.
 //
 //   nw_offset = +1 (default): Miranda-Agrippino & Ricco rule, bandwidth
 //               grows as h+1.
@@ -58,6 +59,7 @@ struct LPResult {
                          //   can build additional confidence bands at any
                          //   level post-hoc without re-running the engine:
                          //   band = irfs +/- qnorm(0.5*(1+level)) * irfs_se.
+  arma::imat nobs;       // (H+1) x n_y — observations per horizon and outcome
   // Rank diagnostic. inv_sympd() on X'X fails exactly when [1, X] is
   // numerically rank deficient; the engine still returns (pseudo-inverse)
   // numbers so the parallel loop can finish, but the R wrapper stops rather

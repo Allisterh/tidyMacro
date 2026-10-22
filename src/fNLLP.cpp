@@ -29,6 +29,7 @@
 #include <RcppArmadillo.h>
 #include "omp_threads.h"
 #include "se_newey_west.h"
+#include "lp_sample.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -219,8 +220,8 @@ NLLPResult fNLLP_internal(
   if (balanced) {
     if (TY < T + H)
       Rcpp::stop("fNLLP: balanced = TRUE needs nrow(Y) >= nrow(X) + H.");
-  } else if (TY != T) {
-    Rcpp::stop("fNLLP: Y and X must have the same number of rows.");
+  } else if (TY < T) {
+    Rcpp::stop("fNLLP: Y must have at least as many rows as X.");
   }
   if (specification == 2) {
     if (static_cast<int>(state.n_elem) != T)
@@ -245,51 +246,83 @@ NLLPResult fNLLP_internal(
     Rcpp::stop("fNLLP: Y_pre must be a 1 x ncol(Y) matrix, or empty.");
   }
   const bool has_pre = cumulative && (Y_pre.n_rows == 1);
-  const int  t0      = (cumulative && !has_pre) ? 1 : 0;
 
-  const int T_min = balanced ? T - t0 : T - H - t0;
-  if (T_min <= kd)
-    Rcpp::stop("fNLLP: not enough observations for the largest horizon.");
+  // ---------- samples ----------------------------------------------------
+  // balanced  : rows t0..T-1 of X at every horizon and for every outcome
+  //             (t0 = 1 when a cumulative LP has no base for row 0).
+  // shrinking : per horizon and outcome, the rows whose y_{t+h} (and
+  //             y_{t-1} when cumulative) is observed (lp_sample.h).
+  LPSamples smp;
+  if (balanced) {
+    const int t0 = (cumulative && !has_pre) ? 1 : 0;
+    if (T - t0 <= kd)
+      Rcpp::stop("fNLLP: not enough observations for the largest horizon.");
+    smp.lo.set_size(H + 1, ny);   smp.lo.fill(t0);
+    smp.hi.set_size(H + 1, ny);   smp.hi.fill(T - 1);
+    smp.nobs.set_size(H + 1, ny); smp.nobs.fill(T - t0);
+  } else {
+    smp = lp_horizon_samples_cpp(Y, Y_pre, T, H, cumulative, "fNLLP");
+    for (int h = 0; h <= H; h++) {
+      for (int j = 0; j < ny; j++) {
+        if (smp.nobs(h, j) <= kd)
+          Rcpp::stop("fNLLP: not enough observations for outcome column %d "
+                     "at horizon %d (%d rows for %d design columns).",
+                     j + 1, h, smp.nobs(h, j), kd);
+      }
+    }
+  }
 
   arma::mat Ylag;
   if (cumulative) {
     Ylag.set_size(T, ny);
     if (has_pre) Ylag.row(0) = Y_pre.row(0);
-    else         Ylag.row(0).zeros();
+    else         Ylag.row(0).fill(arma::datum::nan);
     if (T > 1) Ylag.rows(1, T - 1) = Y.rows(0, T - 2);
   }
 
   // ---------- X'X and solvers, before the parallel loop ----------------
-  // balanced  : one design for all horizons, so the design rows, the solver
-  //             (Cholesky or QR) and the projection columns are built once
-  //             here and shared by every horizon.
-  // shrinking : X'X over rows t0..T-1-h. Start from the smallest sample
-  //             (h = H) and add one row outer product per horizon, so no
-  //             horizon re-forms X'X from scratch. Each horizon builds its
-  //             solver inside the parallel loop.
-  const int n_inv = balanced ? 1 : H + 1;
-  std::vector<arma::mat> XtX(n_inv);
-  arma::mat Xb;                                  // balanced design rows
-  {
-    const int t_last_H = balanced ? T - 1 : T - 1 - H;
-    if (balanced) {
-      Xb = D.rows(t0, t_last_H);
-      XtX[0] = Xb.t() * Xb;
-    } else {
-      const arma::mat Dh = D.rows(t0, t_last_H);
-      XtX[n_inv - 1] = Dh.t() * Dh;
-      for (int i = n_inv - 2; i >= 0; --i) {
-        const arma::rowvec r = D.row(T - 1 - i);
-        XtX[i] = XtX[i + 1] + r.t() * r;
+  // How the samples vary decides how much is shared across horizons:
+  //   constant : one sample for every horizon and outcome (balanced, or
+  //              outcomes observed H rows past the regressors). The design
+  //              rows, the solver (Cholesky or QR) and the projection columns
+  //              are built once here and shared by every horizon.
+  //   fixed_lo : one sample per horizon for all outcomes, starting at the
+  //              same row; it ends at hi_h, which falls with h. X'X starts
+  //              from the smallest sample (h = H) and adds one row outer
+  //              product per row gained, so no horizon re-forms X'X from
+  //              scratch. Each horizon builds its solver inside the loop.
+  //   otherwise: X'X of each outcome group is formed inside the loop.
+  bool same_cols = true, fixed_lo = true, constant = true;
+  for (int h = 0; h <= H; h++) {
+    for (int j = 1; j < ny; j++)
+      if (smp.lo(h, j) != smp.lo(h, 0) || smp.hi(h, j) != smp.hi(h, 0))
+        same_cols = false;
+    if (smp.lo(h, 0) != smp.lo(0, 0)) fixed_lo = false;
+    if (smp.hi(h, 0) != smp.hi(0, 0)) constant = false;
+  }
+  fixed_lo = fixed_lo && same_cols;
+  constant = constant && fixed_lo;
+
+  const arma::uvec tgt = {static_cast<arma::uword>(c1), static_cast<arma::uword>(c2)};
+  std::vector<arma::mat> XtX;                    // fixed_lo: X'X per horizon
+  arma::mat Xb;                                  // constant: design rows
+  LSSolver  Sb;                                  // constant: solver
+  arma::mat Pb;                                  // constant: projection columns
+  if (constant) {
+    Xb = D.rows(smp.lo(0, 0), smp.hi(0, 0));
+    Sb = make_solver(Xb, Xb.t() * Xb);
+    if (Sb.ok) Pb = store_full ? arma::mat(Xb * Sb.inv) : arma::mat(Xb * Sb.inv.cols(tgt));
+  } else if (fixed_lo) {
+    XtX.resize(H + 1);
+    const arma::mat Dh = D.rows(smp.lo(H, 0), smp.hi(H, 0));
+    XtX[H] = Dh.t() * Dh;
+    for (int h = H - 1; h >= 0; --h) {
+      XtX[h] = XtX[h + 1];
+      for (int r = smp.hi(h + 1, 0) + 1; r <= smp.hi(h, 0); ++r) {
+        const arma::rowvec x = D.row(r);
+        XtX[h] += x.t() * x;
       }
     }
-  }
-  const arma::uvec tgt = {static_cast<arma::uword>(c1), static_cast<arma::uword>(c2)};
-  LSSolver  Sb;                                  // balanced solver
-  arma::mat Pb;                                  // balanced projection columns
-  if (balanced) {
-    Sb = make_solver(Xb, XtX[0]);
-    if (Sb.ok) Pb = store_full ? arma::mat(Xb * Sb.inv) : arma::mat(Xb * Sb.inv.cols(tgt));
   }
 
   // ---------- output storage -------------------------------------------
@@ -299,7 +332,7 @@ NLLPResult fNLLP_internal(
   out.irfs_cov.zeros(H + 1, ny);
   out.diff.zeros(H + 1, ny);
   out.diff_se.zeros(H + 1, ny);
-  out.nobs.assign(H + 1, 0);
+  out.nobs = smp.nobs;
   if (store_full) {
     out.betas.resize(H + 1);
     out.ses.resize(H + 1);
@@ -329,104 +362,114 @@ NLLPResult fNLLP_internal(
 #endif
   for (int h = 0; h <= H; h++) {
 
-    // ---- align data: regressors at t, outcome at t + h ---------------
-    const int t_last = balanced ? T - 1 : T - 1 - h;
-    arma::mat Yh = Y.rows(t0 + h, t_last + h);
-    if (cumulative) Yh -= Ylag.rows(t0, t_last);
-    const int Th = static_cast<int>(Yh.n_rows);
-
-    // ---- design, solver and projection: shared when balanced ----------
-    arma::mat Xloc, Ploc;
-    LSSolver  Sloc;
-    const arma::mat* Xp = &Xb;
-    const LSSolver*  S  = &Sb;
-    const arma::mat* Pp = &Pb;
-    if (!balanced) {
-      Xloc = D.rows(t0, t_last);
-      Sloc = make_solver(Xloc, XtX[h]);
-      Xp = &Xloc;
-      S  = &Sloc;
+    arma::mat Beta_h, Se_h;
+    if (store_full) {
+      Beta_h.set_size(kd, ny);
+      Se_h.set_size(kd, ny);
     }
-    out.nobs[h] = Th;
-    if (!S->ok) {                  // not identified: the wrapper stops anyway
-      rank_ok[h] = 0;
-      continue;
-    }
-    if (!balanced) {
-      Ploc = store_full ? arma::mat(Xloc * Sloc.inv) : arma::mat(Xloc * Sloc.inv.cols(tgt));
-      Pp = &Ploc;
-    }
-    const arma::mat& Xreg = *Xp;
-    const arma::mat& P    = *Pp;
 
-    // ---- OLS for all equations ----------------------------------------
-    const arma::mat Beta = S->beta(Xreg, Yh);              // kd x ny
-    const arma::mat U    = Yh - Xreg * Beta;               // Th x ny
+    // Outcomes with the same sample share the design and its solver.
+    for (const LPGroup& grp : lp_groups_cpp(smp, h)) {
 
-    const int nwL = std::min(std::max(nw_lags_base + h + nw_offset, 0), Th - 1);
+      // ---- align data: regressors at t, outcome at t + h ---------------
+      const int lo = grp.lo, hi = grp.hi;
+      arma::mat Yh = lp_block_cpp(Y, lo + h, hi + h, grp.cols);
+      if (cumulative) Yh -= lp_block_cpp(Ylag, lo, hi, grp.cols);
+      const int Th = static_cast<int>(Yh.n_rows);
 
-    // ---- Newey-West HAC in projected form ------------------------------
-    // With P = X (X'X)^{-1}, V(j,j') = sum_a w_a sum_t a_j(t) a_j'(t-a)
-    // where a_j(t) = u_t P(t,j). Only the columns that are reported are
-    // formed: c1 and c2 on the fast path, every column for store_full.
-    // P = X (X'X)^{-1}: all kd columns for store_full, else only c1, c2.
-    arma::mat Se_h;
-    if (store_full) Se_h.set_size(kd, ny);
-    const arma::uword j1 = store_full ? static_cast<arma::uword>(c1) : 0;
-    const arma::uword j2 = store_full ? static_cast<arma::uword>(c2) : 1;
-    arma::vec a1(Th), a2(Th), aj(Th);
+      // ---- design, solver and projection: shared when constant ----------
+      arma::mat Xloc, Ploc;
+      LSSolver  Sloc;
+      const arma::mat* Xp = &Xb;
+      const LSSolver*  S  = &Sb;
+      const arma::mat* Pp = &Pb;
+      if (!constant) {
+        Xloc = D.rows(lo, hi);
+        Sloc = make_solver(Xloc, fixed_lo ? XtX[h] : arma::mat(Xloc.t() * Xloc));
+        Xp = &Xloc;
+        S  = &Sloc;
+      }
+      if (!S->ok) {                  // not identified: the wrapper stops anyway
+        rank_ok[h] = 0;
+        continue;
+      }
+      if (!constant) {
+        Ploc = store_full ? arma::mat(Xloc * Sloc.inv) : arma::mat(Xloc * Sloc.inv.cols(tgt));
+        Pp = &Ploc;
+      }
+      const arma::mat& Xreg = *Xp;
+      const arma::mat& P    = *Pp;
 
-    for (int eq = 0; eq < ny; eq++) {
-      const arma::vec u = U.col(eq);
-      double v11, v22, v12;
+      // ---- OLS for all equations of the group ---------------------------
+      const arma::mat Beta = S->beta(Xreg, Yh);              // kd x ng
+      const arma::mat U    = Yh - Xreg * Beta;               // Th x ng
 
-      if (nw_prewhite) {
-        // Prewhitening acts on the whole score vector g_t = x_t u_t, so the
-        // full sandwich (X'X)^{-1} G (X'X)^{-1} is formed.
-        arma::mat g = Xreg;
-        g.each_col() %= u;
-        const arma::mat V = S->inv * se_newey_west_cpp(g, nwL, true) * S->inv;
-        v11 = V(c1, c1);
-        v22 = V(c2, c2);
-        v12 = V(c1, c2);
-        if (store_full)
-          for (int j = 0; j < kd; j++)
-            Se_h(j, eq) = std::sqrt(std::max(0.0, V(j, j)));
-      } else {
-        a1 = u % P.col(j1);
-        a2 = u % P.col(j2);
-        se_newey_west_lrv2_cpp(a1.memptr(), a2.memptr(), Th, nwL, v11, v22, v12);
+      const int nwL = std::min(std::max(nw_lags_base + h + nw_offset, 0), Th - 1);
 
-        if (store_full) {
-          for (int j = 0; j < kd; j++) {
-            double vj;
-            if (j == c1)      vj = v11;
-            else if (j == c2) vj = v22;
-            else {
-              aj = u % P.col(j);
-              vj = se_newey_west_lrv_cpp(aj.memptr(), Th, nwL);
+      // ---- Newey-West HAC in projected form ------------------------------
+      // With P = X (X'X)^{-1}, V(j,j') = sum_a w_a sum_t a_j(t) a_j'(t-a)
+      // where a_j(t) = u_t P(t,j). Only the columns that are reported are
+      // formed: c1 and c2 on the fast path, every column for store_full.
+      // P = X (X'X)^{-1}: all kd columns for store_full, else only c1, c2.
+      const arma::uword j1 = store_full ? static_cast<arma::uword>(c1) : 0;
+      const arma::uword j2 = store_full ? static_cast<arma::uword>(c2) : 1;
+      arma::vec a1(Th), a2(Th), aj(Th);
+
+      for (arma::uword m = 0; m < grp.cols.n_elem; m++) {
+        const int eq = static_cast<int>(grp.cols(m));
+        const arma::vec u = U.col(m);
+        double v11, v22, v12;
+
+        if (nw_prewhite) {
+          // Prewhitening acts on the whole score vector g_t = x_t u_t, so the
+          // full sandwich (X'X)^{-1} G (X'X)^{-1} is formed.
+          arma::mat g = Xreg;
+          g.each_col() %= u;
+          const arma::mat V = S->inv * se_newey_west_cpp(g, nwL, true) * S->inv;
+          v11 = V(c1, c1);
+          v22 = V(c2, c2);
+          v12 = V(c1, c2);
+          if (store_full)
+            for (int j = 0; j < kd; j++)
+              Se_h(j, eq) = std::sqrt(std::max(0.0, V(j, j)));
+        } else {
+          a1 = u % P.col(j1);
+          a2 = u % P.col(j2);
+          se_newey_west_lrv2_cpp(a1.memptr(), a2.memptr(), Th, nwL, v11, v22, v12);
+
+          if (store_full) {
+            for (int j = 0; j < kd; j++) {
+              double vj;
+              if (j == c1)      vj = v11;
+              else if (j == c2) vj = v22;
+              else {
+                aj = u % P.col(j);
+                vj = se_newey_west_lrv_cpp(aj.memptr(), Th, nwL);
+              }
+              Se_h(j, eq) = std::sqrt(std::max(0.0, vj));
             }
-            Se_h(j, eq) = std::sqrt(std::max(0.0, vj));
           }
         }
+
+        out.irfs(h, eq, 0)    = Beta(c1, m);
+        out.irfs(h, eq, 1)    = Beta(c2, m);
+        out.irfs_se(h, eq, 0) = std::sqrt(std::max(0.0, v11));
+        out.irfs_se(h, eq, 1) = std::sqrt(std::max(0.0, v22));
+        out.irfs_cov(h, eq)   = v12;
+        if (specification == 1) {
+          out.diff(h, eq)    = arma::datum::nan;
+          out.diff_se(h, eq) = arma::datum::nan;
+        } else {
+          out.diff(h, eq)    = Beta(c1, m) - Beta(c2, m);
+          out.diff_se(h, eq) = std::sqrt(std::max(0.0, v11 + v22 - 2.0 * v12));
+        }
+        if (store_full) Beta_h.col(eq) = Beta.col(m);
       }
 
-      out.irfs(h, eq, 0)    = Beta(c1, eq);
-      out.irfs(h, eq, 1)    = Beta(c2, eq);
-      out.irfs_se(h, eq, 0) = std::sqrt(std::max(0.0, v11));
-      out.irfs_se(h, eq, 1) = std::sqrt(std::max(0.0, v22));
-      out.irfs_cov(h, eq)   = v12;
-      if (specification == 1) {
-        out.diff(h, eq)    = arma::datum::nan;
-        out.diff_se(h, eq) = arma::datum::nan;
-      } else {
-        out.diff(h, eq)    = Beta(c1, eq) - Beta(c2, eq);
-        out.diff_se(h, eq) = std::sqrt(std::max(0.0, v11 + v22 - 2.0 * v12));
-      }
-    }
+    } // end group loop
 
     if (store_full) {
-      out.betas[h] = Beta;
+      out.betas[h] = Beta_h;
       out.ses[h]   = Se_h;
     }
 
@@ -472,8 +515,15 @@ Rcpp::List fNLLP_cpp(
   if (H < 0)         Rcpp::stop("fNLLP_cpp: H must be non-negative.");
   if (nw_lags_base < 0)
     Rcpp::stop("fNLLP_cpp: nw_lags_base must be non-negative.");
-  if (!Y.is_finite() || !X.is_finite())
-    Rcpp::stop("fNLLP_cpp: Y and X must be finite (no NA/NaN/Inf).");
+  // NA in Y marks an unobserved outcome on the shrinking path (horizon
+  // samples, lp_sample.h); the balanced path reads fixed rows and needs a
+  // fully observed outcome. Inf is an error everywhere.
+  if (!X.is_finite())
+    Rcpp::stop("fNLLP_cpp: X must be finite (no NA/NaN/Inf).");
+  if (balanced ? !Y.is_finite() : Y.has_inf())
+    Rcpp::stop(balanced
+               ? "fNLLP_cpp: with balanced = TRUE, Y must be finite (no NA/NaN/Inf)."
+               : "fNLLP_cpp: Y must not contain Inf (NA marks a missing outcome).");
   if (specification == 2 && !state.is_finite())
     Rcpp::stop("fNLLP_cpp: state must be finite (no NA/NaN/Inf).");
 
@@ -487,8 +537,8 @@ Rcpp::List fNLLP_cpp(
   arma::mat Y_pre_mat;
   if (Y_pre.isNotNull()) {
     Y_pre_mat = Rcpp::as<arma::mat>(Y_pre.get());
-    if (!Y_pre_mat.is_finite())
-      Rcpp::stop("fNLLP_cpp: Y_pre must be finite (no NA/NaN/Inf).");
+    if (balanced ? !Y_pre_mat.is_finite() : Y_pre_mat.has_inf())
+      Rcpp::stop("fNLLP_cpp: Y_pre must not contain Inf (or NA with balanced = TRUE).");
   }
 
   NLLPResult res = fNLLP_internal(Y, X, H, shock_col, specification, state,
@@ -511,7 +561,7 @@ Rcpp::List fNLLP_cpp(
     Rcpp::Named("irfs_cov") = res.irfs_cov,
     Rcpp::Named("diff")     = res.diff,
     Rcpp::Named("diff_se")  = res.diff_se,
-    Rcpp::Named("nobs")     = Rcpp::wrap(res.nobs)
+    Rcpp::Named("nobs")     = res.nobs
   );
 
   if (store_full) {

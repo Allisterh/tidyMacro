@@ -28,7 +28,11 @@ operators and \code{..macro} expansion behave exactly as in \code{fLP()}.}
 full external instrument matrix. Use \code{l(z, 0:6)} to include the
 contemporaneous instrument plus six lags (over-identified 2SLS).}
 
-\item{data}{A \code{data.frame} or \code{tibble}.}
+\item{data}{A \code{data.frame} or \code{tibble}. Rows are consecutive
+periods. Treatment, controls and instruments must be observed on one
+block of rows; outcomes may have \code{NA}, handled per horizon and
+outcome as in \code{\link{fLP}} (both stages use the dates whose
+\eqn{y_{t+h}}, and \eqn{y_{t-1}} when cumulative, is observed).}
 
 \item{endog}{Character. The single RHS term (of \code{formula}) that is
 the endogenous treatment. The remaining RHS terms are the exogenous
@@ -55,14 +59,15 @@ Toolbox).}
 \item{cumulative}{Logical. \code{TRUE} regresses
 \eqn{y_{t+h} - y_{t-1}} on the RHS. Default \code{TRUE} — the standard
 long-difference LP-IV convention. When generated lags trim the leading
-rows, the outcome immediately before the first estimable date is still
+rows, the outcome immediately before the first regressor date is still
 observed and is used as that date's base, so no observation is lost.}
 
 \item{shock_size}{Character. Units of the reported impulse response.
 \code{"unit"} (default) = response to a one-unit move in the treatment.
 \code{"sd"} = response to a one-standard-deviation move, scaling the
 2SLS coefficient and its standard error by \code{sd(D)} over the
-estimation sample. These correspond to \code{LPopt.impact = 1} and
+dates with every regressor observed (one value for all horizons).
+These correspond to \code{LPopt.impact = 1} and
 \code{LPopt.impact = 0} in Cesa-Bianchi's \code{LPmodel.m}.}
 
 \item{n_threads}{Integer. OpenMP threads for the horizon loop. Default 0
@@ -72,8 +77,10 @@ estimation sample. These correspond to \code{LPopt.impact = 1} and
 An object of class \code{c("fLPIV", "fLP")} so all existing
   \code{fLP}-family methods (\code{print}, \code{tidy.fLP}, \code{fPlotIRF})
   work unchanged. Additional fields: \code{Fstat_fs} and \code{rsqr_fs}
-  (both length \code{H + 1}: per-horizon first-stage F-statistic and R²),
-  plus \code{endog} and \code{instrument_vars}. \code{Fstat_fs} is the
+  (both \code{(H+1) x n_y}: first-stage F-statistic and R² per horizon
+  and outcome, since each outcome's sample has its own first stage),
+  \code{nobs} (\code{(H+1) x n_y} observations), plus \code{endog} and
+  \code{instrument_vars}. \code{Fstat_fs} is the
   textbook exclusion F for \eqn{D \sim [1, C, Z]}, with
   \eqn{T_h - k_c - n_z} residual degrees of freedom. Cesa-Bianchi's
   \code{LPmodel.m} reports \eqn{n_h - k_z} instead (it ignores the df

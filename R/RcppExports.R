@@ -1263,9 +1263,15 @@ fHistDec <- function(y, fVAR, K, series) {
 #' Low-level engine called by \code{fLP()}. Prefer the high-level wrapper
 #' which provides formula-based syntax and macro expansion.
 #'
-#' @param Y Numeric matrix (T x n_y). LHS variable(s).
-#' @param X Numeric matrix (T x k). RHS variables — no constant, no automatic
-#'   lags. Pass exactly what you want on the RHS.
+#' @param Y Numeric matrix (T_Y x n_y), T_Y >= T. LHS variable(s). Row t is
+#'   the date of row t of \code{X}; rows past T hold the outcomes' leads,
+#'   so \eqn{y_{t+h}} is read beyond the last regressor date when observed.
+#'   \code{NA} marks an unobserved outcome: at each horizon, each outcome
+#'   uses the dates whose \eqn{y_{t+h}} (and \eqn{y_{t-1}} when cumulative) is
+#'   observed. Each column must be observed on one block of consecutive
+#'   rows.
+#' @param X Numeric matrix (T x k), finite. RHS variables — no constant, no
+#'   automatic lags. Pass exactly what you want on the RHS.
 #' @param H Integer. Maximum horizon (projections run for h = 0, 1, ..., H).
 #' @param shock_col Integer (0-indexed). Which column of \code{X} is the shock.
 #' @param conf_level Numeric. Confidence level for bands, e.g. 0.90.
@@ -1289,13 +1295,12 @@ fHistDec <- function(y, fVAR, K, series) {
 #'   (\code{OLSmodel(Y,X,0,hh-1)} with 1-indexed \code{hh}), e.g. for the
 #'   Jorda-Taylor (2025) replication.
 #' @param Y_pre Numeric matrix (1 x n_y) or \code{NULL}. Cumulative LP only:
-#'   the outcome at the date immediately BEFORE row 1 of \code{Y}, used as
-#'   the long-difference base \eqn{y_{t-1}} for the first estimable date.
-#'   Supplying it keeps every row of \code{Y} as an estimable LHS date and
+#'   the outcome at the date immediately BEFORE row 1 of \code{X}, used as
+#'   the long-difference base \eqn{y_{t-1}} for the first date. This
 #'   matches the \code{endo_lag1} alignment of Cesa-Bianchi's
-#'   \code{LPmodel.m}. With \code{NULL} (default) row 1 of \code{Y} is
-#'   consumed as the base and one observation is lost — correct only when no
-#'   earlier outcome exists. Ignored when \code{cumulative = FALSE}.
+#'   \code{LPmodel.m}. With \code{NULL} (default) or \code{NA} the first
+#'   date has no base and drops out of the cumulative samples. Ignored when
+#'   \code{cumulative = FALSE}.
 #' @param nw_prewhite Logical. Andrews-Monahan (1992) VAR(1) prewhitening
 #'   of the score vector before the Newey-West sum, with the VAR(1) matrix
 #'   shrunk when its spectral radius exceeds 0.97. Default \code{FALSE}.
@@ -1303,7 +1308,8 @@ fHistDec <- function(y, fVAR, K, series) {
 #' @return A named list with \code{irfs}, \code{irfs_upper}, \code{irfs_lower},
 #'   \code{irfs_se} (raw, unscaled SE of the shock coefficient — lets
 #'   callers build confidence bands at any level without re-running the
-#'   engine), and optionally \code{betas} and \code{ses}.
+#'   engine), \code{nobs} ((H+1) x n_y observations per horizon and
+#'   outcome), and optionally \code{betas} and \code{ses}.
 #'
 #' @keywords internal
 fLP_cpp <- function(Y, X, H, shock_col, conf_level, nw_lags_base, store_full = FALSE, cumulative = FALSE, n_threads = 0L, nw_offset = 1L, verbose = FALSE, Y_pre = NULL, nw_prewhite = FALSE) {
@@ -1318,7 +1324,12 @@ fLPDID_cpp <- function(y, treat, X, i_index, t_index, cl_index, pre_window, post
 #'
 #' Low-level engine called by \code{fLPIV()}. Prefer the high-level wrapper.
 #'
-#' @param Y Numeric matrix (T x n_y). Outcome variable(s).
+#' @param Y Numeric matrix (T_Y x n_y), T_Y >= T. Outcome variable(s). Row t
+#'   is the date of row t of \code{D}; rows past T hold the outcomes'
+#'   leads. \code{NA} marks an unobserved outcome: at each horizon, each
+#'   outcome uses the dates whose \eqn{y_{t+h}} (and \eqn{y_{t-1}} when
+#'   cumulative) is observed, in both stages. Each column must be observed
+#'   on one block of consecutive rows.
 #' @param D Numeric vector (T). Endogenous treatment.
 #' @param Z Numeric matrix (T x n_z). External instrument set — build any
 #'   lags externally (e.g. via \code{l(z, 0:k)} in the wrapper).
@@ -1334,18 +1345,19 @@ fLPDID_cpp <- function(y, treat, X, i_index, t_index, cl_index, pre_window, post
 #' @param n_threads Integer. OpenMP threads. \code{0} = all cores minus one.
 #' @param verbose Logical. Print the thread count. Default \code{FALSE}.
 #' @param Y_pre Numeric matrix (1 x n_y) or \code{NULL}. Cumulative LP only:
-#'   the outcome at the date immediately BEFORE row 1 of \code{Y}, used as the
-#'   long-difference base for the first estimable date. Supplying it keeps
-#'   every row of \code{Y} estimable and matches the \code{endo_lag1}
-#'   alignment of Cesa-Bianchi's \code{LPmodel.m}. With \code{NULL} (default)
-#'   row 1 of \code{Y} is consumed as the base and one observation is lost.
+#'   the outcome at the date immediately BEFORE row 1 of \code{D}, used as the
+#'   long-difference base for the first date. This matches the
+#'   \code{endo_lag1} alignment of Cesa-Bianchi's \code{LPmodel.m}. With
+#'   \code{NULL} (default) or \code{NA} the first date has no base and drops
+#'   out of the cumulative samples.
 #' @param nw_prewhite Logical. Andrews-Monahan (1992) VAR(1) prewhitening
 #'   of the score vector before the Newey-West sum, with the VAR(1) matrix
 #'   shrunk when its spectral radius exceeds 0.97. Default \code{FALSE}.
 #'
 #' @return A named list with \code{irfs}, \code{irfs_upper}, \code{irfs_lower},
-#'   \code{irfs_se}, \code{Fstat_fs} (first-stage F per horizon) and
-#'   \code{rsqr_fs} (first-stage R^2 per horizon). \code{Fstat_fs} uses
+#'   \code{irfs_se}, \code{Fstat_fs} and \code{rsqr_fs} (first-stage F and
+#'   R^2, (H+1) x n_y because each outcome's sample has its own first stage)
+#'   and \code{nobs} ((H+1) x n_y observations). \code{Fstat_fs} uses
 #'   \eqn{T_h - k_c - n_z} residual degrees of freedom, which differs by
 #'   construction from the value reported by \code{LPmodel.m}.
 #'

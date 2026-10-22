@@ -158,8 +158,9 @@
 #'   at every horizon and the outcome is read \eqn{h} rows later, as in the
 #'   Tenreyro-Thwaites (2016) code; \code{data} must then run \code{horizons}
 #'   rows past the last regressor date, and the regressors must have no
-#'   interior gaps. Default \code{FALSE}: the sample shrinks with the horizon,
-#'   as in \code{fLP()}.
+#'   interior gaps. Default \code{FALSE}: as in \code{fLP()}, each horizon
+#'   and outcome uses the dates whose regressors and \eqn{y_{t+h}} are
+#'   observed, so the sample shrinks with the horizon once the outcome ends.
 #' @param store_full Logical. If \code{TRUE}, also return the full
 #'   coefficient and standard-error matrices of every horizon (\code{betas},
 #'   \code{ses}). Default \code{FALSE}.
@@ -177,7 +178,8 @@
 #'     \item{\code{diff}, \code{diff_se}}{\code{(H+1) x n_y} first minus
 #'       second component and its standard error; \code{NaN} for
 #'       \code{type = "cubic"}.}
-#'     \item{\code{nobs}}{Observations per horizon.}
+#'     \item{\code{nobs}}{\code{(H+1) x n_y} observations per horizon and
+#'       outcome.}
 #'     \item{\code{betas}, \code{ses}}{With \code{store_full = TRUE}: one
 #'       matrix per horizon, rows named by \code{design_vars}.}
 #'   }
@@ -323,17 +325,15 @@ fNLLP <- function(formula, data, horizons = 12,
   # =====================================================================
   # 2. Estimation sample
   # =====================================================================
+  x_vars <- unique(c(rhs_vars, state_var))
   if (isTRUE(balanced)) {
-    samp <- .fNLLP_balanced_sample(data, unique(c(rhs_vars, state_var)),
-                                   lhs_vars, H, cumulative)
-    Xdf  <- samp$X
-    Ydf  <- samp$Y
+    samp <- .fNLLP_balanced_sample(data, x_vars, lhs_vars, H, cumulative)
   } else {
-    samp <- .fLP_estimation_sample(data, all_needed, lhs_vars,
+    samp <- .fLP_estimation_sample(data, x_vars, lhs_vars, H,
                                    cumulative = cumulative, fn = "fNLLP")
-    Xdf  <- samp$raw
-    Ydf  <- samp$raw[, lhs_vars, drop = FALSE]
   }
+  Xdf <- samp$X
+  Ydf <- samp$Y
 
   non_numeric <- c(names(Xdf)[!vapply(Xdf, is.numeric, logical(1))],
                    names(Ydf)[!vapply(Ydf, is.numeric, logical(1))])
@@ -363,7 +363,7 @@ fNLLP <- function(formula, data, horizons = 12,
   T_eff <- nrow(X)
 
   # =====================================================================
-  # 3. Newey-West bandwidth and sample-size check
+  # 3. Newey-West bandwidth (T_eff = regressor dates) and sample-size check
   # =====================================================================
   if (is.null(nw_lags)) {
     nw_lags <- as.integer(floor(T_eff^(1.0 / 3.0)))
@@ -374,13 +374,18 @@ fNLLP <- function(formula, data, horizons = 12,
   n_threads <- .fLP_validate_scalar_int(n_threads, "n_threads")
 
   design_vars <- .fNLLP_design_names(type, rhs_vars, shock, state, common)
-  min_obs <- length(design_vars) + 1 +
-             if (isTRUE(balanced)) 0 else H
-  min_obs <- min_obs + as.integer(isTRUE(cumulative) && is.null(Y_pre))
-  if (T_eff < min_obs) {
-    stop(sprintf(
-      "fNLLP: not enough observations. The design has %d columns and needs at least %d rows; have %d.",
-      length(design_vars), min_obs, T_eff))
+  if (isTRUE(balanced)) {
+    min_obs <- length(design_vars) + 1 +
+               as.integer(isTRUE(cumulative) && is.null(Y_pre))
+    if (T_eff < min_obs) {
+      stop(sprintf(
+        "fNLLP: not enough observations. The design has %d columns and needs at least %d rows; have %d.",
+        length(design_vars), min_obs, T_eff))
+    }
+  } else {
+    # At least one residual degree of freedom at every horizon and outcome.
+    .fLP_check_nobs(.fLP_horizon_nobs(Y, Y_pre, T_eff, H, cumulative),
+                    length(design_vars) + 1, lhs_vars, "fNLLP")
   }
 
   # =====================================================================
@@ -423,7 +428,7 @@ fNLLP <- function(formula, data, horizons = 12,
   res$irfs_upper <- bands$upper
   res$irfs_lower <- bands$lower
 
-  res$nobs <- stats::setNames(as.integer(res$nobs), as.character(h_seq))
+  res$nobs <- .fLP_label_nobs(res$nobs, lhs_vars)
 
   if (isTRUE(store_full)) {
     for (i in seq_along(res$betas)) {
@@ -497,7 +502,7 @@ print.fNLLP <- function(x, digits = 4, ...) {
       sprintf(", offset = %d -> effective at horizon h: max(base + h + %d, 0)\n",
               x$nw_offset, x$nw_offset))
   if (isTRUE(x$nw_prewhite)) cat("Prewhitening     :  VAR(1) (Andrews-Monahan)\n")
-  cat("Observations     : ", paste(unique(range(x$nobs)), collapse = " to "), "\n")
+  cat("Observations     : ", .fLP_format_nobs(x$nobs), "\n")
 
   for (v in x$lhs_vars) {
     tab <- cbind(x$irfs[, v, 1], x$irfs[, v, 2])

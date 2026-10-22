@@ -84,3 +84,29 @@ test_that("fLPIV is invariant to the number of threads", {
              cumulative = FALSE, nw_lags_iv = 0L, n_threads = 2L)
   expect_equal(a$irfs, b$irfs, tolerance = 1e-12)
 })
+
+test_that("fLPIV runs both stages on the dates with y_{t+h} observed", {
+  df <- sim_iv_df(n = 300)
+  df$z[291:300] <- NA
+  df$y2 <- df$y + rnorm(300)
+  df$y2[250:300] <- NA
+  lead_na <- function(x, h) if (h == 0) x else c(x[-(1:h)], rep(NA, h))
+  tsls <- function(y) {
+    ok <- complete.cases(y, df$D, df$z)
+    unname(cov(df$z[ok], y[ok]) / cov(df$z[ok], df$D[ok]))
+  }
+  iv <- suppressMessages(fLPIV(c(y, y2) ~ D, instruments = ~ z, data = df,
+                               endog = "D", horizons = 4, cumulative = FALSE,
+                               nw_lags_iv = 0, n_threads = NT))
+  for (h in 0:4) {
+    expect_equal(unname(iv$irfs[h + 1, "y"]), tsls(lead_na(df$y, h)), tolerance = 1e-10)
+    expect_equal(unname(iv$irfs[h + 1, "y2"]), tsls(lead_na(df$y2, h)), tolerance = 1e-10)
+  }
+  expect_equal(as.vector(iv$nobs[, "y"]), rep(290, 5))
+  expect_equal(as.vector(iv$nobs[, "y2"]), 249 - 0:4)
+  expect_equal(dim(iv$Fstat_fs), c(5, 2))
+  # First-stage F on the y2 sample at horizon 4
+  ok <- 1:(249 - 4)
+  a <- lm(df$D[ok] ~ 1); b <- lm(df$D[ok] ~ df$z[ok])
+  expect_equal(unname(iv$Fstat_fs[5, "y2"]), anova(a, b)$F[2], tolerance = 1e-8)
+})

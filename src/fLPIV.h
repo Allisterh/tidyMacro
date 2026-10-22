@@ -10,10 +10,13 @@
 //   y_{t+h} - y_{t-1} = a_h + b_h * D_t + Gamma_h' * C_t + u_{t+h}    (cumulative)
 //   y_{t+h}           = a_h + b_h * D_t + Gamma_h' * C_t + u_{t+h}    (standard)
 //
-// Cumulative base row (Y_pre): as in fLP.h. A 1 x n_y Y_pre supplies the
-// outcome one period before row 0 of Y, so every row of Y stays an estimable
-// LHS date (matching LPmodel.m's endo_lag1). Empty Y_pre spends row 0 of Y on
-// the base and loses one observation.
+// Samples and cumulative base row (Y_pre): as in fLP.h (lp_sample.h). Row t
+// of Y is the date of row t of D, Z, C; rows past nrow(D) hold the outcomes'
+// leads and NaN marks an unobserved outcome. Horizon h of outcome j uses the
+// dates whose y_{t+h} (and y_{t-1} when cumulative) is observed, and both
+// stages run on those dates, so the first-stage statistics are per horizon
+// and outcome. Y_pre is the outcome one period before row 0 (LPmodel.m's
+// endo_lag1); empty or NaN drops row 0 from the cumulative samples.
 //
 // where D_t is the endogenous treatment (e.g. FFR) and the external
 // instrument matrix Z_t (already containing all requested lags) identifies
@@ -42,8 +45,9 @@ struct LPIVResult {
   arma::mat irfs_upper;   // (H+1) x n_y
   arma::mat irfs_lower;   // (H+1) x n_y
   arma::mat irfs_se;      // (H+1) x n_y — raw NW HAC SE (unscaled by z_crit)
-  arma::vec Fstat_fs;     // (H+1)       — first-stage F stat (per horizon)
-  arma::vec rsqr_fs;      // (H+1)       — first-stage R^2 (per horizon)
+  arma::mat Fstat_fs;     // (H+1) x n_y — first-stage F stat
+  arma::mat rsqr_fs;      // (H+1) x n_y — first-stage R^2
+  arma::imat nobs;        // (H+1) x n_y — observations per horizon and outcome
 
   // Rank diagnostic. inv_sympd() failing on [1,C]'[1,C] or Z_r'Z_r means the
   // controls or the instruments are numerically collinear. The engine still
@@ -58,7 +62,7 @@ struct LPIVResult {
 };
 
 LPIVResult fLPIV_internal(
-    const arma::mat& Y,          // T x n_y outcomes
+    const arma::mat& Y,          // T_Y x n_y outcomes, T_Y >= T, NaN = missing
     const arma::vec& D,          // T endogenous treatment
     const arma::mat& Z,          // T x n_z instrument set (with any lags)
     const arma::mat& C,          // T x n_c exogenous controls (no intercept)
@@ -68,7 +72,7 @@ LPIVResult fLPIV_internal(
     bool             cumulative,
     int              n_threads,
     bool             verbose,
-    const arma::mat& Y_pre,      // 1 x n_y cumulative base, or empty
+    const arma::mat& Y_pre,      // 1 x n_y cumulative base (NaN allowed), or empty
     bool             nw_prewhite // VAR(1)-prewhitened HAC (se_newey_west_cpp)
 );
 

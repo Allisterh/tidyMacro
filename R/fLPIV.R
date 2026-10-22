@@ -36,7 +36,11 @@
 #' @param instruments A one-sided formula \code{~ z + ...} whose RHS is the
 #'   full external instrument matrix. Use \code{l(z, 0:6)} to include the
 #'   contemporaneous instrument plus six lags (over-identified 2SLS).
-#' @param data A \code{data.frame} or \code{tibble}.
+#' @param data A \code{data.frame} or \code{tibble}. Rows are consecutive
+#'   periods. Treatment, controls and instruments must be observed on one
+#'   block of rows; outcomes may have \code{NA}, handled per horizon and
+#'   outcome as in \code{\link{fLP}} (both stages use the dates whose
+#'   \eqn{y_{t+h}}, and \eqn{y_{t-1}} when cumulative, is observed).
 #' @param endog Character. The single RHS term (of \code{formula}) that is
 #'   the endogenous treatment. The remaining RHS terms are the exogenous
 #'   control matrix.
@@ -57,13 +61,14 @@
 #' @param cumulative Logical. \code{TRUE} regresses
 #'   \eqn{y_{t+h} - y_{t-1}} on the RHS. Default \code{TRUE} — the standard
 #'   long-difference LP-IV convention. When generated lags trim the leading
-#'   rows, the outcome immediately before the first estimable date is still
+#'   rows, the outcome immediately before the first regressor date is still
 #'   observed and is used as that date's base, so no observation is lost.
 #' @param shock_size Character. Units of the reported impulse response.
 #'   \code{"unit"} (default) = response to a one-unit move in the treatment.
 #'   \code{"sd"} = response to a one-standard-deviation move, scaling the
 #'   2SLS coefficient and its standard error by \code{sd(D)} over the
-#'   estimation sample. These correspond to \code{LPopt.impact = 1} and
+#'   dates with every regressor observed (one value for all horizons).
+#'   These correspond to \code{LPopt.impact = 1} and
 #'   \code{LPopt.impact = 0} in Cesa-Bianchi's \code{LPmodel.m}.
 #' @param n_threads Integer. OpenMP threads for the horizon loop. Default 0
 #'   (= all cores minus one).
@@ -71,8 +76,10 @@
 #' @return An object of class \code{c("fLPIV", "fLP")} so all existing
 #'   \code{fLP}-family methods (\code{print}, \code{tidy.fLP}, \code{fPlotIRF})
 #'   work unchanged. Additional fields: \code{Fstat_fs} and \code{rsqr_fs}
-#'   (both length \code{H + 1}: per-horizon first-stage F-statistic and R²),
-#'   plus \code{endog} and \code{instrument_vars}. \code{Fstat_fs} is the
+#'   (both \code{(H+1) x n_y}: first-stage F-statistic and R² per horizon
+#'   and outcome, since each outcome's sample has its own first stage),
+#'   \code{nobs} (\code{(H+1) x n_y} observations), plus \code{endog} and
+#'   \code{instrument_vars}. \code{Fstat_fs} is the
 #'   textbook exclusion F for \eqn{D \sim [1, C, Z]}, with
 #'   \eqn{T_h - k_c - n_z} residual degrees of freedom. Cesa-Bianchi's
 #'   \code{LPmodel.m} reports \eqn{n_h - k_z} instead (it ignores the df
@@ -161,22 +168,25 @@ fLPIV <- function(formula, instruments, data,
   ctrl_vars <- setdiff(rhs_vars, endog)  # can be empty
 
   # -------------------------------------------------------------------
-  # 4. Check all needed vars exist; drop NA rows
+  # 4. Check all needed vars exist; regressor dates and outcome rows
   # -------------------------------------------------------------------
-  all_needed <- unique(c(lhs_vars, endog, ctrl_vars, iv_vars))
-  miss_v <- setdiff(all_needed, names(data))
+  x_vars <- unique(c(endog, ctrl_vars, iv_vars))
+  miss_v <- setdiff(c(lhs_vars, x_vars), names(data))
   if (length(miss_v) > 0L)
     stop(sprintf("fLPIV: variable(s) not in data: %s", paste(miss_v, collapse = ", ")))
+  if (!is.logical(cumulative) || length(cumulative) != 1 || is.na(cumulative))
+    stop("fLPIV: 'cumulative' must be TRUE or FALSE.")
 
-  samp <- .fLP_estimation_sample(data, all_needed, lhs_vars,
+  samp <- .fLP_estimation_sample(data, x_vars, lhs_vars, H,
                                  cumulative = cumulative, fn = "fLPIV")
-  raw  <- samp$raw
-  non_num <- names(raw)[!vapply(raw, is.numeric, logical(1))]
+  non_num <- c(names(samp$X)[!vapply(samp$X, is.numeric, logical(1))],
+               names(samp$Y)[!vapply(samp$Y, is.numeric, logical(1))])
   if (length(non_num) > 0L)
     stop(sprintf("fLPIV: all variables must be numeric. Non-numeric: %s",
-                 paste(non_num, collapse = ", ")))
+                 paste(unique(non_num), collapse = ", ")))
 
-  Y <- as.matrix(raw[, lhs_vars, drop = FALSE]); storage.mode(Y) <- "double"
+  raw <- samp$X
+  Y <- as.matrix(samp$Y); storage.mode(Y) <- "double"
   D <- as.numeric(raw[[endog]])
   Z <- as.matrix(raw[, iv_vars, drop = FALSE]); storage.mode(Z) <- "double"
   C <- if (length(ctrl_vars) > 0L)
@@ -185,14 +195,14 @@ fLPIV <- function(formula, instruments, data,
   storage.mode(C) <- "double"
 
   # Cumulative long-difference base (see .fLP_estimation_sample); NULL when
-  # no earlier outcome exists or the fit is not cumulative.
+  # no earlier row exists or the fit is not cumulative, NA when missing.
   Y_pre <- NULL
   if (!is.null(samp$pre)) {
-    Y_pre <- as.matrix(samp$pre[, lhs_vars, drop = FALSE])
+    Y_pre <- as.matrix(samp$pre)
     storage.mode(Y_pre) <- "double"
   }
 
-  T_eff <- nrow(Y)
+  T_eff <- nrow(raw)
 
   # -------------------------------------------------------------------
   # 5. Sanity / defaults
@@ -202,18 +212,13 @@ fLPIV <- function(formula, instruments, data,
   } else {
     nw_lags_iv <- .fLP_validate_scalar_int(nw_lags_iv, "nw_lags_iv")
   }
-  if (!is.logical(cumulative) || length(cumulative) != 1L || is.na(cumulative))
-    stop("fLPIV: 'cumulative' must be TRUE or FALSE.")
   if (!is.logical(nw_prewhite) || length(nw_prewhite) != 1L || is.na(nw_prewhite))
     stop("fLPIV: 'nw_prewhite' must be TRUE or FALSE.")
   n_threads <- .fLP_validate_scalar_int(n_threads, "n_threads")
 
-  min_obs <- ncol(C) + ncol(Z) + 3L + H +
-             as.integer(isTRUE(cumulative) && is.null(Y_pre))
-  if (T_eff < min_obs) {
-    stop(sprintf("fLPIV: not enough observations. Need >= %d rows after NA removal; have %d.",
-                 min_obs, T_eff))
-  }
+  # At least one residual degree of freedom in every first stage.
+  nobs <- .fLP_horizon_nobs(Y, Y_pre, T_eff, H, cumulative)
+  .fLP_check_nobs(nobs, ncol(C) + ncol(Z) + 3, lhs_vars, "fLPIV")
 
   # -------------------------------------------------------------------
   # 6. Call C++ engine (with conf[1]; bands rebuilt in R from irfs_se)
@@ -235,7 +240,8 @@ fLPIV <- function(formula, instruments, data,
 
   # Shock-size convention. LPmodel.m's impact = 0 does not touch the
   # treatment; it scales the 2SLS coefficient and its SE by d_norm =
-  # std(treat) over the lag-trimmed sample (beta_h = beta_h*d_norm;
+  # std(treat) over the lag-trimmed regressor sample, the same at every
+  # horizon (beta_h = beta_h*d_norm;
   # se_h = se_h*d_norm). Applied here, before the bands are built, so the
   # bands inherit the scaling.
   if (identical(shock_size, "sd")) {
@@ -252,8 +258,8 @@ fLPIV <- function(formula, instruments, data,
   h_seq <- 0L:H
   dimnames(res_cpp$irfs)    <- list(as.character(h_seq), lhs_vars)
   dimnames(res_cpp$irfs_se) <- dimnames(res_cpp$irfs)
-  names(res_cpp$Fstat_fs)   <- as.character(h_seq)
-  names(res_cpp$rsqr_fs)    <- as.character(h_seq)
+  dimnames(res_cpp$Fstat_fs) <- dimnames(res_cpp$irfs)
+  dimnames(res_cpp$rsqr_fs)  <- dimnames(res_cpp$irfs)
 
   bands <- .fLP_bands(res_cpp$irfs, res_cpp$irfs_se, conf)
   res_cpp$irfs_upper <- bands$upper
@@ -272,7 +278,7 @@ fLPIV <- function(formula, instruments, data,
   res_cpp$cumulative      <- isTRUE(cumulative)
   res_cpp$shock_size      <- shock_size
   res_cpp$n_threads       <- as.integer(n_threads)
-  res_cpp$nobs            <- T_eff
+  res_cpp$nobs            <- .fLP_label_nobs(res_cpp$nobs, lhs_vars)
   res_cpp$formula         <- fmla_full
   res_cpp$instruments     <- iv_full
   res_cpp$formula_orig    <- formula
@@ -308,12 +314,18 @@ print.fLPIV <- function(x, digits = 4L, ...) {
     cat("horizon-varying = h (just-identified rule)\n")
   }
   if (isTRUE(x$nw_prewhite)) cat("Prewhitening     :  VAR(1) (Andrews-Monahan)\n")
-  cat("Observations     : ", x$nobs, "\n")
+  cat("Observations     : ", .fLP_format_nobs(x$nobs), "\n")
   cat("\nIRF (endog = '", x$endog, "'):\n", sep = "")
   print(round(x$irfs, digits))
   if (!is.null(x$Fstat_fs)) {
-    cat("\nFirst-stage F (h = 0..H): ",
-        paste(round(x$Fstat_fs, 2), collapse = ", "), "\n")
+    # One line when every outcome has the same first stage, else one each.
+    Fs <- as.matrix(x$Fstat_fs)
+    shared <- all(apply(Fs, 2, function(f) isTRUE(all.equal(f, Fs[, 1]))))
+    for (j in if (shared) 1 else seq_len(ncol(Fs))) {
+      lbl <- if (shared) "" else sprintf(" [%s]", colnames(Fs)[j])
+      cat("\nFirst-stage F", lbl, " (h = 0..H):  ",
+          paste(round(Fs[, j], 2), collapse = ", "), "\n", sep = "")
+    }
   }
   invisible(x)
 }

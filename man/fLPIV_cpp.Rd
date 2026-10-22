@@ -20,7 +20,12 @@ fLPIV_cpp(
 )
 }
 \arguments{
-\item{Y}{Numeric matrix (T x n_y). Outcome variable(s).}
+\item{Y}{Numeric matrix (T_Y x n_y), T_Y >= T. Outcome variable(s). Row t
+is the date of row t of \code{D}; rows past T hold the outcomes'
+leads. \code{NA} marks an unobserved outcome: at each horizon, each
+outcome uses the dates whose \eqn{y_{t+h}} (and \eqn{y_{t-1}} when
+cumulative) is observed, in both stages. Each column must be observed
+on one block of consecutive rows.}
 
 \item{D}{Numeric vector (T). Endogenous treatment.}
 
@@ -46,11 +51,11 @@ engine adds one internally). May be empty (0 columns).}
 \item{verbose}{Logical. Print the thread count. Default \code{FALSE}.}
 
 \item{Y_pre}{Numeric matrix (1 x n_y) or \code{NULL}. Cumulative LP only:
-the outcome at the date immediately BEFORE row 1 of \code{Y}, used as the
-long-difference base for the first estimable date. Supplying it keeps
-every row of \code{Y} estimable and matches the \code{endo_lag1}
-alignment of Cesa-Bianchi's \code{LPmodel.m}. With \code{NULL} (default)
-row 1 of \code{Y} is consumed as the base and one observation is lost.}
+the outcome at the date immediately BEFORE row 1 of \code{D}, used as the
+long-difference base for the first date. This matches the
+\code{endo_lag1} alignment of Cesa-Bianchi's \code{LPmodel.m}. With
+\code{NULL} (default) or \code{NA} the first date has no base and drops
+out of the cumulative samples.}
 
 \item{nw_prewhite}{Logical. Andrews-Monahan (1992) VAR(1) prewhitening
 of the score vector before the Newey-West sum, with the VAR(1) matrix
@@ -58,8 +63,9 @@ shrunk when its spectral radius exceeds 0.97. Default \code{FALSE}.}
 }
 \value{
 A named list with \code{irfs}, \code{irfs_upper}, \code{irfs_lower},
-  \code{irfs_se}, \code{Fstat_fs} (first-stage F per horizon) and
-  \code{rsqr_fs} (first-stage R^2 per horizon). \code{Fstat_fs} uses
+  \code{irfs_se}, \code{Fstat_fs} and \code{rsqr_fs} (first-stage F and
+  R^2, (H+1) x n_y because each outcome's sample has its own first stage)
+  and \code{nobs} ((H+1) x n_y observations). \code{Fstat_fs} uses
   \eqn{T_h - k_c - n_z} residual degrees of freedom, which differs by
   construction from the value reported by \code{LPmodel.m}.
 }

@@ -26,8 +26,11 @@
 // common_cols, which enter once with a single coefficient (e.g. a trend).
 //
 // Sample:
-//   balanced = false: horizon h uses rows t = t0..T-1-h (sample shrinks
-//                     with h, as in fLP). nrow(Y) == nrow(X).
+//   balanced = false: as in fLP (lp_sample.h). Row t of Y is the date of
+//                     row t of X, rows past nrow(X) hold the outcomes' leads
+//                     and NaN marks an unobserved outcome; horizon h of
+//                     outcome j uses the rows whose y_{t+h} (and y_{t-1}
+//                     when cumulative) is observed. nrow(Y) >= nrow(X).
 //   balanced = true:  every horizon uses rows t = t0..T-1 of X and reads the
 //                     outcome from Y rows t+h. nrow(Y) >= nrow(X) + H.
 //                     This is the fixed regressor sample of Tenreyro and
@@ -47,7 +50,7 @@ struct NLLPResult {
   arma::mat  irfs_cov;   // (H+1) x n_y     — HAC Cov(c1, c2)
   arma::mat  diff;       // (H+1) x n_y     — c1 - c2 (NaN for cubic)
   arma::mat  diff_se;    // (H+1) x n_y     — SE of c1 - c2 (NaN for cubic)
-  std::vector<int> nobs; // H+1             — observations per horizon
+  arma::imat nobs;       // (H+1) x n_y     — observations per horizon and outcome
 
   bool rank_deficient = false;
   int  rank_fail_h    = -1;

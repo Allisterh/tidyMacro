@@ -34,7 +34,14 @@ fLP(
 }}
 
 \item{data}{A \code{data.frame} or \code{tibble}. Must contain all variables
-referenced in the formula (before lag/lead expansion).}
+referenced in the formula (before lag/lead expansion). Rows are
+consecutive periods. The regressors must be observed on one block of
+rows. Outcomes may have \code{NA}: at each horizon \eqn{h}, each outcome
+uses the dates \eqn{t} whose regressors and \eqn{y_{t+h}} are observed
+(and \eqn{y_{t-1}} when \code{cumulative = TRUE}), as Stata does with
+\code{F.h y}. So \eqn{y_{t+h}} is used after the regressors end, and each
+outcome of \code{c(y1, y2)} has its own sample. An outcome must be
+observed on one block of rows; an interior gap is an error.}
 
 \item{horizons}{Integer. Maximum horizon H, or the complete sequence
 \code{0:H}; projections run for \eqn{h = 0, 1, \ldots, H}. Default: 12.}
@@ -53,8 +60,10 @@ so multi-level fits cost the same as single-level fits. Default: 90.}
 
 \item{nw_lags}{Integer or \code{NULL}. Base Newey-West bandwidth.
 At horizon \eqn{h} the effective bandwidth is
-\code{max(nw_lags + h + nw_offset, 0)} (Bartlett kernel).
-Defaults to \code{floor(T^(1/3))}.}
+\code{max(nw_lags + h + nw_offset, 0)} (Bartlett kernel), capped at
+the horizon's observations minus one.
+Defaults to \code{floor(T^(1/3))}, with \eqn{T} the number of dates
+with every regressor observed.}
 
 \item{nw_offset}{Integer. Shift applied to the NW bandwidth rule. Default
 \code{1L}, the Miranda-Agrippino & Ricco convention (bandwidth grows as
@@ -79,7 +88,7 @@ keep the result small and fast.}
 \item{cumulative}{Logical. If \code{TRUE}, the LHS at horizon \eqn{h} is
 \eqn{y_{t+h} - y_{t-1}} (cumulative response from \eqn{t-1} to \eqn{t+h}).
 Default \code{FALSE}. When generated lags trim the leading rows, the
-outcome immediately before the first estimable date is still observed
+outcome immediately before the first regressor date is still observed
 and is used as that date's long-difference base, so no observation is
 lost — matching \code{endo_lag1} in Cesa-Bianchi's \code{LPmodel.m}.}
 
@@ -89,13 +98,19 @@ response to a one-standard-deviation shock, obtained by z-scoring the
 shock over the estimation sample. These correspond to
 \code{LPopt.impact = 1} and \code{LPopt.impact = 0} respectively in
 Cesa-Bianchi's \code{LPmodel.m}; note the standard deviation is taken
-over the lag-trimmed estimation sample, not the raw input column.}
+over the dates with every regressor observed (the lag-trimmed sample),
+not the raw input column, and is the same at every horizon.}
 
 \item{n_threads}{Integer. Number of OpenMP threads for the horizon loop.
 \code{0} = all cores minus one. Default \code{0}.}
 }
 \value{
-An object of class \code{"fLP"}.
+An object of class \code{"fLP"}: a list with \code{irfs},
+  \code{irfs_se}, \code{irfs_lower}, \code{irfs_upper} (\code{(H+1) x n_y};
+  lists of matrices for several \code{conf} levels), \code{nobs}
+  (\code{(H+1) x n_y} observations per horizon and outcome), with
+  \code{store_full = TRUE} also \code{betas} and \code{ses}, plus the
+  settings of the call.
 }
 \description{
 Estimates impulse responses via the Jordà (2005) local projection method.

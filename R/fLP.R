@@ -181,34 +181,13 @@
 #     l(ip, 1:3)    → ip_l1 + ip_l2 + ip_l3
 #     f(ip, 1:2)    → ip_f1 + ip_f2
 # -----------------------------------------------------------------------
-# ---------------------------------------------------------------------
-# Build the estimation sample from a data frame of model variables.
-#
-# Two things the naive `raw[complete.cases(raw), ]` compaction gets wrong:
-#
-#   1. Interior gaps. The C++ engines treat retained rows as consecutive
-#      time periods, so deleting an interior row silently makes t-1 and t+1
-#      adjacent — leads, long differences and HAC autocovariances then use
-#      the wrong spacing. Leading NAs (generated lags) and trailing NAs
-#      (generated leads) are contiguous after removal and therefore fine;
-#      an interior gap is not, and is rejected.
-#
-#   2. The cumulative base. A cumulative LP regresses y_{t+h} - y_{t-1}.
-#      When the leading trim is driven by RHS lags, the outcome one period
-#      before the first estimable date is still observed, and it is the
-#      correct long-difference base for that date (LPmodel.m's
-#      endo_lag1 = ENDO(lag_trim:end-1)). Dropping it costs one observation
-#      at every horizon. It is returned separately as `pre` so the engine
-#      can use it as a base without treating it as an estimable row.
-#
-# Returns list(raw = <estimation rows>, pre = <1-row LHS frame or NULL>).
-# ---------------------------------------------------------------------
 # Resolve the shock-size convention. Mirrors LPopt.impact in LPmodel.m:
 #   "unit" (impact = 1): IRF is the response to a one-unit shock.
 #   "sd"   (impact = 0): IRF is the response to a one-standard-deviation
-#                        shock, the sd taken over the ESTIMATION sample
-#                        (LPmodel.m z-scores/scales the lag-trimmed series,
-#                        not the raw input column).
+#                        shock, the sd taken over the regressor sample, the
+#                        dates with every regressor observed (LPmodel.m
+#                        z-scores/scales the lag-trimmed series, not the raw
+#                        input column). It is one sd for every horizon.
 .fLP_shock_size <- function(shock_size, fn = "fLP") {
   if (is.null(shock_size)) return("unit")
   if (!is.character(shock_size) || length(shock_size) < 1L)
@@ -299,20 +278,45 @@
 }
 
 
-.fLP_estimation_sample <- function(data, all_needed, lhs_vars, cumulative,
+# ---------------------------------------------------------------------
+# Estimation sample of the time-series LP engines (fLP, fLPIV, and fNLLP
+# with balanced = FALSE).
+#
+# The regressors decide the candidate dates t: the rows where every RHS
+# variable is observed. They must form one block [a, b]. The engines treat
+# the rows as consecutive periods, so deleting an interior row would make
+# t-1 and t+1 adjacent, and leads, long differences and HAC autocovariances
+# would then use the wrong spacing. Leading NAs (generated lags) and
+# trailing NAs (generated leads) are fine; an interior gap is rejected.
+#
+# The outcomes are not part of that complete-case filter. Rows a .. b + H
+# of each outcome go to the engine with their NAs, and at each horizon the
+# engine keeps, outcome by outcome, the dates whose y_{t+h} (and y_{t-1}
+# for a cumulative LP) is observed. This is Stata's F.h y followed by
+# casewise deletion: an outcome observed after the regressors end is used,
+# and one outcome's NAs never shorten another's sample. Each outcome must be
+# observed on one block of consecutive rows among the rows read, so every
+# horizon sample is a block of consecutive dates.
+#
+# Returns list(X = regressor rows a..b, Y = outcome rows a..min(b + H, n),
+#              pre = outcome row a - 1 for a cumulative LP (NAs allowed;
+#                    the long-difference base of date a, LPmodel.m's
+#                    endo_lag1), NULL when a = 1 or not cumulative).
+# ---------------------------------------------------------------------
+.fLP_estimation_sample <- function(data, x_vars, lhs_vars, H, cumulative,
                                    fn = "fLP") {
-  raw  <- data[, all_needed, drop = FALSE]
-  keep <- which(complete.cases(raw))
+  n    <- nrow(data)
+  keep <- which(complete.cases(data[, x_vars, drop = FALSE]))
 
-  if (length(keep) == 0L)
-    stop(sprintf("%s: no complete rows after lag/lead expansion.", fn))
+  if (length(keep) == 0)
+    stop(sprintf("%s: no rows with every regressor observed after lag/lead expansion.", fn))
 
-  # ---- reject interior gaps ------------------------------------------
-  gaps <- which(diff(keep) != 1L)
-  if (length(gaps) > 0L) {
+  # ---- reject interior gaps in the regressors -------------------------
+  gaps <- which(diff(keep) != 1)
+  if (length(gaps) > 0) {
     at <- keep[gaps]
     stop(sprintf(
-      paste0("%s: the model variables have %d interior gap(s) in the time ",
+      paste0("%s: the regressors have %d interior gap(s) in the time ",
              "index (after row(s) %s of `data`).\n",
              "  Rows with NA cannot simply be deleted from a time-series LP: ",
              "the engine treats the retained rows as consecutive periods, so ",
@@ -321,28 +325,89 @@
              "  Fill the gap, or subset `data` to a contiguous span before ",
              "calling %s()."),
       fn, length(gaps),
-      paste(at[seq_len(min(5L, length(at)))], collapse = ", "), fn))
+      paste(at[seq_len(min(5, length(at)))], collapse = ", "), fn))
   }
 
-  n_dropped <- nrow(raw) - length(keep)
+  first <- keep[1]
+  last  <- keep[length(keep)]
 
-  # ---- recover the cumulative base row --------------------------------
-  pre <- NULL
-  if (isTRUE(cumulative) && keep[1L] > 1L) {
-    cand <- data[keep[1L] - 1L, lhs_vars, drop = FALSE]
-    if (all(complete.cases(cand))) pre <- cand
+  # ---- outcomes: rows read by the engine, one observed block each -----
+  # y_{t-1} (cumulative) through y_{b+H}.
+  r0 <- if (isTRUE(cumulative)) max(first - 1, 1) else first
+  r1 <- min(last + H, n)
+  for (v in lhs_vars) {
+    obs <- r0 - 1 + which(!is.na(data[[v]][r0:r1]))
+    if (length(obs) == 0)
+      stop(sprintf(paste0(
+        "%s: outcome '%s' is not observed in rows %d-%d of `data`, the ",
+        "regressor dates and their %d lead(s)."), fn, v, r0, r1, H))
+    g <- which(diff(obs) != 1)
+    if (length(g) > 0)
+      stop(sprintf(paste0(
+        "%s: outcome '%s' has %d interior gap(s) (after row(s) %s of `data`).\n",
+        "  Each horizon's sample must be a block of consecutive dates for the ",
+        "Newey-West autocovariances.\n",
+        "  Fill the gap, or subset `data` to a contiguous span before ",
+        "calling %s()."),
+        fn, v, length(g),
+        paste(obs[g][seq_len(min(5, length(g)))], collapse = ", "), fn))
   }
 
-  if (n_dropped > 0L) {
+  n_dropped <- n - length(keep)
+  if (n_dropped > 0) {
     message(sprintf(
-      "%s: removing %d row(s) with NA (from lag/lead or missing data).%s",
-      fn, n_dropped,
-      if (!is.null(pre))
-        " Retained the preceding outcome as the cumulative base." else ""
-    ))
+      "%s: removing %d row(s) with NA in the regressors (from lag/lead or missing data).",
+      fn, n_dropped))
   }
 
-  list(raw = raw[keep, , drop = FALSE], pre = pre)
+  pre <- if (isTRUE(cumulative) && first > 1)
+    data[first - 1, lhs_vars, drop = FALSE] else NULL
+
+  list(X   = data[keep, x_vars, drop = FALSE],
+       Y   = data[first:r1, lhs_vars, drop = FALSE],
+       pre = pre)
+}
+
+
+# Observations per horizon and outcome, (H+1) x n_y: regressor dates t
+# (rows 1..nX of Y) whose y_{t+h} is observed and, for a cumulative LP,
+# whose y_{t-1} is observed too (row 1's base is `pre`). The same count the
+# engines use; computed here for the sample-size check.
+.fLP_horizon_nobs <- function(Y, pre, nX, H, cumulative) {
+  ok <- !is.na(Y)
+  ok <- rbind(ok, matrix(FALSE, max(0, nX + H - nrow(ok)), ncol(ok)))
+  base_ok <- rbind(if (is.null(pre)) rep(FALSE, ncol(ok)) else !is.na(pre),
+                   ok[seq_len(nX - 1), , drop = FALSE])
+  out <- matrix(0, H + 1, ncol(ok))
+  for (h in 0:H) {
+    m <- ok[seq_len(nX) + h, , drop = FALSE]
+    if (isTRUE(cumulative)) m <- m & base_ok
+    out[h + 1, ] <- colSums(m)
+  }
+  out
+}
+
+
+# Stop when a horizon sample of some outcome is smaller than min_obs. The
+# error names the first offending horizon.
+.fLP_check_nobs <- function(nobs, min_obs, lhs_vars, fn) {
+  bad <- which(nobs < min_obs, arr.ind = TRUE)
+  if (nrow(bad) == 0) return(invisible(TRUE))
+  bad <- bad[order(bad[, 1], bad[, 2]), , drop = FALSE]
+  h <- bad[1, 1]
+  j <- bad[1, 2]
+  stop(sprintf(paste0(
+    "%s: not enough observations. Each horizon needs at least %d; outcome ",
+    "'%s' has %d at horizon %d."),
+    fn, min_obs, lhs_vars[j], nobs[h, j], h - 1), call. = FALSE)
+}
+
+
+# Label the engine's (H+1) x n_y observation counts.
+.fLP_label_nobs <- function(nobs, lhs_vars) {
+  nobs <- matrix(as.integer(nobs), ncol = length(lhs_vars))
+  dimnames(nobs) <- list(as.character(seq_len(nrow(nobs)) - 1), lhs_vars)
+  nobs
 }
 
 
@@ -472,7 +537,14 @@
 #'     \item Macros inside lag/lead: \code{l(..controls, 1:3)}.
 #'   }
 #' @param data A \code{data.frame} or \code{tibble}. Must contain all variables
-#'   referenced in the formula (before lag/lead expansion).
+#'   referenced in the formula (before lag/lead expansion). Rows are
+#'   consecutive periods. The regressors must be observed on one block of
+#'   rows. Outcomes may have \code{NA}: at each horizon \eqn{h}, each outcome
+#'   uses the dates \eqn{t} whose regressors and \eqn{y_{t+h}} are observed
+#'   (and \eqn{y_{t-1}} when \code{cumulative = TRUE}), as Stata does with
+#'   \code{F.h y}. So \eqn{y_{t+h}} is used after the regressors end, and each
+#'   outcome of \code{c(y1, y2)} has its own sample. An outcome must be
+#'   observed on one block of rows; an interior gap is an error.
 #' @param horizons Integer. Maximum horizon H, or the complete sequence
 #'   \code{0:H}; projections run for \eqn{h = 0, 1, \ldots, H}. Default: 12.
 #' @param shock Character. \strong{Required.} Name of the shock/impulse variable
@@ -487,8 +559,10 @@
 #'   so multi-level fits cost the same as single-level fits. Default: 90.
 #' @param nw_lags Integer or \code{NULL}. Base Newey-West bandwidth.
 #'   At horizon \eqn{h} the effective bandwidth is
-#'   \code{max(nw_lags + h + nw_offset, 0)} (Bartlett kernel).
-#'   Defaults to \code{floor(T^(1/3))}.
+#'   \code{max(nw_lags + h + nw_offset, 0)} (Bartlett kernel), capped at
+#'   the horizon's observations minus one.
+#'   Defaults to \code{floor(T^(1/3))}, with \eqn{T} the number of dates
+#'   with every regressor observed.
 #' @param nw_offset Integer. Shift applied to the NW bandwidth rule. Default
 #'   \code{1L}, the Miranda-Agrippino & Ricco convention (bandwidth grows as
 #'   \eqn{h+1}). Set to \code{0L} to reproduce the classic Jordà (2005) rule,
@@ -509,7 +583,7 @@
 #' @param cumulative Logical. If \code{TRUE}, the LHS at horizon \eqn{h} is
 #'   \eqn{y_{t+h} - y_{t-1}} (cumulative response from \eqn{t-1} to \eqn{t+h}).
 #'   Default \code{FALSE}. When generated lags trim the leading rows, the
-#'   outcome immediately before the first estimable date is still observed
+#'   outcome immediately before the first regressor date is still observed
 #'   and is used as that date's long-difference base, so no observation is
 #'   lost — matching \code{endo_lag1} in Cesa-Bianchi's \code{LPmodel.m}.
 #' @param shock_size Character. Units of the reported impulse response.
@@ -518,11 +592,17 @@
 #'   shock over the estimation sample. These correspond to
 #'   \code{LPopt.impact = 1} and \code{LPopt.impact = 0} respectively in
 #'   Cesa-Bianchi's \code{LPmodel.m}; note the standard deviation is taken
-#'   over the lag-trimmed estimation sample, not the raw input column.
+#'   over the dates with every regressor observed (the lag-trimmed sample),
+#'   not the raw input column, and is the same at every horizon.
 #' @param n_threads Integer. Number of OpenMP threads for the horizon loop.
 #'   \code{0} = all cores minus one. Default \code{0}.
 #'
-#' @return An object of class \code{"fLP"}.
+#' @return An object of class \code{"fLP"}: a list with \code{irfs},
+#'   \code{irfs_se}, \code{irfs_lower}, \code{irfs_upper} (\code{(H+1) x n_y};
+#'   lists of matrices for several \code{conf} levels), \code{nobs}
+#'   (\code{(H+1) x n_y} observations per horizon and outcome), with
+#'   \code{store_full = TRUE} also \code{betas} and \code{ses}, plus the
+#'   settings of the call.
 #'
 #' @examples
 #' data("JordaTaylor2025")
@@ -630,40 +710,45 @@ fLP <- function(formula, data, horizons = 12L,
   }
 
   # =====================================================================
-  # 7. Build numeric matrices Y (T x ny) and X (T x k)
-  #    Remove rows with NA in any used variable.
+  # 7. Build numeric matrices X (T x k) and Y (T_Y x ny)
+  #    X: the dates with every regressor observed. Y: the outcomes from the
+  #    first of those dates to H rows past the last, NAs kept; the engine
+  #    picks the sample per horizon and outcome.
   # =====================================================================
-  samp <- .fLP_estimation_sample(data, all_needed, lhs_vars,
+  if (!is.logical(cumulative) || length(cumulative) != 1 || is.na(cumulative))
+    stop("fLP: 'cumulative' must be TRUE or FALSE.")
+  samp <- .fLP_estimation_sample(data, rhs_vars, lhs_vars, H,
                                  cumulative = cumulative, fn = "fLP")
-  raw  <- samp$raw
 
-  non_numeric <- names(raw)[!vapply(raw, is.numeric, logical(1))]
+  non_numeric <- c(names(samp$X)[!vapply(samp$X, is.numeric, logical(1))],
+                   names(samp$Y)[!vapply(samp$Y, is.numeric, logical(1))])
   if (length(non_numeric) > 0L) {
     stop(sprintf(
       "fLP: all model variables must be numeric. Non-numeric variable(s): %s",
-      paste(non_numeric, collapse = ", ")
+      paste(unique(non_numeric), collapse = ", ")
     ))
   }
 
-  Y <- as.matrix(raw[, lhs_vars, drop = FALSE])
-  X <- as.matrix(raw[, rhs_vars, drop = FALSE])
+  Y <- as.matrix(samp$Y)
+  X <- as.matrix(samp$X[, rhs_vars, drop = FALSE])
 
   storage.mode(Y) <- "double"
   storage.mode(X) <- "double"
 
-  # Cumulative long-difference base: y_{t-1} for the first estimable date.
-  # NULL whenever it does not exist (no earlier row, or a non-cumulative fit).
+  # Cumulative long-difference base: y_{t-1} for the first regressor date.
+  # NULL when no earlier row exists or the fit is not cumulative; NA when
+  # that outcome is missing (the first date then leaves the samples).
   Y_pre <- NULL
   if (!is.null(samp$pre)) {
-    Y_pre <- as.matrix(samp$pre[, lhs_vars, drop = FALSE])
+    Y_pre <- as.matrix(samp$pre)
     storage.mode(Y_pre) <- "double"
   }
 
   # Shock-size convention. "sd" reproduces LPmodel.m's impact = 0, which
   # estimates on zscore(s) where s is the LAG-TRIMMED shock — i.e. the
-  # estimation sample built above, not the raw column. Rescaling the
-  # regressor (rather than the fitted coefficient) matches the toolbox
-  # operation order exactly.
+  # regressor sample built above, not the raw column. One sd serves every
+  # horizon. Rescaling the regressor (rather than the fitted coefficient)
+  # matches the toolbox operation order exactly.
   if (identical(shock_size, "sd")) {
     sc_idx  <- shock_col + 1L
     shock_v <- X[, sc_idx]
@@ -673,10 +758,10 @@ fLP <- function(formula, data, horizons = 12L,
     X[, sc_idx] <- (shock_v - mean(shock_v)) / shock_sd
   }
 
-  T_eff <- nrow(Y)
+  T_eff <- nrow(X)
 
   # =====================================================================
-  # 8. Default Newey-West base bandwidth
+  # 8. Default Newey-West base bandwidth (T_eff = regressor dates)
   # =====================================================================
   if (is.null(nw_lags)) {
     nw_lags <- as.integer(floor(T_eff^(1.0 / 3.0)))
@@ -690,19 +775,12 @@ fLP <- function(formula, data, horizons = 12L,
   # =====================================================================
   if (!is.logical(store_full) || length(store_full) != 1L || is.na(store_full))
     stop("fLP: 'store_full' must be TRUE or FALSE.")
-  if (!is.logical(cumulative) || length(cumulative) != 1L || is.na(cumulative))
-    stop("fLP: 'cumulative' must be TRUE or FALSE.")
   if (!is.logical(nw_prewhite) || length(nw_prewhite) != 1L || is.na(nw_prewhite))
     stop("fLP: 'nw_prewhite' must be TRUE or FALSE.")
   n_threads <- .fLP_validate_scalar_int(n_threads, "n_threads")
-  min_obs <- ncol(X) + 2L + H +
-             as.integer(isTRUE(cumulative) && is.null(Y_pre))
-  if (T_eff < min_obs) {
-    stop(sprintf(
-      "fLP: not enough observations. Need at least %d rows after NA removal; have %d.",
-      min_obs, T_eff
-    ))
-  }
+  # At least one residual degree of freedom at every horizon and outcome.
+  nobs <- .fLP_horizon_nobs(Y, Y_pre, T_eff, H, cumulative)
+  .fLP_check_nobs(nobs, ncol(X) + 2, lhs_vars, "fLP")
 
   # =====================================================================
   # 10. Call C++ engine (all horizon loops in native C++)
@@ -759,7 +837,7 @@ fLP <- function(formula, data, horizons = 12L,
   res_cpp$cumulative      <- isTRUE(cumulative)
   res_cpp$shock_size      <- shock_size
   res_cpp$n_threads       <- as.integer(n_threads)
-  res_cpp$nobs            <- T_eff
+  res_cpp$nobs            <- .fLP_label_nobs(res_cpp$nobs, lhs_vars)
   res_cpp$formula         <- formula_expanded
   res_cpp$formula_orig    <- formula
   res_cpp$call            <- match.call()
@@ -804,6 +882,15 @@ fLP <- function(formula, data, horizons = 12L,
 }
 
 
+# One number when every horizon and outcome has the same sample, else the
+# range. Used by the print methods of fLP, fLPIV and fNLLP.
+.fLP_format_nobs <- function(nobs) {
+  if (length(unique(as.vector(nobs))) == 1) return(as.vector(nobs)[1])
+  paste0(min(nobs), " to ", max(nobs), " (varies by horizon",
+         if (NCOL(nobs) > 1) " and outcome)" else ")")
+}
+
+
 #' @export
 print.fLP <- function(x, digits = 4L, ...) {
   cat("\nLocal Projections (fLP)\n")
@@ -822,7 +909,7 @@ print.fLP <- function(x, digits = 4L, ...) {
               nw_off, nw_off))
   cat("HAC variance     :  full Newey-West sandwich (X'X)^-1 X'\u03a9X (X'X)^-1",
       if (isTRUE(x$nw_prewhite)) ", VAR(1)-prewhitened" else "", "\n", sep = "")
-  cat("Observations     : ", x$nobs, "\n")
+  cat("Observations     : ", .fLP_format_nobs(x$nobs), "\n")
   cat("\nIRF (shock = '", x$shock, "'):\n", sep = "")
   print(round(x$irfs, digits))
   invisible(x)

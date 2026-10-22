@@ -726,7 +726,7 @@ window.Quarto = {
 </section>
 <section id="impulse-units-shock_size" class="level3" data-number="3.2">
 <h3 data-number="3.2" class="anchored" data-anchor-id="impulse-units-shock_size"><span class="header-section-number">3.2</span> 2.2 · Impulse units (<code>shock_size</code>)</h3>
-<p><code>fLP()</code> and <code>fLPIV()</code> report the response to a <strong>one-unit</strong> shock by default (<code>shock_size = "unit"</code>). Setting <code>shock_size = "sd"</code> reports the response to a <strong>one-standard-deviation</strong> shock instead: <code>fLP()</code> z-scores the shock regressor, <code>fLPIV()</code> scales the 2SLS coefficient and its standard error by <code>sd(D)</code>. In both cases the standard deviation is taken over the <strong>estimation sample</strong> — i.e.&nbsp;after the leading rows consumed by generated lags — not over the raw input column. These correspond to <code>LPopt.impact = 1</code> and <code>LPopt.impact = 0</code> in the local-projection routine of Cesa-Bianchi’s VAR Toolbox.</p>
+<p><code>fLP()</code> and <code>fLPIV()</code> report the response to a <strong>one-unit</strong> shock by default (<code>shock_size = "unit"</code>). Setting <code>shock_size = "sd"</code> reports the response to a <strong>one-standard-deviation</strong> shock instead: <code>fLP()</code> z-scores the shock regressor, <code>fLPIV()</code> scales the 2SLS coefficient and its standard error by <code>sd(D)</code>. In both cases the standard deviation is taken over the dates with every regressor observed — i.e.&nbsp;after the leading rows consumed by generated lags — not over the raw input column, and the same value serves every horizon. These correspond to <code>LPopt.impact = 1</code> and <code>LPopt.impact = 0</code> in the local-projection routine of Cesa-Bianchi’s VAR Toolbox.</p>
 </section>
 <section id="threading-and-console-noise" class="level3" data-number="3.3">
 <h3 data-number="3.3" class="anchored" data-anchor-id="threading-and-console-noise"><span class="header-section-number">3.3</span> 2.3 · Threading and console noise</h3>
@@ -787,9 +787,14 @@ window.Quarto = {
 <td>Horizon index</td>
 </tr>
 <tr class="odd">
+<td><code>nobs</code></td>
+<td><code>(H+1) × n_y</code></td>
+<td>Observations per horizon and outcome</td>
+</tr>
+<tr class="even">
 <td><code>Fstat_fs</code>, <code>rsqr_fs</code></td>
-<td><code>H+1</code> (fLPIV only)</td>
-<td>Per-horizon first-stage F and R²</td>
+<td><code>(H+1) × n_y</code> (fLPIV only)</td>
+<td>First-stage F and R² per horizon and outcome (each outcome’s sample has its own first stage)</td>
 </tr>
 </tbody>
 </table>
@@ -855,7 +860,14 @@ window.Quarto = {
 <h3 data-number="6.1" class="anchored" data-anchor-id="flp-classical-jordà-lp"><span class="header-section-number">6.1</span> <code>fLP()</code> — classical Jordà LP</h3>
 <p>Standard form: <span class="math display">\[y_{t+h} \;=\; \alpha_h + \beta_h\, s_t + \gamma_h' w_t + u_{t+h}, \qquad h = 0, 1, \dots, H.\]</span></p>
 <p>Cumulative form (<code>cumulative = TRUE</code>): <span class="math display">\[y_{t+h} - y_{t-1} \;=\; \alpha_h + \beta_h\, s_t + \gamma_h' w_t + u_{t+h}.\]</span></p>
-<p>The base <span class="math inline">\(y_{t-1}\)</span> for the <strong>first</strong> estimable date lies one period before the estimation sample. When generated lags trim the leading rows, that outcome is still observed, so <code>fLP()</code> and <code>fLPIV()</code> keep it as the base rather than discarding it — the estimation sample is not shortened by the long difference. This matches <code>endo_lag1 = ENDO(lag_trim:end-1)</code> in the VAR Toolbox’s local-projection routine. Time-series LP also requires a contiguous sample: rows with <code>NA</code> cannot simply be deleted, since the engines treat retained rows as consecutive periods, so an <strong>interior</strong> gap is rejected with an error (leading and trailing <code>NA</code>s from <code>l()</code> / <code>f()</code> are fine).</p>
+<p>The base <span class="math inline">\(y_{t-1}\)</span> for the <strong>first</strong> regressor date lies one period before the regressor sample. When generated lags trim the leading rows, that outcome is still observed, so <code>fLP()</code> and <code>fLPIV()</code> keep it as the base rather than discarding it — the estimation sample is not shortened by the long difference. This matches <code>endo_lag1 = ENDO(lag_trim:end-1)</code> in the VAR Toolbox’s local-projection routine.</p>
+<p><strong>Missing values.</strong> The sample is chosen as Stata does with <code>F.h y</code>: the lead is built on the full data first, and rows are dropped afterwards, horizon by horizon. The regressors (shock and controls; in <code>fLPIV()</code> the treatment, controls and instruments) fix the candidate dates <span class="math inline">\(t\)</span>, the rows where all of them are observed. At horizon <span class="math inline">\(h\)</span>, each outcome then uses the dates whose <span class="math inline">\(y_{t+h}\)</span> is observed (and <span class="math inline">\(y_{t-1}\)</span> for the cumulative form). Three consequences:</p>
+<ul>
+<li>an outcome observed after the shock series ends is used, so the sample does not shrink with <span class="math inline">\(h\)</span> until the outcome itself ends;</li>
+<li>each outcome in <code>c(y1, y2)</code> has its own sample, so the <code>NA</code>s of <code>y2</code> never change the estimates for <code>y1</code>;</li>
+<li>a date whose outcome is missing at <span class="math inline">\(t\)</span> but observed at <span class="math inline">\(t+h\)</span> is kept.</li>
+</ul>
+<p><code>nobs</code> reports the resulting sample size per horizon and outcome. On fully observed data nothing changes. Time-series LP still requires contiguous samples: the engines treat the retained rows as consecutive periods for the Newey–West autocovariances, so an <strong>interior</strong> gap in the regressors or in an outcome is rejected with an error (leading and trailing <code>NA</code>s, e.g.&nbsp;from <code>l()</code> / <code>f()</code>, are fine).</p>
 <p>The IRF at horizon <span class="math inline">\(h\)</span> is <span class="math inline">\(\beta_h\)</span>. Standard errors use the full Newey–West sandwich <code>V_h = (X'X)⁻¹ X'ΩX (X'X)⁻¹</code> with a Bartlett kernel of bandwidth <code>max(nw_lags + h + nw_offset, 0)</code>.</p>
 </section>
 <section id="flpiv-lp-with-an-external-instrument" class="level3" data-number="6.2">
@@ -908,7 +920,7 @@ window.Quarto = {
 <h2 data-number="8" class="anchored" data-anchor-id="direct-c-boundary-access"><span class="header-section-number">8</span> 7 · Direct C++ boundary access</h2>
 <p>Advanced users may bypass the R wrapper and call the C++ engines through <code>tidyMacro:::fLP_cpp</code>, <code>tidyMacro:::fLPIV_cpp</code>, <code>tidyMacro:::fLPPanel_cpp</code>, <code>tidyMacro:::fLPDID_cpp</code>. Each of these does its own boundary validation before entering the parallel region:</p>
 <ul>
-<li>Finite inputs only — <code>NA</code>, <code>NaN</code>, <code>Inf</code> are rejected up-front.</li>
+<li>Finite inputs only — <code>NA</code>, <code>NaN</code>, <code>Inf</code> are rejected up-front. The exception is the outcome matrix <code>Y</code> of <code>fLP_cpp</code> and <code>fLPIV_cpp</code>, where <code>NA</code> marks an unobserved outcome (<code>Inf</code> is still rejected); <code>Y</code> may also have more rows than the regressors, the extra rows holding the outcomes’ leads.</li>
 <li>Row-count consistency across all matrices / vectors.</li>
 <li>Non-negative scalar arguments (<code>H</code>, <code>pre_window</code>, <code>post_window</code>, etc.).</li>
 <li><code>ccc ∈ {0, 1, 2}</code> for LP-DiD; <code>Lwin &gt;= 0</code> when <code>nonabsorbing</code> and <code>ccc &gt; 0</code>.</li>

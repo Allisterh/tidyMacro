@@ -10,7 +10,8 @@ test_that("fLP returns an fLP object with the documented structure", {
   expect_equal(f$lhs_vars, "y")
   expect_equal(f$shock, "x")
   expect_equal(f$horizons, 0:3)
-  expect_equal(f$nobs, nrow(df))
+  expect_equal(dim(f$nobs), c(4, 1))
+  expect_equal(as.vector(f$nobs), nrow(df) - 0:3)
   expect_equal(coef(f), f$irfs)
 })
 
@@ -50,7 +51,7 @@ test_that("fLP lag operator and macros give identical results to explicit terms"
   a <- suppressMessages(
     fLP(y ~ x + l(y, 1:2), data = df, horizons = 2L, shock = "x",
         n_threads = NT))
-  expect_equal(a$nobs, nrow(df) - 2L)
+  expect_equal(as.vector(a$nobs), nrow(df) - 2 - 0:2)
 
   df$y_l1 <- c(NA, df$y[-nrow(df)])
   df$y_l2 <- c(NA, NA, df$y[seq_len(nrow(df) - 2L)])
@@ -142,4 +143,81 @@ test_that("fLP is invariant to the number of threads", {
   b <- fLP(y ~ x, data = df, horizons = 6L, shock = "x", n_threads = 2L)
   expect_equal(a$irfs, b$irfs, tolerance = 1e-12)
   expect_equal(a$irfs_se, b$irfs_se, tolerance = 1e-12)
+})
+
+# Missing values: y_{t+h} is read from the full data before rows are dropped
+# (Stata's F.h y), each outcome keeps its own sample, and nobs is per horizon.
+sim_na_df <- function(T = 200, seed = 1) {
+  set.seed(seed)
+  e <- rnorm(T); y <- numeric(T)
+  for (t in 2:T) y[t] <- 0.6 * y[t - 1] + 0.8 * e[t] + rnorm(1, sd = 0.5)
+  data.frame(y = y, s = e)
+}
+lead_na <- function(x, h) if (h == 0) x else c(x[-(1:h)], rep(NA, h))
+lag_na  <- function(x) c(NA, x[-length(x)])
+
+test_that("fLP uses outcomes observed after the shock ends", {
+  skip_if_not_installed("sandwich")
+  df <- sim_na_df()
+  df$s[191:200] <- NA
+  H <- 6
+  f <- suppressMessages(fLP(y ~ s + l(y, 1), data = df, horizons = H,
+                            shock = "s", nw_lags = 2, n_threads = NT))
+  for (h in 0:H) {
+    m <- lm(lead_na(df$y, h) ~ df$s + lag_na(df$y))
+    expect_equal(unname(f$irfs[h + 1, 1]), unname(coef(m)[2]), tolerance = 1e-10)
+    se <- sqrt(sandwich::NeweyWest(m, lag = 2 + h + 1, prewhite = FALSE,
+                                   adjust = FALSE)[2, 2])
+    expect_equal(unname(f$irfs_se[h + 1, 1]), se, tolerance = 1e-8)
+  }
+  expect_equal(as.vector(f$nobs), rep(189, H + 1))
+
+  cu <- suppressMessages(fLP(y ~ s + l(y, 1), data = df, horizons = H,
+                             shock = "s", cumulative = TRUE, n_threads = NT))
+  ref <- sapply(0:H, function(h)
+    unname(coef(lm(I(lead_na(df$y, h) - lag_na(df$y)) ~ df$s + lag_na(df$y)))[2]))
+  expect_equal(unname(cu$irfs[, 1]), ref, tolerance = 1e-10)
+  expect_equal(as.vector(cu$nobs), rep(189, H + 1))
+})
+
+test_that("fLP gives each outcome its own sample", {
+  df <- sim_na_df()
+  df$y2 <- 0.3 * df$s + rnorm(nrow(df))
+  df$y2[c(1:5, 150:200)] <- NA
+  both <- suppressMessages(fLP(c(y, y2) ~ s + l(y, 1), data = df, horizons = 4,
+                               shock = "s", n_threads = NT))
+  one  <- suppressMessages(fLP(y ~ s + l(y, 1), data = df, horizons = 4,
+                               shock = "s", n_threads = NT))
+  expect_equal(both$irfs[, "y"], one$irfs[, "y"], tolerance = 1e-12)
+  expect_equal(both$irfs_se[, "y"], one$irfs_se[, "y"], tolerance = 1e-12)
+  ref <- sapply(0:4, function(h)
+    unname(coef(lm(lead_na(df$y2, h) ~ df$s + lag_na(df$y)))[2]))
+  expect_equal(unname(both$irfs[, "y2"]), ref, tolerance = 1e-10)
+  expect_equal(colnames(both$nobs), c("y", "y2"))
+  expect_equal(as.vector(both$nobs[, "y"]), 199 - 0:4)
+  expect_equal(as.vector(both$nobs[, "y2"]),
+               sapply(0:4, function(h) sum(complete.cases(lead_na(df$y2, h), df$s,
+                                                          lag_na(df$y)))))
+})
+
+test_that("fLP keeps dates whose outcome is missing only at t", {
+  df <- sim_na_df()
+  df$y[1:10] <- NA
+  f <- fLP(y ~ s, data = df, horizons = 3, shock = "s", n_threads = NT)
+  ref <- sapply(0:3, function(h) unname(coef(lm(lead_na(df$y, h) ~ df$s))[2]))
+  expect_equal(unname(f$irfs[, 1]), ref, tolerance = 1e-10)
+  # Dates 11-h .. 200-h at horizon h; the old complete-case rule kept 11 .. 200-h.
+  expect_equal(as.vector(f$nobs), rep(190, 4))
+})
+
+test_that("fLP rejects interior gaps and too-short horizon samples", {
+  df <- sim_na_df()
+  g <- df; g$s[100] <- NA
+  expect_error(suppressMessages(fLP(y ~ s, data = g, horizons = 2, shock = "s")),
+               "regressors have 1 interior gap")
+  g <- df; g$y[100] <- NA
+  expect_error(fLP(y ~ s, data = g, horizons = 2, shock = "s"),
+               "outcome 'y' has 1 interior gap")
+  expect_error(fLP(y ~ s, data = df[1:10, ], horizons = 8, shock = "s"),
+               "outcome 'y' has 2 at horizon 8")
 })

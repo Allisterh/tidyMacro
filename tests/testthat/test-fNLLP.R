@@ -86,7 +86,7 @@ test_that("fNLLP balanced sample fixes the regressor dates", {
   df$s[c(1:10, 191:200)] <- NA          # shock observed on rows 11-190
   f <- suppressMessages(fNLLP(y ~ s + x, data = df, horizons = 5, shock = "s",
                               type = "sign", balanced = TRUE, n_threads = NT))
-  expect_equal(unname(f$nobs), rep(180, 6))
+  expect_equal(as.vector(f$nobs), rep(180, 6))
   h <- 5; r <- 11:190
   ref <- coef(lm(df$y[r + h] ~ pmax(df$s[r], 0) + pmin(df$s[r], 0) + df$x[r]))
   expect_equal(unname(f$irfs[h + 1, 1, ]), unname(ref[2:3]), tolerance = 1e-10)
@@ -97,19 +97,45 @@ test_that("fNLLP balanced sample fixes the regressor dates", {
     g <- fNLLP(y ~ s + x, data = df, horizons = 11, shock = "s", type = "sign",
                balanced = TRUE, n_threads = NT),
     "dropping regressor dates after row 189")
-  expect_equal(unname(g$nobs), rep(179, 12))
+  expect_equal(as.vector(g$nobs), rep(179, 12))
 
   # Fully observed data: the last H rows are reserved for the outcomes.
   full <- sim_nllp_df(n = 200)
   g <- suppressMessages(fNLLP(y ~ s + x, data = full, horizons = 4, shock = "s",
                               type = "sign", balanced = TRUE, n_threads = NT))
-  expect_equal(unname(g$nobs), rep(196, 5))
+  expect_equal(as.vector(g$nobs), rep(196, 5))
 
   # A gap inside the outcome is an error, not a silent truncation.
   full$y[100] <- NA
   expect_error(suppressMessages(fNLLP(y ~ s + x, data = full, horizons = 4,
                                       shock = "s", type = "sign", balanced = TRUE)),
                "observed without gaps")
+})
+
+test_that("fNLLP without balancing reads outcomes past the regressors", {
+  df <- sim_nllp_df(n = 200)
+  df$s[191:200] <- NA
+  lead_na <- function(x, h) if (h == 0) x else c(x[-(1:h)], rep(NA, h))
+  f <- suppressMessages(fNLLP(y ~ s + x, data = df, horizons = 5, shock = "s",
+                              type = "sign", n_threads = NT))
+  expect_equal(as.vector(f$nobs), rep(190, 6))
+  for (h in c(0, 5)) {
+    ref <- coef(lm(lead_na(df$y, h) ~ pmax(df$s, 0) + pmin(df$s, 0) + df$x))
+    expect_equal(unname(f$irfs[h + 1, 1, ]), unname(ref[2:3]), tolerance = 1e-10)
+  }
+  # The outcome runs H rows past the shock, so the sample is the balanced one.
+  b <- suppressMessages(fNLLP(y ~ s + x, data = df, horizons = 5, shock = "s",
+                              type = "sign", balanced = TRUE, n_threads = NT))
+  expect_equal(f$irfs, b$irfs, tolerance = 1e-12)
+  expect_equal(f$irfs_se, b$irfs_se, tolerance = 1e-12)
+
+  # A second outcome with its own missing values leaves the first unchanged.
+  df$w <- df$y + rnorm(200)
+  df$w[150:200] <- NA
+  g <- suppressMessages(fNLLP(c(y, w) ~ s + x, data = df, horizons = 5,
+                              shock = "s", type = "sign", n_threads = NT))
+  expect_equal(g$irfs[, "y", ], f$irfs[, "y", ], tolerance = 1e-12)
+  expect_equal(as.vector(g$nobs[, "w"]), 149 - 0:5)
 })
 
 test_that("fNLLP and fLP reject formula syntax they would not estimate", {
