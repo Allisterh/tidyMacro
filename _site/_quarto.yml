@@ -7,6 +7,7 @@ project:
   post-render: ./sync-docs.sh
   render:
     - index.qmd
+    - validation.qmd
     - 01_SR.qmd
     - 02_1_LR.qmd
     - 02_2_Mixed.qmd
@@ -51,6 +52,8 @@ website:
     left:
       - href: index.qmd
         text: Home
+      - href: validation.qmd
+        text: Validation
       - href: faq.qmd
         text: FAQ
       - href: pay_it_forward.qmd

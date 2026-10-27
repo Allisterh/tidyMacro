@@ -1,0 +1,74 @@
+---
+title: "Validation"
+subtitle: "tidyMacro against the reference MATLAB and Stata codes"
+editor: visual
+number-sections: false
+execute:
+  # The table is read from validation_summary.csv, so re-execute on every
+  # render instead of keeping a frozen copy.
+  freeze: false
+editor_options:
+  chunk_output_type: console
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+library(dplyr)
+library(gt)
+library(gtExtras)
+```
+
+Each method in tidyMacro was run on the package datasets and compared with the different set of code suits in MATLAB and STATA.
+
+Two kinds of objects are compared:
+
+- **Deterministic** objects (point estimates, standard errors, analytic confidence bands, FEVDs) are compared cell by cell. *Max abs diff* is the largest absolute difference over all variables, shocks and horizons.
+- **Monte Carlo** objects (bootstrap bands, posterior medians and credible bands) cannot agree draw by draw, because the two codes use different random number generators. Their gap is compared with the gap between two runs of the same code under different seeds. *Same distribution* means tidyMacro and the reference differ no more than each differs from itself.
+
+```{r}
+#| label: validation-table
+summ <- read.csv("validation_summary.csv", check.names = FALSE, na.strings = "")
+
+groups <- summ |>
+  mutate(method = sub("^[0-9]+\\. ", "", Method)) |>
+  group_by(Method, method) |>
+  summarise(label = sprintf("**%s** &middot; %s &middot; %s", first(method),
+                            paste(unique(Data), collapse = " / "),
+                            paste(unique(Reference), collapse = " / ")),
+            .groups = "drop")
+
+verdict_cols <- c(
+  "Identical (numerical precision)"             = "#1A7F37",
+  "Same distribution (gap = Monte Carlo noise)" = "#1F6FB2",
+  "Differs by df convention only"               = "#B7791F"
+)
+
+summ |>
+  left_join(groups, by = "Method") |>
+  mutate(label = factor(label, levels = groups$label[order(as.integer(sub("\\..*", "", groups$Method)))])) |>
+  arrange(label) |>
+  select(label, Object, `tidyMacro function`, Type, `Max abs diff`, Verdict) |>
+  gt(groupname_col = "label", process_md = TRUE) |>
+  gt_theme_nytimes() |>
+  tab_header(
+    title    = "tidyMacro reproduces the reference implementations",
+    subtitle = "One row per compared object; rows grouped by method, data and reference code"
+  ) |>
+  fmt_scientific(columns = `Max abs diff`, decimals = 1) |>
+  gt_badge(Verdict, palette = verdict_cols) |>
+  cols_label(Object = "Compared object", `tidyMacro function` = "tidyMacro",
+             `Max abs diff` = "Max abs diff") |>
+  tab_style(style = cell_text(font = "monospace", size = px(13)),
+            locations = cells_body(columns = `tidyMacro function`)) |>
+  tab_style(style = cell_text(size = px(14), color = "#111111"),
+            locations = cells_row_groups()) |>
+  cols_width(Object ~ px(300), `tidyMacro function` ~ px(270), Type ~ px(110),
+             `Max abs diff` ~ px(110), Verdict ~ px(300)) |>
+  tab_source_note(md(paste(
+    "Monte Carlo rows report the largest absolute gap between tidyMacro and reference bands at",
+    "1,000 draws (2,000 for the moving-block bootstrap, 10,000 for the long-run bootstrap).",
+    "Going from 1,000 to 10,000 long-run draws shrank the tidyMacro-Toolbox gap 3.3 to 5.7 times,",
+    "at least the &radic;10 &asymp; 3.2 that pure Monte Carlo error predicts.",
+    "The LP-IV first-stage F differs only in its degrees of freedom: tidyMacro uses",
+    "n &minus; k<sub>controls</sub> &minus; k<sub>z</sub>, the Toolbox n &minus; k<sub>z</sub>.")))
+```
