@@ -8,6 +8,7 @@ project:
   render:
     - index.qmd
     - validation.qmd
+    - speed.qmd
     - 01_SR.qmd
     - 02_1_LR.qmd
     - 02_2_Mixed.qmd
@@ -54,6 +55,8 @@ website:
         text: Home
       - href: validation.qmd
         text: Validation
+      - href: speed.qmd
+        text: Speed
       - href: faq.qmd
         text: FAQ
       - href: pay_it_forward.qmd

@@ -1,0 +1,94 @@
+---
+title: "Speed"
+subtitle: "tidyMacro against the reference MATLAB codes, same specifications, same thread budget"
+editor: visual
+number-sections: false
+execute:
+  # The chart and table are read from speed_summary.csv, so re-execute on
+  # every render instead of keeping a frozen copy.
+  freeze: false
+editor_options:
+  chunk_output_type: console
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+library(dplyr)
+library(ggplot2)
+library(gt)
+library(gtExtras)
+speed <- read.csv("speed_summary.csv", check.names = FALSE)
+col_tm <- "#2a78d6"
+col_ml <- "#eb6834"
+```
+
+Every specification on the [Validation](validation.qmd) page was timed in tidyMacro and in the MATLAB code it is compared with. The data, lag orders, horizons and draw counts are the same on both sides.
+
+- **Thread budget.** Both sides get 3 threads. tidyMacro receives `n_threads = 3`; MATLAB runs under `maxNumCompThreads(3)`. The reference MATLAB codes have no `parfor` loops, so in MATLAB the budget only reaches multithreaded linear algebra.
+- **Timing.** Wall-clock time of one complete call, including VAR estimation. Each routine is run once untimed as a warm-up. Monte Carlo routines are then timed `r max(speed$reps[speed$Type == "Monte Carlo"])` times with different seeds and deterministic routines `r max(speed$reps[speed$Type == "Deterministic"])` times. The reported figure is the median.
+- **Sign + external IV.** The full Cesa-Bianchi and Sokol (2022) specification takes hours in the VAR Toolbox, so a lighter version is timed: one instrument (the monetary-policy surprise) instead of two, and the financial-shock signs imposed on impact only.
+- **LP-DiD** is not timed, because its reference is Stata output.
+- **Machine.** Intel Core i5-7360U (2 cores, 4 threads), macOS 13.6, MATLAB R2025b, R 4.6.0, tidyMacro 1.1.2.
+
+```{r}
+#| label: fig-speed
+#| fig-width: 9
+#| fig-height: 5.6
+#| fig-cap: "Median wall-clock time per call, log scale. The label on the right of each row is the speed-up, MATLAB time divided by tidyMacro time."
+
+plot_df <- speed |>
+  mutate(Method = reorder(Method, `Speed-up`),
+         Type = factor(Type, levels = c("Monte Carlo", "Deterministic")))
+
+long <- bind_rows(
+  transmute(plot_df, Method, Type, Software = "MATLAB", seconds = `MATLAB (s)`),
+  transmute(plot_df, Method, Type, Software = "tidyMacro", seconds = `tidyMacro (s)`)
+)
+
+x_max <- max(long$seconds) * 6
+
+ggplot(plot_df, aes(y = Method)) +
+  geom_segment(aes(x = `tidyMacro (s)`, xend = `MATLAB (s)`, yend = Method),
+               colour = "grey75", linewidth = 1.2) +
+  geom_point(data = long, aes(x = seconds, colour = Software), size = 3.6,
+             stroke = 0) +
+  geom_text(aes(x = x_max, label = sprintf("%s×", formatC(`Speed-up`,
+                format = "fg", digits = 2, big.mark = ","))),
+            hjust = 1, size = 3.6, colour = "#222222") +
+  scale_x_log10(labels = scales::label_number(drop0trailing = TRUE, suffix = " s",
+                                              big.mark = ","),
+                expand = expansion(mult = c(0.05, 0.02))) +
+  scale_colour_manual(values = c(tidyMacro = col_tm, MATLAB = col_ml),
+                      breaks = c("tidyMacro", "MATLAB"), name = NULL) +
+  facet_grid(Type ~ ., scales = "free_y", space = "free_y") +
+  labs(x = "Seconds per call (log scale)", y = NULL) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "top", legend.justification = "left",
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_line(colour = "grey90", linewidth = 0.3),
+        strip.text.y = element_text(angle = 0, hjust = 0, face = "bold"),
+        axis.text.y = element_text(colour = "#222222"))
+```
+
+```{r}
+#| label: speed-table
+speed |>
+  arrange(factor(Type, levels = c("Monte Carlo", "Deterministic")), desc(`Speed-up`)) |>
+  select(Type, Method, Data, Workload, `tidyMacro function`,
+         `MATLAB (s)`, `tidyMacro (s)`, `Speed-up`) |>
+  gt(groupname_col = "Type") |>
+  gt_theme_nytimes() |>
+  tab_header(
+    title    = "Median seconds per call",
+    subtitle = "Same data and specification on both sides; 3 threads each"
+  ) |>
+  fmt_number(columns = c(`MATLAB (s)`, `tidyMacro (s)`), n_sigfig = 3) |>
+  fmt_number(columns = `Speed-up`, n_sigfig = 2, pattern = "{x}×") |>
+  tab_style(style = cell_text(font = "monospace", size = px(13)),
+            locations = cells_body(columns = `tidyMacro function`)) |>
+  tab_style(style = cell_text(weight = "bold"),
+            locations = cells_body(columns = `Speed-up`)) |>
+  tab_style(style = cell_text(size = px(14), color = "#111111"),
+            locations = cells_row_groups())
+```
