@@ -1,0 +1,7 @@
+"routine","Method","Data","tidyMacro function","Package","Package function","Workload","Package (s)","reps","tidyMacro (s)","Speed-up","Type"
+"chol","Short run (Cholesky)","Bloom2009","fVAR + fBootstrapChol","vars","VAR + irf(boot = TRUE)","1,000 residual-bootstrap draws, h = 0-48",152.412,3,5.997,25.4147073536768,"Monte Carlo"
+"bq","Long run (Blanchard-Quah)","Gali1999","fVAR + fBootstrapBQ","vars","VAR + BQ + irf(boot = TRUE)","1,000 residual-bootstrap draws, h = 0-40",9.553,3,0.100999999999999,94.5841584158424,"Monte Carlo"
+"sign","Sign restrictions","Uhlig2005","fSignRestr","VARsignR","uhlig.reject","1,000 accepted draws, signs over h = 0-5",17.12,3,0.350000000000023,48.9142857142825,"Monte Carlo"
+"lp","LP, exogenous shock","JordaTaylor2025","fLP","lpirfs","lp_lin_iv","3 outcomes, h = 0-17",1.84699999999998,20,0.00699999999994816,263.857142859094,"Deterministic"
+"lpiv","LP-IV","JordaTaylor2025IV","fLPIV","lpirfs","lp_lin_iv(use_twosls = TRUE)","3 outcomes, h = 0-48",1.97799999999995,20,0.0254999999999654,77.5686274510836,"Deterministic"
+"panel","Panel LP","MianSufiVerner2017","fLPPanel","lpirfs","lp_lin_panel","h = 0-6",0.182999999999993,20,0.00499999999999545,36.6000000000318,"Deterministic"

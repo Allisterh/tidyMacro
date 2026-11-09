@@ -77,7 +77,7 @@ ul.task-list li input[type="checkbox"] {
 <meta property="og:description" content="High-Performance Structural Vector Autoregressions (SVARs) and Local Projections in R">
 <meta property="og:image" content="https://tidymacro.netlify.app/speed_files/figure-html/fig-speed-1.png">
 <meta property="og:site_name" content="tidyMacro">
-<meta property="og:image:height" content="1075">
+<meta property="og:image:height" content="1036">
 <meta property="og:image:width" content="1728">
 </head>
 
@@ -271,21 +271,28 @@ ul.task-list li input[type="checkbox"] {
 </nav>
 <div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
-        
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active" data-toc-expanded="99">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#against-the-matlab-reference-codes" id="toc-against-the-matlab-reference-codes" class="nav-link active" data-scroll-target="#against-the-matlab-reference-codes">Against the MATLAB reference codes</a></li>
+  <li><a href="#against-other-r-packages" id="toc-against-other-r-packages" class="nav-link" data-scroll-target="#against-other-r-packages">Against other R packages</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/muhsinciftci/tidyMacro/edit/main/_site/speed.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/muhsinciftci/tidyMacro/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
 <!-- main -->
-<main class="content column-page-right" id="quarto-document-content">
+<main class="content column-body" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
 <h1 class="title">Speed</h1>
-<p class="subtitle lead">tidyMacro against the reference MATLAB codes, same specifications, same thread budget</p>
+<p class="subtitle lead">tidyMacro against the reference MATLAB codes and against other R packages, same specifications</p>
 </div>
 
 
 
-<div class="quarto-title-meta column-page-right">
+<div class="quarto-title-meta column-body">
 
     
   
@@ -297,13 +304,10 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<p>Every specification on the <a href="./validation.html">Validation</a> page was timed in tidyMacro and in the MATLAB code it is compared with. The data, lag orders, horizons and draw counts are the same on both sides.</p>
+<p>tidyMacro is timed twice: against the MATLAB code that each method on the <a href="./validation.html">Validation</a> page is compared with, and against the R packages that cover the same task. Both comparisons use the same data, lag orders, horizons and draw counts on each side.</p>
 <ul>
-<li><strong>Thread budget.</strong> Both sides get 3 threads. tidyMacro receives <code>n_threads = 3</code>; MATLAB runs under <code>maxNumCompThreads(3)</code>. The reference MATLAB codes have no <code>parfor</code> loops, so in MATLAB the budget only reaches multithreaded linear algebra.</li>
 <li><strong>Timing.</strong> Wall-clock time of one complete call, including VAR estimation. Each routine is run once untimed as a warm-up. Monte Carlo routines are then timed 3 times with different seeds and deterministic routines 20 times. The reported figure is the median.</li>
-<li><strong>Sign + external IV.</strong> The full Cesa-Bianchi and Sokol (2022) specification takes hours in the VAR Toolbox, so a lighter version is timed: one instrument (the monetary-policy surprise) instead of two, and the financial-shock signs imposed on impact only.</li>
-<li><strong>LP-DiD</strong> is not timed, because its reference is Stata output.</li>
-<li><strong>Machine.</strong> Intel Core i5-7360U (2 cores, 4 threads), macOS 13.6, MATLAB R2025b, R 4.6.0, tidyMacro 1.1.2.</li>
+<li><strong>Machine.</strong> Intel Core i5-7360U (2 cores, 4 threads), macOS 13.6, MATLAB R2025b, R 4.6.0 with the reference BLAS, tidyMacro 1.1.2.</li>
 </ul>
 <div class="cell">
 <div class="cell-output-display">
@@ -313,34 +317,41 @@ ul.task-list li input[type="checkbox"] {
 <img src="speed_files/figure-html/fig-speed-1.png" class="img-fluid figure-img" width="864">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-speed-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;1: Median wall-clock time per call, log scale. The label on the right of each row is the speed-up, MATLAB time divided by tidyMacro time.
+Figure&nbsp;1: Time of the MATLAB reference codes (triangles, 3 threads each) and of other R packages (circles, 1 thread each) relative to tidyMacro, which is the line at 1, on a log axis. Values above 1 are slower than tidyMacro. The columns on the right give the ratios, with the R package in parentheses.
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
+<section id="against-the-matlab-reference-codes" class="level2">
+<h2 class="anchored" data-anchor-id="against-the-matlab-reference-codes">Against the MATLAB reference codes</h2>
+<ul>
+<li><strong>Thread budget.</strong> Both sides get 3 threads. tidyMacro receives <code>n_threads = 3</code>; MATLAB runs under <code>maxNumCompThreads(3)</code>. The reference MATLAB codes have no <code>parfor</code> loops, so in MATLAB the budget only reaches multithreaded linear algebra.</li>
+<li><strong>Sign + external IV.</strong> The full Cesa-Bianchi and Sokol (2022) specification takes hours in the VAR Toolbox, so a lighter version is timed: one instrument (the monetary-policy surprise) instead of two, and the financial-shock signs imposed on impact only.</li>
+<li><strong>LP-DiD</strong> is not timed, because its reference is Stata output.</li>
+</ul>
 <div class="cell">
 <div class="cell-output-display">
-<div id="yarhyylsmq" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="pclffqmibk" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 <style>@import url("https://fonts.googleapis.com/css2?family=Source+Sans+Pro:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Libre+Franklin:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Source+Sans+Pro:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
-#yarhyylsmq table {
+#pclffqmibk table {
   font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-#yarhyylsmq thead, #yarhyylsmq tbody, #yarhyylsmq tfoot, #yarhyylsmq tr, #yarhyylsmq td, #yarhyylsmq th {
+#pclffqmibk thead, #pclffqmibk tbody, #pclffqmibk tfoot, #pclffqmibk tr, #pclffqmibk td, #pclffqmibk th {
   border-style: none;
 }
 
-#yarhyylsmq p {
+#pclffqmibk p {
   margin: 0;
   padding: 0;
 }
 
-#yarhyylsmq .gt_table {
+#pclffqmibk .gt_table {
   display: table;
   border-collapse: collapse;
   line-height: normal;
@@ -366,12 +377,12 @@ Figure&nbsp;1: Median wall-clock time per call, log scale. The label on the righ
   border-left-color: #D3D3D3;
 }
 
-#yarhyylsmq .gt_caption {
+#pclffqmibk .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
 
-#yarhyylsmq .gt_title {
+#pclffqmibk .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -383,7 +394,7 @@ Figure&nbsp;1: Median wall-clock time per call, log scale. The label on the righ
   border-bottom-width: 0;
 }
 
-#yarhyylsmq .gt_subtitle {
+#pclffqmibk .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -395,7 +406,7 @@ Figure&nbsp;1: Median wall-clock time per call, log scale. The label on the righ
   border-top-width: 0;
 }
 
-#yarhyylsmq .gt_heading {
+#pclffqmibk .gt_heading {
   background-color: #FFFFFF;
   text-align: left;
   border-bottom-color: #FFFFFF;
@@ -407,13 +418,13 @@ Figure&nbsp;1: Median wall-clock time per call, log scale. The label on the righ
   border-right-color: #D3D3D3;
 }
 
-#yarhyylsmq .gt_bottom_border {
+#pclffqmibk .gt_bottom_border {
   border-bottom-style: none;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#yarhyylsmq .gt_col_headings {
+#pclffqmibk .gt_col_headings {
   border-top-style: none;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -428,7 +439,7 @@ Figure&nbsp;1: Median wall-clock time per call, log scale. The label on the righ
   border-right-color: #D3D3D3;
 }
 
-#yarhyylsmq .gt_col_heading {
+#pclffqmibk .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 12px;
@@ -448,7 +459,7 @@ Figure&nbsp;1: Median wall-clock time per call, log scale. The label on the righ
   overflow-x: hidden;
 }
 
-#yarhyylsmq .gt_column_spanner_outer {
+#pclffqmibk .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 12px;
@@ -460,15 +471,15 @@ Figure&nbsp;1: Median wall-clock time per call, log scale. The label on the righ
   padding-right: 4px;
 }
 
-#yarhyylsmq .gt_column_spanner_outer:first-child {
+#pclffqmibk .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#yarhyylsmq .gt_column_spanner_outer:last-child {
+#pclffqmibk .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#yarhyylsmq .gt_column_spanner {
+#pclffqmibk .gt_column_spanner {
   border-bottom-style: none;
   border-bottom-width: 1px;
   border-bottom-color: #334422;
@@ -480,11 +491,11 @@ Figure&nbsp;1: Median wall-clock time per call, log scale. The label on the righ
   width: 100%;
 }
 
-#yarhyylsmq .gt_spanner_row {
+#pclffqmibk .gt_spanner_row {
   border-bottom-style: hidden;
 }
 
-#yarhyylsmq .gt_group_heading {
+#pclffqmibk .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -510,7 +521,7 @@ Figure&nbsp;1: Median wall-clock time per call, log scale. The label on the righ
   text-align: left;
 }
 
-#yarhyylsmq .gt_empty_group_heading {
+#pclffqmibk .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -525,15 +536,15 @@ Figure&nbsp;1: Median wall-clock time per call, log scale. The label on the righ
   vertical-align: middle;
 }
 
-#yarhyylsmq .gt_from_md > :first-child {
+#pclffqmibk .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#yarhyylsmq .gt_from_md > :last-child {
+#pclffqmibk .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#yarhyylsmq .gt_row {
+#pclffqmibk .gt_row {
   padding-top: 7px;
   padding-bottom: 7px;
   padding-left: 5px;
@@ -552,7 +563,7 @@ Figure&nbsp;1: Median wall-clock time per call, log scale. The label on the righ
   overflow-x: hidden;
 }
 
-#yarhyylsmq .gt_stub {
+#pclffqmibk .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -565,7 +576,7 @@ Figure&nbsp;1: Median wall-clock time per call, log scale. The label on the righ
   padding-right: 5px;
 }
 
-#yarhyylsmq .gt_stub_row_group {
+#pclffqmibk .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -579,15 +590,15 @@ Figure&nbsp;1: Median wall-clock time per call, log scale. The label on the righ
   vertical-align: top;
 }
 
-#yarhyylsmq .gt_row_group_first td {
+#pclffqmibk .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#yarhyylsmq .gt_row_group_first th {
+#pclffqmibk .gt_row_group_first th {
   border-top-width: 2px;
 }
 
-#yarhyylsmq .gt_summary_row {
+#pclffqmibk .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -597,16 +608,16 @@ Figure&nbsp;1: Median wall-clock time per call, log scale. The label on the righ
   padding-right: 5px;
 }
 
-#yarhyylsmq .gt_first_summary_row {
+#pclffqmibk .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#yarhyylsmq .gt_first_summary_row.thick {
+#pclffqmibk .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#yarhyylsmq .gt_last_summary_row {
+#pclffqmibk .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -616,7 +627,7 @@ Figure&nbsp;1: Median wall-clock time per call, log scale. The label on the righ
   border-bottom-color: #D3D3D3;
 }
 
-#yarhyylsmq .gt_grand_summary_row {
+#pclffqmibk .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -626,7 +637,7 @@ Figure&nbsp;1: Median wall-clock time per call, log scale. The label on the righ
   padding-right: 5px;
 }
 
-#yarhyylsmq .gt_first_grand_summary_row {
+#pclffqmibk .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -636,7 +647,7 @@ Figure&nbsp;1: Median wall-clock time per call, log scale. The label on the righ
   border-top-color: #D3D3D3;
 }
 
-#yarhyylsmq .gt_last_grand_summary_row_top {
+#pclffqmibk .gt_last_grand_summary_row_top {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -646,11 +657,11 @@ Figure&nbsp;1: Median wall-clock time per call, log scale. The label on the righ
   border-bottom-color: #D3D3D3;
 }
 
-#yarhyylsmq .gt_striped {
+#pclffqmibk .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#yarhyylsmq .gt_table_body {
+#pclffqmibk .gt_table_body {
   border-top-style: none;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -659,7 +670,7 @@ Figure&nbsp;1: Median wall-clock time per call, log scale. The label on the righ
   border-bottom-color: #FFFFFF;
 }
 
-#yarhyylsmq .gt_footnotes {
+#pclffqmibk .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -673,7 +684,7 @@ Figure&nbsp;1: Median wall-clock time per call, log scale. The label on the righ
   border-right-color: #D3D3D3;
 }
 
-#yarhyylsmq .gt_footnote {
+#pclffqmibk .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-top: 4px;
@@ -682,7 +693,7 @@ Figure&nbsp;1: Median wall-clock time per call, log scale. The label on the righ
   padding-right: 5px;
 }
 
-#yarhyylsmq .gt_sourcenotes {
+#pclffqmibk .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -696,7 +707,7 @@ Figure&nbsp;1: Median wall-clock time per call, log scale. The label on the righ
   border-right-color: #D3D3D3;
 }
 
-#yarhyylsmq .gt_sourcenote {
+#pclffqmibk .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -704,72 +715,72 @@ Figure&nbsp;1: Median wall-clock time per call, log scale. The label on the righ
   padding-right: 5px;
 }
 
-#yarhyylsmq .gt_left {
+#pclffqmibk .gt_left {
   text-align: left;
 }
 
-#yarhyylsmq .gt_center {
+#pclffqmibk .gt_center {
   text-align: center;
 }
 
-#yarhyylsmq .gt_right {
+#pclffqmibk .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#yarhyylsmq .gt_font_normal {
+#pclffqmibk .gt_font_normal {
   font-weight: normal;
 }
 
-#yarhyylsmq .gt_font_bold {
+#pclffqmibk .gt_font_bold {
   font-weight: bold;
 }
 
-#yarhyylsmq .gt_font_italic {
+#pclffqmibk .gt_font_italic {
   font-style: italic;
 }
 
-#yarhyylsmq .gt_super {
+#pclffqmibk .gt_super {
   font-size: 65%;
 }
 
-#yarhyylsmq .gt_footnote_marks {
+#pclffqmibk .gt_footnote_marks {
   font-size: 75%;
   vertical-align: 0.4em;
   position: initial;
 }
 
-#yarhyylsmq .gt_asterisk {
+#pclffqmibk .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#yarhyylsmq .gt_indent_1 {
+#pclffqmibk .gt_indent_1 {
   text-indent: 5px;
 }
 
-#yarhyylsmq .gt_indent_2 {
+#pclffqmibk .gt_indent_2 {
   text-indent: 10px;
 }
 
-#yarhyylsmq .gt_indent_3 {
+#pclffqmibk .gt_indent_3 {
   text-indent: 15px;
 }
 
-#yarhyylsmq .gt_indent_4 {
+#pclffqmibk .gt_indent_4 {
   text-indent: 20px;
 }
 
-#yarhyylsmq .gt_indent_5 {
+#pclffqmibk .gt_indent_5 {
   text-indent: 25px;
 }
 
-#yarhyylsmq .katex-display {
+#pclffqmibk .katex-display {
   display: inline-flex !important;
   margin-bottom: 0.75em !important;
 }
 
-#yarhyylsmq div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+#pclffqmibk div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
   height: 0px !important;
 }
 </style>
@@ -895,8 +906,572 @@ Figure&nbsp;1: Median wall-clock time per call, log scale. The label on the righ
 </div>
 </div>
 </div>
+</section>
+<section id="against-other-r-packages" class="level2">
+<h2 class="anchored" data-anchor-id="against-other-r-packages">Against other R packages</h2>
+<ul>
+<li><strong>Packages.</strong> <a href="https://CRAN.R-project.org/package=vars">vars</a> for bootstrapped recursive and long-run responses, <a href="https://CRAN.R-project.org/package=VARsignR">VARsignR</a> for sign restrictions, and <a href="https://CRAN.R-project.org/package=lpirfs">lpirfs</a> for local projections. VARsignR is archived on CRAN; version 0.1.3 is installed from the archive.</li>
+<li><strong>Thread budget.</strong> These packages run on one thread, so tidyMacro gets <code>n_threads = 1</code> as well.</li>
+<li><strong>Same estimates.</strong> Before timing, the script checks that each pair estimates the same model: the VAR coefficients of tidyMacro and vars agree, and the point responses of tidyMacro and lpirfs agree to machine precision. vars resamples residuals, so tidyMacro uses its residual bootstrap here. lpirfs projects every endogenous variable on the shock and on lags of all of them, so the tidyMacro calls use the same outcomes and regressors.</li>
+<li><strong>Sign restrictions.</strong> Both sides return 1,000 accepted draws with the signs imposed over horizons 0 to 5, VARsignR with the 200 × 200 draw budget of its documentation. <code>uhlig.reject()</code> can keep several accepted rotations from one posterior draw, while <code>fSignRestr()</code> keeps one per posterior draw, so VARsignR needs far fewer posterior draws for the same 1,000.</li>
+</ul>
+<div class="cell">
+<div class="cell-output-display">
+<div id="mtxuxneare" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>@import url("https://fonts.googleapis.com/css2?family=Source+Sans+Pro:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Libre+Franklin:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Source+Sans+Pro:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
+#mtxuxneare table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#mtxuxneare thead, #mtxuxneare tbody, #mtxuxneare tfoot, #mtxuxneare tr, #mtxuxneare td, #mtxuxneare th {
+  border-style: none;
+}
+
+#mtxuxneare p {
+  margin: 0;
+  padding: 0;
+}
+
+#mtxuxneare .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: none;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#mtxuxneare .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#mtxuxneare .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#mtxuxneare .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#mtxuxneare .gt_heading {
+  background-color: #FFFFFF;
+  text-align: left;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#mtxuxneare .gt_bottom_border {
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#mtxuxneare .gt_col_headings {
+  border-top-style: none;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: none;
+  border-bottom-width: 1px;
+  border-bottom-color: #334422;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#mtxuxneare .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 12px;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#mtxuxneare .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 12px;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#mtxuxneare .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#mtxuxneare .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#mtxuxneare .gt_column_spanner {
+  border-bottom-style: none;
+  border-bottom-width: 1px;
+  border-bottom-color: #334422;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#mtxuxneare .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#mtxuxneare .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#mtxuxneare .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#mtxuxneare .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#mtxuxneare .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#mtxuxneare .gt_row {
+  padding-top: 7px;
+  padding-bottom: 7px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#mtxuxneare .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#mtxuxneare .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#mtxuxneare .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#mtxuxneare .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#mtxuxneare .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#mtxuxneare .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#mtxuxneare .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#mtxuxneare .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#mtxuxneare .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#mtxuxneare .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#mtxuxneare .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#mtxuxneare .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#mtxuxneare .gt_table_body {
+  border-top-style: none;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #FFFFFF;
+}
+
+#mtxuxneare .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#mtxuxneare .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#mtxuxneare .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#mtxuxneare .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#mtxuxneare .gt_left {
+  text-align: left;
+}
+
+#mtxuxneare .gt_center {
+  text-align: center;
+}
+
+#mtxuxneare .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#mtxuxneare .gt_font_normal {
+  font-weight: normal;
+}
+
+#mtxuxneare .gt_font_bold {
+  font-weight: bold;
+}
+
+#mtxuxneare .gt_font_italic {
+  font-style: italic;
+}
+
+#mtxuxneare .gt_super {
+  font-size: 65%;
+}
+
+#mtxuxneare .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#mtxuxneare .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#mtxuxneare .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#mtxuxneare .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#mtxuxneare .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#mtxuxneare .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#mtxuxneare .gt_indent_5 {
+  text-indent: 25px;
+}
+
+#mtxuxneare .katex-display {
+  display: inline-flex !important;
+  margin-bottom: 0.75em !important;
+}
+
+#mtxuxneare div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+  height: 0px !important;
+}
+</style>
+
+<table class="gt_table caption-top table table-sm table-striped small" data-quarto-bootstrap="false">
+<thead>
+<tr class="gt_heading header">
+<td colspan="9" class="gt_heading gt_title gt_font_normal" style="font-family: 'Libre Franklin'; font-weight: 800">Median seconds per call</td>
+</tr>
+<tr class="gt_heading even">
+<td colspan="9" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border">Same data and specification on both sides; one thread each</td>
+</tr>
+<tr class="gt_col_headings header">
+<th id="Method" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" style="color: #A9A9A9; font-family: 'Source Sans Pro'; text-transform: uppercase" scope="col">Method</th>
+<th id="Data" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" style="color: #A9A9A9; font-family: 'Source Sans Pro'; text-transform: uppercase" scope="col">Data</th>
+<th id="Workload" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" style="color: #A9A9A9; font-family: 'Source Sans Pro'; text-transform: uppercase" scope="col">Workload</th>
+<th id="tidyMacro-function" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" style="color: #A9A9A9; font-family: 'Source Sans Pro'; text-transform: uppercase" scope="col">tidyMacro function</th>
+<th id="Package" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" style="color: #A9A9A9; font-family: 'Source Sans Pro'; text-transform: uppercase" scope="col">Package</th>
+<th id="Package-function" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" style="color: #A9A9A9; font-family: 'Source Sans Pro'; text-transform: uppercase" scope="col">Package function</th>
+<th id="Package-(s)" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" style="color: #A9A9A9; font-family: 'Source Sans Pro'; text-transform: uppercase" scope="col">Package (s)</th>
+<th id="tidyMacro-(s)" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" style="color: #A9A9A9; font-family: 'Source Sans Pro'; text-transform: uppercase" scope="col">tidyMacro (s)</th>
+<th id="Speed-up" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" style="color: #A9A9A9; font-family: 'Source Sans Pro'; text-transform: uppercase" scope="col">Speed-up</th>
+</tr>
+</thead>
+<tbody class="gt_table_body">
+<tr class="gt_group_heading_row odd">
+<th colspan="9" id="Monte Carlo" class="gt_group_heading" data-quarto-table-cell-role="th" style="color: #111111; font-size: 14px" scope="colgroup">Monte Carlo</th>
+</tr>
+<tr class="gt_row_group_first even">
+<td class="gt_row gt_left" headers="Monte Carlo  Method" style="font-family: 'Source Sans Pro'; font-weight: 400">Long run (Blanchard-Quah)</td>
+<td class="gt_row gt_left" headers="Monte Carlo  Data" style="font-family: 'Source Sans Pro'; font-weight: 400">Gali1999</td>
+<td class="gt_row gt_left" headers="Monte Carlo  Workload" style="font-family: 'Source Sans Pro'; font-weight: 400">1,000 residual-bootstrap draws, h = 0-40</td>
+<td class="gt_row gt_left" headers="Monte Carlo  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fVAR + fBootstrapBQ</td>
+<td class="gt_row gt_left" headers="Monte Carlo  Package" style="font-family: 'Source Sans Pro'; font-weight: 400">vars</td>
+<td class="gt_row gt_left" headers="Monte Carlo  Package function" style="font-family: monospace; font-weight: 400; font-size: 13px">VAR + BQ + irf(boot = TRUE)</td>
+<td class="gt_row gt_right" headers="Monte Carlo  Package (s)" style="font-family: 'Source Sans Pro'; font-weight: 400">9.55</td>
+<td class="gt_row gt_right" headers="Monte Carlo  tidyMacro (s)" style="font-family: 'Source Sans Pro'; font-weight: 400">0.101</td>
+<td class="gt_row gt_right" headers="Monte Carlo  Speed-up" style="font-family: 'Source Sans Pro'; font-weight: bold">95×</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="Monte Carlo  Method" style="font-family: 'Source Sans Pro'; font-weight: 400">Sign restrictions</td>
+<td class="gt_row gt_left" headers="Monte Carlo  Data" style="font-family: 'Source Sans Pro'; font-weight: 400">Uhlig2005</td>
+<td class="gt_row gt_left" headers="Monte Carlo  Workload" style="font-family: 'Source Sans Pro'; font-weight: 400">1,000 accepted draws, signs over h = 0-5</td>
+<td class="gt_row gt_left" headers="Monte Carlo  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fSignRestr</td>
+<td class="gt_row gt_left" headers="Monte Carlo  Package" style="font-family: 'Source Sans Pro'; font-weight: 400">VARsignR</td>
+<td class="gt_row gt_left" headers="Monte Carlo  Package function" style="font-family: monospace; font-weight: 400; font-size: 13px">uhlig.reject</td>
+<td class="gt_row gt_right" headers="Monte Carlo  Package (s)" style="font-family: 'Source Sans Pro'; font-weight: 400">17.1</td>
+<td class="gt_row gt_right" headers="Monte Carlo  tidyMacro (s)" style="font-family: 'Source Sans Pro'; font-weight: 400">0.350</td>
+<td class="gt_row gt_right" headers="Monte Carlo  Speed-up" style="font-family: 'Source Sans Pro'; font-weight: bold">49×</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="Monte Carlo  Method" style="font-family: 'Source Sans Pro'; font-weight: 400">Short run (Cholesky)</td>
+<td class="gt_row gt_left" headers="Monte Carlo  Data" style="font-family: 'Source Sans Pro'; font-weight: 400">Bloom2009</td>
+<td class="gt_row gt_left" headers="Monte Carlo  Workload" style="font-family: 'Source Sans Pro'; font-weight: 400">1,000 residual-bootstrap draws, h = 0-48</td>
+<td class="gt_row gt_left" headers="Monte Carlo  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fVAR + fBootstrapChol</td>
+<td class="gt_row gt_left" headers="Monte Carlo  Package" style="font-family: 'Source Sans Pro'; font-weight: 400">vars</td>
+<td class="gt_row gt_left" headers="Monte Carlo  Package function" style="font-family: monospace; font-weight: 400; font-size: 13px">VAR + irf(boot = TRUE)</td>
+<td class="gt_row gt_right" headers="Monte Carlo  Package (s)" style="font-family: 'Source Sans Pro'; font-weight: 400">152</td>
+<td class="gt_row gt_right" headers="Monte Carlo  tidyMacro (s)" style="font-family: 'Source Sans Pro'; font-weight: 400">6.00</td>
+<td class="gt_row gt_right" headers="Monte Carlo  Speed-up" style="font-family: 'Source Sans Pro'; font-weight: bold">25×</td>
+</tr>
+<tr class="gt_group_heading_row odd">
+<th colspan="9" id="Deterministic" class="gt_group_heading" data-quarto-table-cell-role="th" style="color: #111111; font-size: 14px" scope="colgroup">Deterministic</th>
+</tr>
+<tr class="gt_row_group_first even">
+<td class="gt_row gt_left" headers="Deterministic  Method" style="font-family: 'Source Sans Pro'; font-weight: 400">LP, exogenous shock</td>
+<td class="gt_row gt_left" headers="Deterministic  Data" style="font-family: 'Source Sans Pro'; font-weight: 400">JordaTaylor2025</td>
+<td class="gt_row gt_left" headers="Deterministic  Workload" style="font-family: 'Source Sans Pro'; font-weight: 400">3 outcomes, h = 0-17</td>
+<td class="gt_row gt_left" headers="Deterministic  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fLP</td>
+<td class="gt_row gt_left" headers="Deterministic  Package" style="font-family: 'Source Sans Pro'; font-weight: 400">lpirfs</td>
+<td class="gt_row gt_left" headers="Deterministic  Package function" style="font-family: monospace; font-weight: 400; font-size: 13px">lp_lin_iv</td>
+<td class="gt_row gt_right" headers="Deterministic  Package (s)" style="font-family: 'Source Sans Pro'; font-weight: 400">1.85</td>
+<td class="gt_row gt_right" headers="Deterministic  tidyMacro (s)" style="font-family: 'Source Sans Pro'; font-weight: 400">0.00700</td>
+<td class="gt_row gt_right" headers="Deterministic  Speed-up" style="font-family: 'Source Sans Pro'; font-weight: bold">260×</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="Deterministic  Method" style="font-family: 'Source Sans Pro'; font-weight: 400">LP-IV</td>
+<td class="gt_row gt_left" headers="Deterministic  Data" style="font-family: 'Source Sans Pro'; font-weight: 400">JordaTaylor2025IV</td>
+<td class="gt_row gt_left" headers="Deterministic  Workload" style="font-family: 'Source Sans Pro'; font-weight: 400">3 outcomes, h = 0-48</td>
+<td class="gt_row gt_left" headers="Deterministic  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fLPIV</td>
+<td class="gt_row gt_left" headers="Deterministic  Package" style="font-family: 'Source Sans Pro'; font-weight: 400">lpirfs</td>
+<td class="gt_row gt_left" headers="Deterministic  Package function" style="font-family: monospace; font-weight: 400; font-size: 13px">lp_lin_iv(use_twosls = TRUE)</td>
+<td class="gt_row gt_right" headers="Deterministic  Package (s)" style="font-family: 'Source Sans Pro'; font-weight: 400">1.98</td>
+<td class="gt_row gt_right" headers="Deterministic  tidyMacro (s)" style="font-family: 'Source Sans Pro'; font-weight: 400">0.0255</td>
+<td class="gt_row gt_right" headers="Deterministic  Speed-up" style="font-family: 'Source Sans Pro'; font-weight: bold">78×</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="Deterministic  Method" style="font-family: 'Source Sans Pro'; font-weight: 400">Panel LP</td>
+<td class="gt_row gt_left" headers="Deterministic  Data" style="font-family: 'Source Sans Pro'; font-weight: 400">MianSufiVerner2017</td>
+<td class="gt_row gt_left" headers="Deterministic  Workload" style="font-family: 'Source Sans Pro'; font-weight: 400">h = 0-6</td>
+<td class="gt_row gt_left" headers="Deterministic  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fLPPanel</td>
+<td class="gt_row gt_left" headers="Deterministic  Package" style="font-family: 'Source Sans Pro'; font-weight: 400">lpirfs</td>
+<td class="gt_row gt_left" headers="Deterministic  Package function" style="font-family: monospace; font-weight: 400; font-size: 13px">lp_lin_panel</td>
+<td class="gt_row gt_right" headers="Deterministic  Package (s)" style="font-family: 'Source Sans Pro'; font-weight: 400">0.183</td>
+<td class="gt_row gt_right" headers="Deterministic  tidyMacro (s)" style="font-family: 'Source Sans Pro'; font-weight: 400">0.00500</td>
+<td class="gt_row gt_right" headers="Deterministic  Speed-up" style="font-family: 'Source Sans Pro'; font-weight: bold">37×</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
 
 
+</section>
 
 <a onclick="window.scrollTo(0, 0); return false;" role="button" id="quarto-back-to-top"><i class="bi bi-arrow-up"></i> Back to top</a></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
@@ -1312,7 +1887,7 @@ Figure&nbsp;1: Median wall-clock time per call, log scale. The label on the righ
 </div>   
     <div class="nav-footer-center">
       &nbsp;
-    <div class="toc-actions"><ul><li><a href="https://github.com/muhsinciftci/tidyMacro/edit/main/_site/speed.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/muhsinciftci/tidyMacro/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div>
+    <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/muhsinciftci/tidyMacro/edit/main/_site/speed.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/muhsinciftci/tidyMacro/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
 <p>This page is built with <a href="https://quarto.org">Quarto</a>.</p>
 </div>
