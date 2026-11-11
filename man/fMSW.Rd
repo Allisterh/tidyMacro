@@ -19,7 +19,7 @@ fMSW(
 \arguments{
 \item{var_result}{List from \code{fVAR}.}
 
-\item{Z}{Instrument matrix (proxy sample, no missing values).}
+\item{Z}{One-column instrument matrix (proxy sample, no missing values).}
 
 \item{finaldata}{T x N matrix of original endogenous variables (full sample).}
 

@@ -14,172 +14,107 @@
 // Internal helpers
 // =========================================================================
 
-// G matrices: derivative of vec(C_h) wrt vec(AL) (free VAR parameters)
-// G_h = sum_{k=0}^{h-1} kron( (Alut^k * J')' , C_{h-1-k} )
-// where Alut = companion matrix (np x np), J = [I_n | 0] (n x np)
-// G  : n^2 x n^2*p x (hor+1) cube  (G.slice(0) = zeros, G.slice(h) for h>=1)
-// Gcum: same shape, cumulative sum over slices
-static void g_matrices_cpp(const arma::mat& AL,
-                            const std::vector<arma::mat>& C_vec,  // C_0..C_hor
-                            int p, int hor, int n,
-                            arma::cube& G, arma::cube& Gcum) {
+// Score derivatives of the IRF numerator, for every horizon and variable.
+//
+// MSW need the 1 x n^2 p row  kron(Gamma', e_j') * G_h,  where
+//   G_h = sum_{k=0}^{h-1} kron( (Alut^k J')', C_{h-1-k} )
+// is the derivative of vec(C_h) wrt vec(AL) (Alut = companion matrix,
+// J = [I_n | 0]). Since kron(Gamma', e_j') picks row j of each n x n block,
+//   kron(Gamma', e_j') G_h = row j of Y_h,
+//   Y_h = sum_{k=0}^{h-1} kron(gamma_k, C_{h-1-k})        (n x n^2 p),
+//   gamma_k = (Alut^k J' Gamma)'                            (1 x np),
+// so the n^2 x n^2 p matrices G_h are never formed. Column-major,
+//   Y_h = reshape( sum_c vec(C_c) gamma_{h-1-c}, n, n^2 p ),
+// one small matrix product per horizon.
+// Returns Y: n*(hor+1) x n^2 p, rows h*n .. h*n+n-1 hold Y_h (Y_0 = 0).
+static arma::mat irf_score_rows(const arma::mat& AL,
+                                const arma::vec& Gamma,
+                                const std::vector<arma::mat>& C_vec,  // C_0..C_hor
+                                int p, int hor, int n) {
+    const int np  = n * p;
+    const int n2p = n * np;
+    arma::mat Y(n * (hor + 1), n2p, arma::fill::zeros);
+    if (hor < 1) return Y;
 
     // Companion matrix Alut (np x np)
-    arma::mat Alut(n * p, n * p, arma::fill::zeros);
+    arma::mat Alut(np, np, arma::fill::zeros);
     Alut.rows(0, n - 1) = AL;
     if (p > 1) {
-        Alut.submat(n, 0, n * p - 1, n * (p - 1) - 1) =
+        Alut.submat(n, 0, np - 1, n * (p - 1) - 1) =
             arma::eye(n * (p - 1), n * (p - 1));
     }
 
-    // J = [I_n | 0_{n,(p-1)n}]  (n x np)
-    arma::mat J = arma::join_rows(arma::eye(n, n), arma::zeros(n, (p - 1) * n));
-
-    // Precompute AJ_list[k] = (Alut^k * J')' = J * (Alut^k)'  (n x np) for k=0..hor-1
-    // Note: (Alut^k * J')' = (J Alut'^k)  [transpose of np x n]
-    std::vector<arma::mat> AJt(hor);   // AJt[k] = (Alut^k * J')' = n x np
-    arma::mat Apower = arma::eye(n * p, n * p);
+    // Gam row k = gamma_k = (Alut^k J' Gamma)', k = 0..hor-1  (hor x np)
+    arma::mat Gam(hor, np);
+    arma::vec s(np, arma::fill::zeros);
+    s.head(n) = Gamma;
     for (int k = 0; k < hor; ++k) {
-        AJt[k] = (Apower * J.t()).t();  // J * (Alut^k)' → n x np
-        if (k < hor - 1) Apower = Apower * Alut;
+        Gam.row(k) = s.t();
+        if (k < hor - 1) s = Alut * s;
     }
 
-    int n2 = n * n;
-    int n2p = n * n * p;
-
-    G.zeros(n2, n2p, hor + 1);
+    // Cmat column c = vec(C_c), c = 0..hor-1  (n^2 x hor)
+    arma::mat Cmat(n * n, hor);
+    for (int c = 0; c < hor; ++c) Cmat.col(c) = arma::vectorise(C_vec[c]);
 
     for (int h = 1; h <= hor; ++h) {
-        arma::mat Gh(n2, n2p, arma::fill::zeros);
-        // G_h = sum_{k=0}^{h-1} kron(AJt[k], C_{h-1-k})
-        for (int k = 0; k < h; ++k) {
-            Gh += arma::kron(AJt[k], C_vec[h - 1 - k]);
-        }
-        G.slice(h) = Gh;
+        // M = sum_{c=0}^{h-1} vec(C_c) gamma_{h-1-c}  (n^2 x np)
+        const arma::mat M = Cmat.cols(0, h - 1) *
+                            arma::flipud(Gam.rows(0, h - 1));
+        Y.rows(h * n, h * n + n - 1) = arma::reshape(M, n, n2p);
     }
-
-    // Cumulative G (manual cumsum along slice dimension)
-    Gcum.zeros(n2, n2p, hor + 1);
-    for (int h = 1; h <= hor; ++h) {
-        Gcum.slice(h) = Gcum.slice(h - 1) + G.slice(h);
-    }
-}
-
-// Vech selector matrix V such that vech(Sigma) = V * vec(Sigma)
-// V: n*(n+1)/2 x n^2
-static arma::mat vech_selector(int n) {
-    int vech_len = n * (n + 1) / 2;
-    arma::mat V(vech_len, n * n, arma::fill::zeros);
-    arma::mat In = arma::eye(n, n);
-    int row = 0;
-    for (int i = 0; i < n; ++i) {
-        arma::rowvec ei = In.row(i);
-        arma::mat Isub = In.rows(i, n - 1);             // (n-i) x n
-        arma::mat block = arma::kron(ei, Isub);          // (n-i) x n^2
-        V.rows(row, row + (n - i) - 1) = block;
-        row += n - i;
-    }
-    return V;
+    return Y;
 }
 
 // =========================================================================
-// CovAhat_Sigmahat_Gamma equivalent
-// Returns WHatall, WHat, and stores them in output args
-// WHatall: asymptotic variance of [vec(Ahat)', vech(Sigmahat)', vec(Gammahat)']'
-// WHat   : asymptotic variance of [vec(Ahat)', vec(Gammahat)']'
+// Scores of [vec(Ahat); vec(Gammahat)]  (CovAhat_Sigmahat_Gamma equivalent)
+//
+// MSW define WHat, the asymptotic variance of [vec(Ahat)', vec(Gammahat)']',
+// as the [vec(A), vec(Gamma)] rows and columns of Shat * HAC(g_t) * Shat',
+// with g_t = vec(eta_t [x_t; eta_t; z_t]'). The HAC estimator is a quadratic
+// form in the demeaned scores, so WHat = HAC(h_t) / T1, where h_t stacks the
+// [vec(A), vec(Gamma)] rows of Shat g_t. h_t has a closed form:
+//   vec(A) rows    : vec(eta_t (P x_t)'),            P = rows m..m+np-1 of Q1^{-1}
+//   vec(Gamma) rows: vec(eta_t (z_t - Q2 Q1^{-1} x_t)')
+// i.e. h_t = vec(eta_t w_t'), w_t = [P x_t; z_t - Q2 Q1^{-1} x_t].
+// Returns the demeaned T1 x (n^2 p + nk) matrix H with row t = h_t'.
+// fMSW_cpp never forms WHat: every quadratic form a' WHat b it needs is the
+// NW long-run covariance of the series H a and H b, divided by T1.
 // =========================================================================
-static void cov_ahat_sigma_gamma(
+static arma::mat msw_scores(
         int p,
         const arma::mat& X,      // T1 x (m + n*p) design matrix
         const arma::mat& Z,      // T1 x k instrument
-        const arma::mat& eta,    // n x T1 residuals (transposed)
-        int NWlags,
-        arma::mat& WHatall,
-        arma::mat& WHat) {
+        const arma::mat& eta) {  // n x T1 residuals (transposed)
 
-    int n   = (int)eta.n_rows;
-    int T1  = (int)eta.n_cols;
-    int k   = (int)Z.n_cols;
-    int m   = (int)X.n_cols - n * p;   // deterministic regressors (intercept count)
+    const int n  = (int)eta.n_rows;
+    const int T1 = (int)eta.n_cols;
+    const int k  = (int)Z.n_cols;
+    const int np = n * p;
+    const int m  = (int)X.n_cols - np;   // deterministic regressors (intercept count)
+    const int nw = np + k;               // length of w_t
 
-    int T2aux = (int)X.n_cols + n + k;  // m + n*p + n + k
+    // Q1 = X'X / T1, Q2 = Z'X / T1
+    const arma::mat Q1inv = arma::inv_sympd((X.t() * X) / T1);
+    const arma::mat Q2    = (Z.t() * X) / T1;
 
-    // Build matagg: T2aux x T1, each column = [x_t; eta_t; z_t]
-    // x_t = X[t,:]', eta_t = eta[:,t], z_t = Z[t,:]'
-    arma::mat matagg(T2aux, T1);
-    for (int t = 0; t < T1; ++t) {
-        matagg.col(t) = arma::join_cols(
-            arma::join_cols(X.row(t).t(), eta.col(t)),
-            Z.row(t).t());
+    // W: T1 x (np + k), row t = w_t'
+    arma::mat W(T1, nw);
+    W.cols(0, np - 1)  = X * Q1inv.rows(m, m + np - 1).t();
+    W.cols(np, nw - 1) = Z - X * (Q2 * Q1inv).t();
+
+    // H: T1 x n*(np + k), column q*n + i = eta_i,t * w_q,t  (row t = vec(eta_t w_t')')
+    arma::mat H(T1, n * nw);
+    for (int q = 0; q < nw; ++q) {
+        const double* wq = W.colptr(q);
+        for (int i = 0; i < n; ++i) {
+            double* hc = H.colptr(q * n + i);
+            for (int t = 0; t < T1; ++t) hc[t] = eta(i, t) * wq[t];
+        }
     }
 
-    // AuxHAC2: T1 x (n * T2aux)
-    // Row t = vec(eta_t * matagg_t')' = vectorised outer product (row-vector)
-    arma::mat AuxHAC2(T1, n * T2aux);
-    for (int t = 0; t < T1; ++t) {
-        arma::mat outer = eta.col(t) * matagg.col(t).t();  // n x T2aux
-        AuxHAC2.row(t) = arma::vectorise(outer).t();
-    }
-
-    // Demean
-    arma::rowvec mean_row = arma::mean(AuxHAC2, 0);
-    AuxHAC2.each_row() -= mean_row;
-
-    // NW HAC
-    arma::mat WhatAss1 = se_newey_west_cpp(AuxHAC2, NWlags, false) / AuxHAC2.n_rows;  // (n*T2aux) x (n*T2aux)
-
-    // Vech selector V  (n*(n+1)/2 x n^2)
-    arma::mat V = vech_selector(n);
-
-    // Q1 = X'X / T1  ((m+np) x (m+np))
-    arma::mat Q1 = (X.t() * X) / T1;
-    arma::mat Q1inv = arma::inv_sympd(Q1);
-
-    // Q2 = Z'X / T1  (k x (m+np))
-    arma::mat Q2 = (Z.t() * X) / T1;
-
-    // Shat: output rows = n^2*p + n*(n+1)/2 + n*k
-    //       input cols  = n*m + n^2*p + n^2 + n*k = n*T2aux
-    int n2p      = n * n * p;
-    int vech_len = n * (n + 1) / 2;
-    int nk       = n * k;
-    int ncols    = n * T2aux;   // = n*m + n^2*p + n^2 + n*k
-    int nrows    = n2p + vech_len + nk;
-
-    arma::mat Shat(nrows, ncols, arma::fill::zeros);
-
-    // --- Row block 1: vec(Ahat), rows 0..n2p-1 ---
-    // Selector [0_{n*p,m} | I_{n*p}] is (n*p x (m+n*p)), rows m..m+np-1 of Q1inv
-    arma::mat sel_lag = Q1inv.rows(m, m + n * p - 1);  // np x (m+np)
-    // kron(sel_lag, I_n) is n^2*p x n*(m+np)
-    arma::mat kron_A = arma::kron(sel_lag, arma::eye(n, n));
-    // Place in cols 0..n*(m+np)-1
-    Shat.submat(0, 0, n2p - 1, n * (m + n * p) - 1) = kron_A;
-
-    // --- Row block 2: vech(Sigmahat), rows n2p..n2p+vech_len-1 ---
-    // V acts on eta block: cols n*(m+np)..n*(m+np)+n^2-1
-    int eta_col_start = n * ((int)X.n_cols);  // = n*(m+np)
-    Shat.submat(n2p, eta_col_start, n2p + vech_len - 1, eta_col_start + n * n - 1) = V;
-
-    // --- Row block 3: vec(Gammahat), rows n2p+vech_len..nrows-1 ---
-    // -kron(Q2*Q1inv, I_n) acts on cols 0..n*(m+np)-1
-    arma::mat kron_G = arma::kron(Q2 * Q1inv, arma::eye(n, n));  // nk x n*(m+np)
-    Shat.submat(n2p + vech_len, 0, nrows - 1, n * (m + n * p) - 1) = -kron_G;
-    // I_{nk} acts on Z block: cols n*(m+np)+n^2..ncols-1
-    int z_col_start = eta_col_start + n * n;
-    Shat.submat(n2p + vech_len, z_col_start, nrows - 1, ncols - 1) =
-        arma::eye(nk, nk);
-
-    // WHatall = Shat * WhatAss1 * Shat'
-    WHatall = Shat * WhatAss1 * Shat.t();
-
-    // WHat = extract rows/cols for [vec(A), vec(Gamma)] (drop vech(Sigma) block)
-    // Rows/cols: 0..n2p-1 and n2p+vech_len..nrows-1
-    arma::uvec idx(n2p + nk);
-    for (int i = 0; i < n2p; ++i) idx(i) = i;
-    for (int i = 0; i < nk;  ++i) idx(n2p + i) = n2p + vech_len + i;
-
-    WHat = WHatall(idx, idx);
+    H.each_row() -= arma::mean(H, 0);
+    return H;
 }
 
 // =========================================================================
@@ -198,7 +133,6 @@ MSWResult fMSW_cpp(const arma::mat& AL,
 
     int n  = (int)AL.n_rows;
     int T1 = (int)eta.n_cols;
-    int k  = (int)Z.n_cols;
 
     // Critical value (two-sided chi^2 with 1 df)
     // norminv(1-(1-conf)/2)^2 = qnorm(0.5+conf/2)^2
@@ -240,26 +174,22 @@ MSWResult fMSW_cpp(const arma::mat& AL,
     // Gamma = eta * Z / T1   (n x k)
     arma::mat Gamma = (eta * Z) / T1;
 
-    // Compute WHat and WHatall
-    arma::mat WHatall, WHat;
-    cov_ahat_sigma_gamma(p, X, Z, eta, NWlags, WHatall, WHat);
+    // Demeaned scores of [vec(Ahat); vec(Gammahat)]: T1 x (n^2 p + nk)
+    const arma::mat H = msw_scores(p, X, Z, eta);
 
-    int n2p  = n * n * p;
-    int nk   = n * k;
+    const int n2p = n * n * p;
+    const int N   = (int)H.n_cols;         // n^2 p + n k
+    const int nv0 = nvar - 1;              // 0-based normalization variable
+    const int e   = n2p + nv0;             // its position in [vec(A); Gamma]
+    const double* he = H.colptr(e);
 
-    // Sub-blocks of WHat (ordered as [vec(Ahat); vec(Gammahat)])
-    arma::mat W1  = WHat.submat(0,    0,    n2p - 1,        n2p - 1);        // n^2*p x n^2*p
-    arma::mat W12 = WHat.submat(0,    n2p,  n2p - 1,        n2p + nk - 1);   // n^2*p x n*k
-    arma::mat W2  = WHat.submat(n2p,  n2p,  n2p + nk - 1,  n2p + nk - 1);   // n*k x n*k
+    // WHat(e, e): asymptotic variance of Gammahat_nvar
+    const double W_ee = se_newey_west_lrv_cpp(he, T1, NWlags) / T1;
 
-    // Waldstat and (standard) F-stat for nvar-th element of Gamma (1-based)
-    int nv0 = nvar - 1;   // 0-based index
+    // Waldstat for instrument relevance (HAC robust); reported as F as well
     double Gamma_nvar = Gamma(nv0, 0);
-    double Waldstat = ((double)T1 * Gamma_nvar * Gamma_nvar) /
-                       WHat(n2p + nv0, n2p + nv0);
-    // Standard F-stat (not HAC-robust): T1 * Gamma_nvar^2 / var_basic
-    // Use Sigma_sub diagonal element as basic variance estimate
-    double Fstat = Waldstat;  // report Waldstat as F (HAC robust)
+    double Waldstat = ((double)T1 * Gamma_nvar * Gamma_nvar) / W_ee;
+    double Fstat = Waldstat;
 
     // MA representation: C_vec[h] = C_h for h=0..hor (Wold multipliers;
     // AL' is the lag block of beta without intercept)
@@ -268,9 +198,27 @@ MSWResult fMSW_cpp(const arma::mat& AL,
     std::vector<arma::mat> C_vec(hor + 1);
     for (int h = 0; h <= hor; ++h) C_vec[h] = wold.slice(h);
 
-    // G and Gcum cubes: n^2 x n^2*p x (hor+1)
-    arma::cube G, Gcum;
-    g_matrices_cpp(AL, C_vec, p, hor, n, G, Gcum);
+    // Stack every (j, h) pair, row r = h*n + j. With
+    //   sf_r = scale * [kron(Gamma', e_j') G_h,  e_j' C_h]   (1 x N)
+    // the delta-method gradient is d_r = sf_r - lambda_jh * e', where e is
+    // the unit vector of Gammahat_nvar. D holds the rows d_r.
+    const int R = n * (hor + 1);
+    arma::mat D(R, N, arma::fill::zeros);
+    D.cols(0, n2p - 1) = scale * irf_score_rows(AL, Gamma.col(0), C_vec, p, hor, n);
+    arma::vec CG(R);                        // e_j' C_h Gamma
+    for (int h = 0; h <= hor; ++h) {
+        D.submat(h * n, n2p, h * n + n - 1, n2p + n - 1) = scale * C_vec[h];
+        CG.subvec(h * n, h * n + n - 1) = C_vec[h] * Gamma.col(0);
+    }
+    const arma::vec lambda = scale * CG / Gamma_nvar;   // plug-in IRFs
+    D.col(e) -= lambda;
+
+    // Projected scores, one series per (j, h): column r of HD = H d_r', and
+    // H sf_r' = HD.col(r) + lambda_jh * H.col(e). Then
+    //   d_r WHat d_r'  = lrv(H d_r') / T1
+    //   sf_r WHat sf_r' = lrv(H sf_r') / T1,  sf_r WHat e = lrcov(H sf_r', H e) / T1
+    const arma::mat HD = H * D.t();         // T1 x R
+    arma::vec hsf(T1);
 
     // Allocate output matrices: n x (hor+1)
     arma::mat IRF(n, hor + 1, arma::fill::zeros);
@@ -281,62 +229,36 @@ MSWResult fMSW_cpp(const arma::mat& AL,
     arma::mat MSWubound(n, hor + 1, arma::fill::zeros);
 
     // ahat is the same for all (j, h)
-    double ahat = (double)T1 * Gamma_nvar * Gamma_nvar - critval * W2(nv0, nv0);
+    double ahat = (double)T1 * Gamma_nvar * Gamma_nvar - critval * W_ee;
 
-    // Unit vectors
-    arma::mat In = arma::eye(n, n);
+    const double sqrt_T1 = std::sqrt((double)T1);
+    const double abs_Gnv = std::abs(Gamma_nvar);
 
-    for (int j = 0; j < n; ++j) {
-        arma::vec e_j = In.col(j);               // n x 1
-        arma::vec e_nv = In.col(nv0);             // n x 1 (normalization variable)
-
-        for (int h = 0; h <= hor; ++h) {
-            const arma::mat& Ch = C_vec[h];       // n x n
-
-            // 1 x n^2 row vector
-            arma::rowvec kron_Gt_ej = arma::kron(Gamma.t(), e_j.t());
-
-            // Plugin IRF: scale * e_j' * C_h * Gamma / Gamma_nvar
-            double ej_Ch_Gamma = arma::as_scalar(e_j.t() * Ch * Gamma);
-            double lambda_jh   = scale * ej_Ch_Gamma / Gamma_nvar;
+    for (int h = 0; h <= hor; ++h) {
+        for (int j = 0; j < n; ++j) {
+            const int r = h * n + j;
+            const double lambda_jh = lambda(r);
             IRF(j, h) = lambda_jh;
 
-            // Useful quantities
-            arma::rowvec kGh   = kron_Gt_ej * G.slice(h);    // 1 x n^2*p
-            arma::rowvec ej_Ch = e_j.t() * Ch;                // 1 x n
-
-            arma::vec W2_col  = W2.col(nv0);                  // n*k x 1
-            arma::vec W12_col = W12.col(nv0);                  // n^2*p x 1
-
-            // Delta-method variance
-            arma::vec d1 = (kGh * scale).t();                 // n^2*p x 1
-            arma::vec d2 = (scale * ej_Ch - lambda_jh * e_nv.t()).t(); // n x 1
-            arma::vec d  = arma::join_cols(d1, d2);            // (n^2*p + n) x 1
-            double DmVar = arma::as_scalar(d.t() * WHat * d);
-
-            double sqrt_T1    = std::sqrt((double)T1);
-            double abs_Gnv    = std::abs(Gamma_nvar);
+            // Delta-method variance d' WHat d
+            const double* hd = HD.colptr(r);
+            const double DmVar = se_newey_west_lrv_cpp(hd, T1, NWlags) / T1;
             IRFstderr(j, h)   = std::sqrt(DmVar) / (sqrt_T1 * abs_Gnv);
             double half_width = std::sqrt(critval / T1) * std::sqrt(DmVar) / abs_Gnv;
             Dmlbound(j, h)    = lambda_jh - half_width;
             Dmubound(j, h)    = lambda_jh + half_width;
 
-            // MSW (Anderson-Rubin) bounds
-            // bhat
-            double b1 = -2.0 * T1 * scale * ej_Ch_Gamma * Gamma_nvar;
-            double b2 =  2.0 * critval * scale * arma::as_scalar(kGh * W12_col);
-            double b3 =  2.0 * critval * scale * arma::as_scalar(ej_Ch * W2_col);
-            double bhat = b1 + b2 + b3;
-
-            // chat
-            double c1 = std::pow(sqrt_T1 * scale * ej_Ch_Gamma, 2.0);
-            double c2 = critval * scale * scale *
-                        arma::as_scalar(kGh * W1 * kGh.t());
-            double c3 = 2.0 * critval * scale * scale *
-                        arma::as_scalar(kGh * W12 * ej_Ch.t());
-            double c4 = critval * scale * scale *
-                        arma::as_scalar(ej_Ch * W2 * ej_Ch.t());
-            double chat = c1 - c2 - c3 - c4;
+            // MSW (Anderson-Rubin) bounds.  With f = sf_r / scale,
+            //   b2 + b3      = 2 critval scale   (f WHat)_e = 2 critval sf_r WHat e
+            //   c2 + c3 + c4 =  critval scale^2  f WHat f'  = critval sf_r WHat sf_r'
+            for (int t = 0; t < T1; ++t) hsf[t] = hd[t] + lambda_jh * he[t];
+            double v_sf, v_e, v_sfe;
+            se_newey_west_lrv2_cpp(hsf.memptr(), he, T1, NWlags, v_sf, v_e, v_sfe);
+            const double ej_Ch_Gamma = CG(r);
+            double bhat = -2.0 * T1 * scale * ej_Ch_Gamma * Gamma_nvar
+                          + 2.0 * critval * v_sfe / T1;
+            double chat = std::pow(sqrt_T1 * scale * ej_Ch_Gamma, 2.0)
+                          - critval * v_sf / T1;
 
             double Delta = bhat * bhat - 4.0 * ahat * chat;
 
@@ -386,7 +308,7 @@ MSWResult fMSW_cpp(const arma::mat& AL,
 //' Montiel-Olea, Stock and Watson (2021).
 //'
 //' @param var_result List from \code{fVAR}.
-//' @param Z Instrument matrix (proxy sample, no missing values).
+//' @param Z One-column instrument matrix (proxy sample, no missing values).
 //' @param finaldata T x N matrix of original endogenous variables (full sample).
 //' @param adjustu Integer vector \code{c(start, end)} (1-based) selecting the
 //'   proxy-sample rows of the VAR residuals.
@@ -435,6 +357,8 @@ Rcpp::List fMSW(const Rcpp::List& var_result,
 
     if (NWlags < 0)
         Rcpp::stop("NWlags must be >= 0. Use 0 for White HC-only, or a positive integer for Newey-West with that many lags.");
+    if (Z.n_cols != 1)
+        Rcpp::stop("fMSW supports a single instrument: Z must have exactly one column.");
 
     // Extract VAR components
     VARResult vr = fVARResultFromList_cpp(var_result);

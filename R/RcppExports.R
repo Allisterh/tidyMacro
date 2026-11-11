@@ -1476,7 +1476,7 @@ fMBBVAR <- function(eps, lags, BlockSize, M = NULL) {
 #' Montiel-Olea, Stock and Watson (2021).
 #'
 #' @param var_result List from \code{fVAR}.
-#' @param Z Instrument matrix (proxy sample, no missing values).
+#' @param Z One-column instrument matrix (proxy sample, no missing values).
 #' @param finaldata T x N matrix of original endogenous variables (full sample).
 #' @param adjustu Integer vector \code{c(start, end)} (1-based) selecting the
 #'   proxy-sample rows of the VAR residuals.
