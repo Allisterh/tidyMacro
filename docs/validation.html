@@ -298,30 +298,30 @@ ul.task-list li input[type="checkbox"] {
 <p>Two kinds of objects are compared:</p>
 <ul>
 <li><strong>Deterministic</strong> objects (point estimates, standard errors, analytic confidence bands, FEVDs) are compared cell by cell. <em>Max abs diff</em> is the largest absolute difference over all variables, shocks and horizons.</li>
-<li><strong>Monte Carlo</strong> objects (bootstrap bands, posterior medians and credible bands) cannot agree draw by draw, because the two codes use different random number generators. Their gap is compared with the gap between two runs of the same code under different seeds. <em>Same distribution</em> means tidyMacro and the reference differ no more than each differs from itself.</li>
+<li><strong>Monte Carlo</strong> objects (bootstrap bands, posterior medians and credible bands) cannot agree draw by draw, because the two codes use different random number generators. Their gap is compared with the gap between two runs of the same code under different seeds. <em>Same distribution</em> means tidyMacro and the reference differ no more than each differs from itself. <em>Close</em> means the gap is somewhat larger than that run-to-run noise but still below 5% of the 90% band width.</li>
 </ul>
 <div class="cell">
 <div class="cell-output-display">
-<div id="cggjsiigfi" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="ryixbvywrk" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 <style>@import url("https://fonts.googleapis.com/css2?family=Source+Sans+Pro:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Libre+Franklin:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Source+Sans+Pro:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
-#cggjsiigfi table {
+#ryixbvywrk table {
   font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-#cggjsiigfi thead, #cggjsiigfi tbody, #cggjsiigfi tfoot, #cggjsiigfi tr, #cggjsiigfi td, #cggjsiigfi th {
+#ryixbvywrk thead, #ryixbvywrk tbody, #ryixbvywrk tfoot, #ryixbvywrk tr, #ryixbvywrk td, #ryixbvywrk th {
   border-style: none;
 }
 
-#cggjsiigfi p {
+#ryixbvywrk p {
   margin: 0;
   padding: 0;
 }
 
-#cggjsiigfi .gt_table {
+#ryixbvywrk .gt_table {
   display: table;
   border-collapse: collapse;
   line-height: normal;
@@ -347,12 +347,12 @@ ul.task-list li input[type="checkbox"] {
   border-left-color: #D3D3D3;
 }
 
-#cggjsiigfi .gt_caption {
+#ryixbvywrk .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
 
-#cggjsiigfi .gt_title {
+#ryixbvywrk .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -364,7 +364,7 @@ ul.task-list li input[type="checkbox"] {
   border-bottom-width: 0;
 }
 
-#cggjsiigfi .gt_subtitle {
+#ryixbvywrk .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -376,7 +376,7 @@ ul.task-list li input[type="checkbox"] {
   border-top-width: 0;
 }
 
-#cggjsiigfi .gt_heading {
+#ryixbvywrk .gt_heading {
   background-color: #FFFFFF;
   text-align: left;
   border-bottom-color: #FFFFFF;
@@ -388,13 +388,13 @@ ul.task-list li input[type="checkbox"] {
   border-right-color: #D3D3D3;
 }
 
-#cggjsiigfi .gt_bottom_border {
+#ryixbvywrk .gt_bottom_border {
   border-bottom-style: none;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#cggjsiigfi .gt_col_headings {
+#ryixbvywrk .gt_col_headings {
   border-top-style: none;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -409,7 +409,7 @@ ul.task-list li input[type="checkbox"] {
   border-right-color: #D3D3D3;
 }
 
-#cggjsiigfi .gt_col_heading {
+#ryixbvywrk .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 12px;
@@ -429,7 +429,7 @@ ul.task-list li input[type="checkbox"] {
   overflow-x: hidden;
 }
 
-#cggjsiigfi .gt_column_spanner_outer {
+#ryixbvywrk .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 12px;
@@ -441,15 +441,15 @@ ul.task-list li input[type="checkbox"] {
   padding-right: 4px;
 }
 
-#cggjsiigfi .gt_column_spanner_outer:first-child {
+#ryixbvywrk .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#cggjsiigfi .gt_column_spanner_outer:last-child {
+#ryixbvywrk .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#cggjsiigfi .gt_column_spanner {
+#ryixbvywrk .gt_column_spanner {
   border-bottom-style: none;
   border-bottom-width: 1px;
   border-bottom-color: #334422;
@@ -461,11 +461,11 @@ ul.task-list li input[type="checkbox"] {
   width: 100%;
 }
 
-#cggjsiigfi .gt_spanner_row {
+#ryixbvywrk .gt_spanner_row {
   border-bottom-style: hidden;
 }
 
-#cggjsiigfi .gt_group_heading {
+#ryixbvywrk .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -491,7 +491,7 @@ ul.task-list li input[type="checkbox"] {
   text-align: left;
 }
 
-#cggjsiigfi .gt_empty_group_heading {
+#ryixbvywrk .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -506,15 +506,15 @@ ul.task-list li input[type="checkbox"] {
   vertical-align: middle;
 }
 
-#cggjsiigfi .gt_from_md > :first-child {
+#ryixbvywrk .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#cggjsiigfi .gt_from_md > :last-child {
+#ryixbvywrk .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#cggjsiigfi .gt_row {
+#ryixbvywrk .gt_row {
   padding-top: 7px;
   padding-bottom: 7px;
   padding-left: 5px;
@@ -533,7 +533,7 @@ ul.task-list li input[type="checkbox"] {
   overflow-x: hidden;
 }
 
-#cggjsiigfi .gt_stub {
+#ryixbvywrk .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -546,7 +546,7 @@ ul.task-list li input[type="checkbox"] {
   padding-right: 5px;
 }
 
-#cggjsiigfi .gt_stub_row_group {
+#ryixbvywrk .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -560,15 +560,15 @@ ul.task-list li input[type="checkbox"] {
   vertical-align: top;
 }
 
-#cggjsiigfi .gt_row_group_first td {
+#ryixbvywrk .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#cggjsiigfi .gt_row_group_first th {
+#ryixbvywrk .gt_row_group_first th {
   border-top-width: 2px;
 }
 
-#cggjsiigfi .gt_summary_row {
+#ryixbvywrk .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -578,16 +578,16 @@ ul.task-list li input[type="checkbox"] {
   padding-right: 5px;
 }
 
-#cggjsiigfi .gt_first_summary_row {
+#ryixbvywrk .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#cggjsiigfi .gt_first_summary_row.thick {
+#ryixbvywrk .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#cggjsiigfi .gt_last_summary_row {
+#ryixbvywrk .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -597,7 +597,7 @@ ul.task-list li input[type="checkbox"] {
   border-bottom-color: #D3D3D3;
 }
 
-#cggjsiigfi .gt_grand_summary_row {
+#ryixbvywrk .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -607,7 +607,7 @@ ul.task-list li input[type="checkbox"] {
   padding-right: 5px;
 }
 
-#cggjsiigfi .gt_first_grand_summary_row {
+#ryixbvywrk .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -617,7 +617,7 @@ ul.task-list li input[type="checkbox"] {
   border-top-color: #D3D3D3;
 }
 
-#cggjsiigfi .gt_last_grand_summary_row_top {
+#ryixbvywrk .gt_last_grand_summary_row_top {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -627,11 +627,11 @@ ul.task-list li input[type="checkbox"] {
   border-bottom-color: #D3D3D3;
 }
 
-#cggjsiigfi .gt_striped {
+#ryixbvywrk .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#cggjsiigfi .gt_table_body {
+#ryixbvywrk .gt_table_body {
   border-top-style: none;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -640,7 +640,7 @@ ul.task-list li input[type="checkbox"] {
   border-bottom-color: #FFFFFF;
 }
 
-#cggjsiigfi .gt_footnotes {
+#ryixbvywrk .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -654,7 +654,7 @@ ul.task-list li input[type="checkbox"] {
   border-right-color: #D3D3D3;
 }
 
-#cggjsiigfi .gt_footnote {
+#ryixbvywrk .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-top: 4px;
@@ -663,7 +663,7 @@ ul.task-list li input[type="checkbox"] {
   padding-right: 5px;
 }
 
-#cggjsiigfi .gt_sourcenotes {
+#ryixbvywrk .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -677,7 +677,7 @@ ul.task-list li input[type="checkbox"] {
   border-right-color: #D3D3D3;
 }
 
-#cggjsiigfi .gt_sourcenote {
+#ryixbvywrk .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -685,72 +685,72 @@ ul.task-list li input[type="checkbox"] {
   padding-right: 5px;
 }
 
-#cggjsiigfi .gt_left {
+#ryixbvywrk .gt_left {
   text-align: left;
 }
 
-#cggjsiigfi .gt_center {
+#ryixbvywrk .gt_center {
   text-align: center;
 }
 
-#cggjsiigfi .gt_right {
+#ryixbvywrk .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#cggjsiigfi .gt_font_normal {
+#ryixbvywrk .gt_font_normal {
   font-weight: normal;
 }
 
-#cggjsiigfi .gt_font_bold {
+#ryixbvywrk .gt_font_bold {
   font-weight: bold;
 }
 
-#cggjsiigfi .gt_font_italic {
+#ryixbvywrk .gt_font_italic {
   font-style: italic;
 }
 
-#cggjsiigfi .gt_super {
+#ryixbvywrk .gt_super {
   font-size: 65%;
 }
 
-#cggjsiigfi .gt_footnote_marks {
+#ryixbvywrk .gt_footnote_marks {
   font-size: 75%;
   vertical-align: 0.4em;
   position: initial;
 }
 
-#cggjsiigfi .gt_asterisk {
+#ryixbvywrk .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#cggjsiigfi .gt_indent_1 {
+#ryixbvywrk .gt_indent_1 {
   text-indent: 5px;
 }
 
-#cggjsiigfi .gt_indent_2 {
+#ryixbvywrk .gt_indent_2 {
   text-indent: 10px;
 }
 
-#cggjsiigfi .gt_indent_3 {
+#ryixbvywrk .gt_indent_3 {
   text-indent: 15px;
 }
 
-#cggjsiigfi .gt_indent_4 {
+#ryixbvywrk .gt_indent_4 {
   text-indent: 20px;
 }
 
-#cggjsiigfi .gt_indent_5 {
+#ryixbvywrk .gt_indent_5 {
   text-indent: 25px;
 }
 
-#cggjsiigfi .katex-display {
+#ryixbvywrk .katex-display {
   display: inline-flex !important;
   margin-bottom: 0.75em !important;
 }
 
-#cggjsiigfi div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+#ryixbvywrk div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
   height: 0px !important;
 }
 </style>
@@ -804,45 +804,45 @@ Identical (numerical precision)
 </tr>
 <tr class="odd">
 <td class="gt_row gt_left" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  Object" style="font-family: 'Source Sans Pro'; font-weight: 400">IRF median</td>
-<td class="gt_row gt_left" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fBootstrapChol (wild, 1000 draws)</td>
+<td class="gt_row gt_left" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fBootstrapChol (wild, 5000 draws)</td>
 <td class="gt_row gt_left" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  Type" style="font-family: 'Source Sans Pro'; font-weight: 400">Monte Carlo</td>
-<td class="gt_row gt_right" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">3.3&nbsp;×&nbsp;10<sup>−2</sup></td>
+<td class="gt_row gt_right" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">1.9&nbsp;×&nbsp;10<sup>−2</sup></td>
 <td class="gt_row gt_left" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  Verdict" style="font-family: 'Source Sans Pro'; font-weight: 400"><div style="display: inline-block; padding: 2px 12px; border-radius: 15px; font-weight: 600; font-size: 12px; background:#1F6FB233;">
 Same distribution (gap = Monte Carlo noise)
 </div></td>
 </tr>
 <tr class="even">
 <td class="gt_row gt_left" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  Object" style="font-family: 'Source Sans Pro'; font-weight: 400">IRF lo68</td>
-<td class="gt_row gt_left" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fBootstrapChol (wild, 1000 draws)</td>
+<td class="gt_row gt_left" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fBootstrapChol (wild, 5000 draws)</td>
 <td class="gt_row gt_left" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  Type" style="font-family: 'Source Sans Pro'; font-weight: 400">Monte Carlo</td>
-<td class="gt_row gt_right" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">3.9&nbsp;×&nbsp;10<sup>−2</sup></td>
+<td class="gt_row gt_right" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">1.9&nbsp;×&nbsp;10<sup>−2</sup></td>
 <td class="gt_row gt_left" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  Verdict" style="font-family: 'Source Sans Pro'; font-weight: 400"><div style="display: inline-block; padding: 2px 12px; border-radius: 15px; font-weight: 600; font-size: 12px; background:#1F6FB233;">
 Same distribution (gap = Monte Carlo noise)
 </div></td>
 </tr>
 <tr class="odd">
 <td class="gt_row gt_left" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  Object" style="font-family: 'Source Sans Pro'; font-weight: 400">IRF hi68</td>
-<td class="gt_row gt_left" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fBootstrapChol (wild, 1000 draws)</td>
+<td class="gt_row gt_left" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fBootstrapChol (wild, 5000 draws)</td>
 <td class="gt_row gt_left" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  Type" style="font-family: 'Source Sans Pro'; font-weight: 400">Monte Carlo</td>
-<td class="gt_row gt_right" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">1.1&nbsp;×&nbsp;10<sup>−1</sup></td>
+<td class="gt_row gt_right" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">3.0&nbsp;×&nbsp;10<sup>−2</sup></td>
 <td class="gt_row gt_left" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  Verdict" style="font-family: 'Source Sans Pro'; font-weight: 400"><div style="display: inline-block; padding: 2px 12px; border-radius: 15px; font-weight: 600; font-size: 12px; background:#1F6FB233;">
 Same distribution (gap = Monte Carlo noise)
 </div></td>
 </tr>
 <tr class="even">
 <td class="gt_row gt_left" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  Object" style="font-family: 'Source Sans Pro'; font-weight: 400">IRF lo90</td>
-<td class="gt_row gt_left" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fBootstrapChol (wild, 1000 draws)</td>
+<td class="gt_row gt_left" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fBootstrapChol (wild, 5000 draws)</td>
 <td class="gt_row gt_left" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  Type" style="font-family: 'Source Sans Pro'; font-weight: 400">Monte Carlo</td>
-<td class="gt_row gt_right" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">6.1&nbsp;×&nbsp;10<sup>−2</sup></td>
+<td class="gt_row gt_right" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">3.1&nbsp;×&nbsp;10<sup>−2</sup></td>
 <td class="gt_row gt_left" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  Verdict" style="font-family: 'Source Sans Pro'; font-weight: 400"><div style="display: inline-block; padding: 2px 12px; border-radius: 15px; font-weight: 600; font-size: 12px; background:#1F6FB233;">
 Same distribution (gap = Monte Carlo noise)
 </div></td>
 </tr>
 <tr class="odd">
 <td class="gt_row gt_left" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  Object" style="font-family: 'Source Sans Pro'; font-weight: 400">IRF hi90</td>
-<td class="gt_row gt_left" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fBootstrapChol (wild, 1000 draws)</td>
+<td class="gt_row gt_left" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fBootstrapChol (wild, 5000 draws)</td>
 <td class="gt_row gt_left" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  Type" style="font-family: 'Source Sans Pro'; font-weight: 400">Monte Carlo</td>
-<td class="gt_row gt_right" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">1.2&nbsp;×&nbsp;10<sup>−1</sup></td>
+<td class="gt_row gt_right" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">4.5&nbsp;×&nbsp;10<sup>−2</sup></td>
 <td class="gt_row gt_left" headers="short-run-cholesky-middot-bloom2009-middot-cesa-bianchi-var-toolbox-4-0  Verdict" style="font-family: 'Source Sans Pro'; font-weight: 400"><div style="display: inline-block; padding: 2px 12px; border-radius: 15px; font-weight: 600; font-size: 12px; background:#1F6FB233;">
 Same distribution (gap = Monte Carlo noise)
 </div></td>
@@ -1065,45 +1065,45 @@ Identical (numerical precision)
 </tr>
 <tr class="gt_row_group_first even">
 <td class="gt_row gt_left" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  Object" style="font-family: 'Source Sans Pro'; font-weight: 400">IRF median</td>
-<td class="gt_row gt_left" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fSignRestr (1000 accepted draws, inference = 1)</td>
+<td class="gt_row gt_left" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fSignRestr (5000 accepted draws, inference = 1)</td>
 <td class="gt_row gt_left" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  Type" style="font-family: 'Source Sans Pro'; font-weight: 400">Monte Carlo</td>
-<td class="gt_row gt_right" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">1.4&nbsp;×&nbsp;10<sup>−1</sup></td>
+<td class="gt_row gt_right" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">4.6&nbsp;×&nbsp;10<sup>−2</sup></td>
 <td class="gt_row gt_left" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  Verdict" style="font-family: 'Source Sans Pro'; font-weight: 400"><div style="display: inline-block; padding: 2px 12px; border-radius: 15px; font-weight: 600; font-size: 12px; background:#1F6FB233;">
 Same distribution (gap = Monte Carlo noise)
 </div></td>
 </tr>
 <tr class="odd">
 <td class="gt_row gt_left" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  Object" style="font-family: 'Source Sans Pro'; font-weight: 400">IRF lo68</td>
-<td class="gt_row gt_left" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fSignRestr (1000 accepted draws, inference = 1)</td>
+<td class="gt_row gt_left" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fSignRestr (5000 accepted draws, inference = 1)</td>
 <td class="gt_row gt_left" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  Type" style="font-family: 'Source Sans Pro'; font-weight: 400">Monte Carlo</td>
-<td class="gt_row gt_right" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">1.2&nbsp;×&nbsp;10<sup>−1</sup></td>
+<td class="gt_row gt_right" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">5.5&nbsp;×&nbsp;10<sup>−2</sup></td>
 <td class="gt_row gt_left" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  Verdict" style="font-family: 'Source Sans Pro'; font-weight: 400"><div style="display: inline-block; padding: 2px 12px; border-radius: 15px; font-weight: 600; font-size: 12px; background:#1F6FB233;">
 Same distribution (gap = Monte Carlo noise)
 </div></td>
 </tr>
 <tr class="even">
 <td class="gt_row gt_left" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  Object" style="font-family: 'Source Sans Pro'; font-weight: 400">IRF hi68</td>
-<td class="gt_row gt_left" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fSignRestr (1000 accepted draws, inference = 1)</td>
+<td class="gt_row gt_left" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fSignRestr (5000 accepted draws, inference = 1)</td>
 <td class="gt_row gt_left" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  Type" style="font-family: 'Source Sans Pro'; font-weight: 400">Monte Carlo</td>
-<td class="gt_row gt_right" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">1.7&nbsp;×&nbsp;10<sup>−1</sup></td>
+<td class="gt_row gt_right" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">5.3&nbsp;×&nbsp;10<sup>−2</sup></td>
 <td class="gt_row gt_left" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  Verdict" style="font-family: 'Source Sans Pro'; font-weight: 400"><div style="display: inline-block; padding: 2px 12px; border-radius: 15px; font-weight: 600; font-size: 12px; background:#1F6FB233;">
 Same distribution (gap = Monte Carlo noise)
 </div></td>
 </tr>
 <tr class="odd">
 <td class="gt_row gt_left" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  Object" style="font-family: 'Source Sans Pro'; font-weight: 400">IRF lo90</td>
-<td class="gt_row gt_left" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fSignRestr (1000 accepted draws, inference = 1)</td>
+<td class="gt_row gt_left" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fSignRestr (5000 accepted draws, inference = 1)</td>
 <td class="gt_row gt_left" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  Type" style="font-family: 'Source Sans Pro'; font-weight: 400">Monte Carlo</td>
-<td class="gt_row gt_right" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">3.0&nbsp;×&nbsp;10<sup>−1</sup></td>
+<td class="gt_row gt_right" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">1.1&nbsp;×&nbsp;10<sup>−1</sup></td>
 <td class="gt_row gt_left" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  Verdict" style="font-family: 'Source Sans Pro'; font-weight: 400"><div style="display: inline-block; padding: 2px 12px; border-radius: 15px; font-weight: 600; font-size: 12px; background:#1F6FB233;">
 Same distribution (gap = Monte Carlo noise)
 </div></td>
 </tr>
 <tr class="even">
 <td class="gt_row gt_left" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  Object" style="font-family: 'Source Sans Pro'; font-weight: 400">IRF hi90</td>
-<td class="gt_row gt_left" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fSignRestr (1000 accepted draws, inference = 1)</td>
+<td class="gt_row gt_left" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fSignRestr (5000 accepted draws, inference = 1)</td>
 <td class="gt_row gt_left" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  Type" style="font-family: 'Source Sans Pro'; font-weight: 400">Monte Carlo</td>
-<td class="gt_row gt_right" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">2.3&nbsp;×&nbsp;10<sup>−1</sup></td>
+<td class="gt_row gt_right" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">5.8&nbsp;×&nbsp;10<sup>−2</sup></td>
 <td class="gt_row gt_left" headers="sign-restrictions-middot-uhlig2005-middot-cesa-bianchi-var-toolbox-4-0  Verdict" style="font-family: 'Source Sans Pro'; font-weight: 400"><div style="display: inline-block; padding: 2px 12px; border-radius: 15px; font-weight: 600; font-size: 12px; background:#1F6FB233;">
 Same distribution (gap = Monte Carlo noise)
 </div></td>
@@ -1113,45 +1113,45 @@ Same distribution (gap = Monte Carlo noise)
 </tr>
 <tr class="gt_row_group_first even">
 <td class="gt_row gt_left" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  Object" style="font-family: 'Source Sans Pro'; font-weight: 400">IRF median</td>
-<td class="gt_row gt_left" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fSignRestr (narrative = Volcker 1979m10 sign + dominance)</td>
+<td class="gt_row gt_left" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fSignRestr (narrative = Volcker 1979m10 sign + dominance, 5000 accepted draws)</td>
 <td class="gt_row gt_left" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  Type" style="font-family: 'Source Sans Pro'; font-weight: 400">Monte Carlo</td>
-<td class="gt_row gt_right" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">5.4&nbsp;×&nbsp;10<sup>−3</sup></td>
+<td class="gt_row gt_right" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">5.2&nbsp;×&nbsp;10<sup>−3</sup></td>
 <td class="gt_row gt_left" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  Verdict" style="font-family: 'Source Sans Pro'; font-weight: 400"><div style="display: inline-block; padding: 2px 12px; border-radius: 15px; font-weight: 600; font-size: 12px; background:#1F6FB233;">
 Same distribution (gap = Monte Carlo noise)
 </div></td>
 </tr>
 <tr class="odd">
 <td class="gt_row gt_left" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  Object" style="font-family: 'Source Sans Pro'; font-weight: 400">IRF lo68</td>
-<td class="gt_row gt_left" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fSignRestr (narrative = Volcker 1979m10 sign + dominance)</td>
+<td class="gt_row gt_left" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fSignRestr (narrative = Volcker 1979m10 sign + dominance, 5000 accepted draws)</td>
 <td class="gt_row gt_left" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  Type" style="font-family: 'Source Sans Pro'; font-weight: 400">Monte Carlo</td>
-<td class="gt_row gt_right" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">7.8&nbsp;×&nbsp;10<sup>−3</sup></td>
+<td class="gt_row gt_right" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">8.3&nbsp;×&nbsp;10<sup>−3</sup></td>
 <td class="gt_row gt_left" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  Verdict" style="font-family: 'Source Sans Pro'; font-weight: 400"><div style="display: inline-block; padding: 2px 12px; border-radius: 15px; font-weight: 600; font-size: 12px; background:#1F6FB233;">
 Same distribution (gap = Monte Carlo noise)
 </div></td>
 </tr>
 <tr class="even">
 <td class="gt_row gt_left" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  Object" style="font-family: 'Source Sans Pro'; font-weight: 400">IRF hi68</td>
-<td class="gt_row gt_left" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fSignRestr (narrative = Volcker 1979m10 sign + dominance)</td>
+<td class="gt_row gt_left" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fSignRestr (narrative = Volcker 1979m10 sign + dominance, 5000 accepted draws)</td>
 <td class="gt_row gt_left" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  Type" style="font-family: 'Source Sans Pro'; font-weight: 400">Monte Carlo</td>
-<td class="gt_row gt_right" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">1.7&nbsp;×&nbsp;10<sup>−2</sup></td>
-<td class="gt_row gt_left" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  Verdict" style="font-family: 'Source Sans Pro'; font-weight: 400"><div style="display: inline-block; padding: 2px 12px; border-radius: 15px; font-weight: 600; font-size: 12px; background:#1F6FB233;">
-Same distribution (gap = Monte Carlo noise)
+<td class="gt_row gt_right" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">9.3&nbsp;×&nbsp;10<sup>−3</sup></td>
+<td class="gt_row gt_left" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  Verdict" style="font-family: 'Source Sans Pro'; font-weight: 400"><div style="display: inline-block; padding: 2px 12px; border-radius: 15px; font-weight: 600; font-size: 12px; background:#5B8DB833;">
+Close (gap below 5% of band width)
 </div></td>
 </tr>
 <tr class="odd">
 <td class="gt_row gt_left" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  Object" style="font-family: 'Source Sans Pro'; font-weight: 400">IRF lo90</td>
-<td class="gt_row gt_left" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fSignRestr (narrative = Volcker 1979m10 sign + dominance)</td>
+<td class="gt_row gt_left" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fSignRestr (narrative = Volcker 1979m10 sign + dominance, 5000 accepted draws)</td>
 <td class="gt_row gt_left" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  Type" style="font-family: 'Source Sans Pro'; font-weight: 400">Monte Carlo</td>
-<td class="gt_row gt_right" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">2.5&nbsp;×&nbsp;10<sup>−2</sup></td>
+<td class="gt_row gt_right" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">1.3&nbsp;×&nbsp;10<sup>−2</sup></td>
 <td class="gt_row gt_left" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  Verdict" style="font-family: 'Source Sans Pro'; font-weight: 400"><div style="display: inline-block; padding: 2px 12px; border-radius: 15px; font-weight: 600; font-size: 12px; background:#1F6FB233;">
 Same distribution (gap = Monte Carlo noise)
 </div></td>
 </tr>
 <tr class="even">
 <td class="gt_row gt_left" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  Object" style="font-family: 'Source Sans Pro'; font-weight: 400">IRF hi90</td>
-<td class="gt_row gt_left" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fSignRestr (narrative = Volcker 1979m10 sign + dominance)</td>
+<td class="gt_row gt_left" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  tidyMacro function" style="font-family: monospace; font-weight: 400; font-size: 13px">fSignRestr (narrative = Volcker 1979m10 sign + dominance, 5000 accepted draws)</td>
 <td class="gt_row gt_left" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  Type" style="font-family: 'Source Sans Pro'; font-weight: 400">Monte Carlo</td>
-<td class="gt_row gt_right" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">2.5&nbsp;×&nbsp;10<sup>−2</sup></td>
+<td class="gt_row gt_right" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  Max abs diff" style="font-family: 'Source Sans Pro'; font-weight: 400">1.1&nbsp;×&nbsp;10<sup>−2</sup></td>
 <td class="gt_row gt_left" headers="sign-narrative-middot-adrr2018-middot-cesa-bianchi-var-toolbox-4-0  Verdict" style="font-family: 'Source Sans Pro'; font-weight: 400"><div style="display: inline-block; padding: 2px 12px; border-radius: 15px; font-weight: 600; font-size: 12px; background:#1F6FB233;">
 Same distribution (gap = Monte Carlo noise)
 </div></td>
@@ -1413,7 +1413,7 @@ Identical (numerical precision)
 </tr>
 </tbody><tfoot>
 <tr class="gt_sourcenotes odd">
-<td colspan="5" class="gt_sourcenote">Monte Carlo rows report the largest absolute gap between tidyMacro and reference bands at 1,000 draws (2,000 for the moving-block bootstrap, 10,000 for the long-run bootstrap). Going from 1,000 to 10,000 long-run draws shrank the tidyMacro-Toolbox gap 3.3 to 5.7 times, at least the √10 ≈ 3.2 that pure Monte Carlo error predicts. The LP-IV first-stage F differs only in its degrees of freedom: tidyMacro uses n − k<sub>controls</sub> − k<sub>z</sub>, the Toolbox n − k<sub>z</sub>.</td>
+<td colspan="5" class="gt_sourcenote">Monte Carlo rows report the largest absolute gap between tidyMacro and reference bands at 5,000 draws (2,000 for the moving-block bootstrap, 10,000 for the long-run bootstrap). Going from 1,000 to 5,000 draws shrank the largest Cholesky and sign-restriction gaps 1.8 to 4.0 times, and going from 1,000 to 10,000 long-run draws shrank them 3.3 to 5.7 times, in line with the √5 ≈ 2.2 and √10 ≈ 3.2 that pure Monte Carlo error predicts. The sign + narrative gaps were already about 1% of the band width at 1,000 draws. The LP-IV first-stage F differs only in its degrees of freedom: tidyMacro uses n − k<sub>controls</sub> − k<sub>z</sub>, the Toolbox n − k<sub>z</sub>.</td>
 </tr>
 </tfoot>
 
