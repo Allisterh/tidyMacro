@@ -23,7 +23,26 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
@@ -302,26 +321,26 @@ ul.task-list li input[type="checkbox"] {
 </ul>
 <div class="cell">
 <div class="cell-output-display">
-<div id="ryixbvywrk" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="gyihftypeo" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 <style>@import url("https://fonts.googleapis.com/css2?family=Source+Sans+Pro:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Libre+Franklin:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Source+Sans+Pro:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
-#ryixbvywrk table {
+#gyihftypeo table {
   font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-#ryixbvywrk thead, #ryixbvywrk tbody, #ryixbvywrk tfoot, #ryixbvywrk tr, #ryixbvywrk td, #ryixbvywrk th {
+#gyihftypeo thead, #gyihftypeo tbody, #gyihftypeo tfoot, #gyihftypeo tr, #gyihftypeo td, #gyihftypeo th {
   border-style: none;
 }
 
-#ryixbvywrk p {
+#gyihftypeo p {
   margin: 0;
   padding: 0;
 }
 
-#ryixbvywrk .gt_table {
+#gyihftypeo .gt_table {
   display: table;
   border-collapse: collapse;
   line-height: normal;
@@ -347,12 +366,12 @@ ul.task-list li input[type="checkbox"] {
   border-left-color: #D3D3D3;
 }
 
-#ryixbvywrk .gt_caption {
+#gyihftypeo .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
 
-#ryixbvywrk .gt_title {
+#gyihftypeo .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -364,7 +383,7 @@ ul.task-list li input[type="checkbox"] {
   border-bottom-width: 0;
 }
 
-#ryixbvywrk .gt_subtitle {
+#gyihftypeo .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -376,7 +395,7 @@ ul.task-list li input[type="checkbox"] {
   border-top-width: 0;
 }
 
-#ryixbvywrk .gt_heading {
+#gyihftypeo .gt_heading {
   background-color: #FFFFFF;
   text-align: left;
   border-bottom-color: #FFFFFF;
@@ -388,13 +407,13 @@ ul.task-list li input[type="checkbox"] {
   border-right-color: #D3D3D3;
 }
 
-#ryixbvywrk .gt_bottom_border {
+#gyihftypeo .gt_bottom_border {
   border-bottom-style: none;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#ryixbvywrk .gt_col_headings {
+#gyihftypeo .gt_col_headings {
   border-top-style: none;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -409,7 +428,7 @@ ul.task-list li input[type="checkbox"] {
   border-right-color: #D3D3D3;
 }
 
-#ryixbvywrk .gt_col_heading {
+#gyihftypeo .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 12px;
@@ -429,7 +448,7 @@ ul.task-list li input[type="checkbox"] {
   overflow-x: hidden;
 }
 
-#ryixbvywrk .gt_column_spanner_outer {
+#gyihftypeo .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 12px;
@@ -441,15 +460,15 @@ ul.task-list li input[type="checkbox"] {
   padding-right: 4px;
 }
 
-#ryixbvywrk .gt_column_spanner_outer:first-child {
+#gyihftypeo .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#ryixbvywrk .gt_column_spanner_outer:last-child {
+#gyihftypeo .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#ryixbvywrk .gt_column_spanner {
+#gyihftypeo .gt_column_spanner {
   border-bottom-style: none;
   border-bottom-width: 1px;
   border-bottom-color: #334422;
@@ -461,11 +480,11 @@ ul.task-list li input[type="checkbox"] {
   width: 100%;
 }
 
-#ryixbvywrk .gt_spanner_row {
+#gyihftypeo .gt_spanner_row {
   border-bottom-style: hidden;
 }
 
-#ryixbvywrk .gt_group_heading {
+#gyihftypeo .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -491,7 +510,7 @@ ul.task-list li input[type="checkbox"] {
   text-align: left;
 }
 
-#ryixbvywrk .gt_empty_group_heading {
+#gyihftypeo .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -506,15 +525,15 @@ ul.task-list li input[type="checkbox"] {
   vertical-align: middle;
 }
 
-#ryixbvywrk .gt_from_md > :first-child {
+#gyihftypeo .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#ryixbvywrk .gt_from_md > :last-child {
+#gyihftypeo .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#ryixbvywrk .gt_row {
+#gyihftypeo .gt_row {
   padding-top: 7px;
   padding-bottom: 7px;
   padding-left: 5px;
@@ -533,7 +552,7 @@ ul.task-list li input[type="checkbox"] {
   overflow-x: hidden;
 }
 
-#ryixbvywrk .gt_stub {
+#gyihftypeo .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -546,7 +565,7 @@ ul.task-list li input[type="checkbox"] {
   padding-right: 5px;
 }
 
-#ryixbvywrk .gt_stub_row_group {
+#gyihftypeo .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -560,15 +579,15 @@ ul.task-list li input[type="checkbox"] {
   vertical-align: top;
 }
 
-#ryixbvywrk .gt_row_group_first td {
+#gyihftypeo .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#ryixbvywrk .gt_row_group_first th {
+#gyihftypeo .gt_row_group_first th {
   border-top-width: 2px;
 }
 
-#ryixbvywrk .gt_summary_row {
+#gyihftypeo .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -578,16 +597,16 @@ ul.task-list li input[type="checkbox"] {
   padding-right: 5px;
 }
 
-#ryixbvywrk .gt_first_summary_row {
+#gyihftypeo .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#ryixbvywrk .gt_first_summary_row.thick {
+#gyihftypeo .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#ryixbvywrk .gt_last_summary_row {
+#gyihftypeo .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -597,7 +616,7 @@ ul.task-list li input[type="checkbox"] {
   border-bottom-color: #D3D3D3;
 }
 
-#ryixbvywrk .gt_grand_summary_row {
+#gyihftypeo .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -607,7 +626,7 @@ ul.task-list li input[type="checkbox"] {
   padding-right: 5px;
 }
 
-#ryixbvywrk .gt_first_grand_summary_row {
+#gyihftypeo .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -617,7 +636,7 @@ ul.task-list li input[type="checkbox"] {
   border-top-color: #D3D3D3;
 }
 
-#ryixbvywrk .gt_last_grand_summary_row_top {
+#gyihftypeo .gt_last_grand_summary_row_top {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -627,11 +646,11 @@ ul.task-list li input[type="checkbox"] {
   border-bottom-color: #D3D3D3;
 }
 
-#ryixbvywrk .gt_striped {
+#gyihftypeo .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#ryixbvywrk .gt_table_body {
+#gyihftypeo .gt_table_body {
   border-top-style: none;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -640,7 +659,7 @@ ul.task-list li input[type="checkbox"] {
   border-bottom-color: #FFFFFF;
 }
 
-#ryixbvywrk .gt_footnotes {
+#gyihftypeo .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -654,7 +673,7 @@ ul.task-list li input[type="checkbox"] {
   border-right-color: #D3D3D3;
 }
 
-#ryixbvywrk .gt_footnote {
+#gyihftypeo .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-top: 4px;
@@ -663,7 +682,7 @@ ul.task-list li input[type="checkbox"] {
   padding-right: 5px;
 }
 
-#ryixbvywrk .gt_sourcenotes {
+#gyihftypeo .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -677,7 +696,7 @@ ul.task-list li input[type="checkbox"] {
   border-right-color: #D3D3D3;
 }
 
-#ryixbvywrk .gt_sourcenote {
+#gyihftypeo .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -685,72 +704,72 @@ ul.task-list li input[type="checkbox"] {
   padding-right: 5px;
 }
 
-#ryixbvywrk .gt_left {
+#gyihftypeo .gt_left {
   text-align: left;
 }
 
-#ryixbvywrk .gt_center {
+#gyihftypeo .gt_center {
   text-align: center;
 }
 
-#ryixbvywrk .gt_right {
+#gyihftypeo .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#ryixbvywrk .gt_font_normal {
+#gyihftypeo .gt_font_normal {
   font-weight: normal;
 }
 
-#ryixbvywrk .gt_font_bold {
+#gyihftypeo .gt_font_bold {
   font-weight: bold;
 }
 
-#ryixbvywrk .gt_font_italic {
+#gyihftypeo .gt_font_italic {
   font-style: italic;
 }
 
-#ryixbvywrk .gt_super {
+#gyihftypeo .gt_super {
   font-size: 65%;
 }
 
-#ryixbvywrk .gt_footnote_marks {
+#gyihftypeo .gt_footnote_marks {
   font-size: 75%;
   vertical-align: 0.4em;
   position: initial;
 }
 
-#ryixbvywrk .gt_asterisk {
+#gyihftypeo .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#ryixbvywrk .gt_indent_1 {
+#gyihftypeo .gt_indent_1 {
   text-indent: 5px;
 }
 
-#ryixbvywrk .gt_indent_2 {
+#gyihftypeo .gt_indent_2 {
   text-indent: 10px;
 }
 
-#ryixbvywrk .gt_indent_3 {
+#gyihftypeo .gt_indent_3 {
   text-indent: 15px;
 }
 
-#ryixbvywrk .gt_indent_4 {
+#gyihftypeo .gt_indent_4 {
   text-indent: 20px;
 }
 
-#ryixbvywrk .gt_indent_5 {
+#gyihftypeo .gt_indent_5 {
   text-indent: 25px;
 }
 
-#ryixbvywrk .katex-display {
+#gyihftypeo .katex-display {
   display: inline-flex !important;
   margin-bottom: 0.75em !important;
 }
 
-#ryixbvywrk div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+#gyihftypeo div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
   height: 0px !important;
 }
 </style>
@@ -1413,7 +1432,7 @@ Identical (numerical precision)
 </tr>
 </tbody><tfoot>
 <tr class="gt_sourcenotes odd">
-<td colspan="5" class="gt_sourcenote">Monte Carlo rows report the largest absolute gap between tidyMacro and reference bands at 5,000 draws (2,000 for the moving-block bootstrap, 10,000 for the long-run bootstrap). Going from 1,000 to 5,000 draws shrank the largest Cholesky and sign-restriction gaps 1.8 to 4.0 times, and going from 1,000 to 10,000 long-run draws shrank them 3.3 to 5.7 times, in line with the √5 ≈ 2.2 and √10 ≈ 3.2 that pure Monte Carlo error predicts. The sign + narrative gaps were already about 1% of the band width at 1,000 draws. The LP-IV first-stage F differs only in its degrees of freedom: tidyMacro uses n − k<sub>controls</sub> − k<sub>z</sub>, the Toolbox n − k<sub>z</sub>.</td>
+<td colspan="5" class="gt_sourcenote">The LP-IV first-stage F differs only in its degrees of freedom: tidyMacro uses n − k<sub>controls</sub> − k<sub>z</sub>, the Toolbox n − k<sub>z</sub>. By the Frisch-Waugh-Lovell theorem, partialling out the controls leaves the residual sum of squares unchanged but not the degrees of freedom, so tidyMacro reports the standard exclusion F of the full first stage (Wooldridge 2020, sec.&nbsp;4.5; Davidson and MacKinnon 2004, secs. 2.4 and 4.4).</td>
 </tr>
 </tfoot>
 
@@ -1425,7 +1444,15 @@ Identical (numerical precision)
 
 
 
-<a onclick="window.scrollTo(0, 0); return false;" role="button" id="quarto-back-to-top"><i class="bi bi-arrow-up"></i> Back to top</a></main> <!-- /main -->
+
+<a onclick="window.scrollTo(0, 0); return false;" role="button" id="quarto-back-to-top"><i class="bi bi-arrow-up"></i> Back to top</a><div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" role="list">
+<div id="ref-davidsonmackinnon2004" class="csl-entry" role="listitem">
+Davidson, Russell, and James G. MacKinnon. 2004. <em>Econometric Theory and Methods</em>. Oxford University Press.
+</div>
+<div id="ref-wooldridge2020" class="csl-entry" role="listitem">
+Wooldridge, Jeffrey M. 2020. <em>Introductory Econometrics: A Modern Approach</em>. 7th ed. Cengage Learning.
+</div>
+</div></section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
     const icon = "";
